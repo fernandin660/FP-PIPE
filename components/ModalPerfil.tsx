@@ -1,0 +1,390 @@
+"use client";
+
+import { useState } from "react";
+
+import { criarClienteSupabase } from "../lib/supabase/client";
+
+export type AnexoPerfil = {
+  nome: string;
+  url: string;
+  tipo: "pdf" | "imagem";
+  texto: string;
+};
+
+export type PerfilVendedor = {
+  nome_empresa?: string | null;
+  area_atuacao?: string | null;
+  produtos_servicos?: string | null;
+  site?: string | null;
+  foto_url?: string | null;
+  anexos?: AnexoPerfil[] | null;
+};
+
+type Props = {
+  aberto: boolean;
+  obrigatorio?: boolean;
+  perfil: PerfilVendedor | null;
+  aoFechar: () => void;
+  aoSalvar: (perfil: PerfilVendedor) => void;
+};
+
+export default function ModalPerfil({
+  aberto,
+  obrigatorio = false,
+  perfil,
+  aoFechar,
+  aoSalvar,
+}: Props) {
+  const [nomeEmpresa, setNomeEmpresa] = useState(
+    perfil?.nome_empresa ?? ""
+  );
+  const [areaAtuacao, setAreaAtuacao] = useState(
+    perfil?.area_atuacao ?? ""
+  );
+  const [produtosServicos, setProdutosServicos] = useState(
+    perfil?.produtos_servicos ?? ""
+  );
+  const [site, setSite] = useState(perfil?.site ?? "");
+  const [anexos, setAnexos] = useState<AnexoPerfil[]>(
+    perfil?.anexos ?? []
+  );
+  const [fotoUrl, setFotoUrl] = useState<string | null>(
+    perfil?.foto_url ?? null
+  );
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [enviandoAnexo, setEnviandoAnexo] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  if (!aberto) return null;
+
+  async function enviarAnexo(arquivo: File) {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    setEnviandoAnexo(true);
+    setErro("");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Sessão expirada.");
+
+      const extensao = (arquivo.name.split(".").pop() || "bin").toLowerCase();
+      const ehPdf =
+        extensao === "pdf" || arquivo.type === "application/pdf";
+      const ehImagem = arquivo.type.startsWith("image/");
+
+      if (!ehPdf && !ehImagem) {
+        throw new Error("Formato");
+      }
+
+      const caminho = `${user.id}/anexo-${Date.now()}.${extensao}`;
+
+      const { error: erroUpload } = await supabase.storage
+        .from("portfolios")
+        .upload(caminho, arquivo, { upsert: true });
+
+      if (erroUpload) throw erroUpload;
+
+      const { data } = supabase.storage
+        .from("portfolios")
+        .getPublicUrl(caminho);
+
+      const resposta = await fetch("/api/extrair-anexo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: data.publicUrl,
+          tipo: ehPdf ? "pdf" : "imagem",
+        }),
+      });
+
+      const dadosResposta = await resposta.json();
+
+      if (!resposta.ok || !dadosResposta.texto) {
+        throw new Error("Leitura");
+      }
+
+      setAnexos((atual) => [
+        ...atual,
+        {
+          nome: arquivo.name,
+          url: data.publicUrl,
+          tipo: ehPdf ? "pdf" : "imagem",
+          texto: dadosResposta.texto,
+        },
+      ]);
+    } catch (erroAnexo) {
+      console.error("Erro no anexo:", erroAnexo);
+      setErro(
+        String(erroAnexo) === "Error: Formato"
+          ? "Aceitamos apenas PDF e imagens."
+          : "Não conseguimos ler este anexo. Tente outro arquivo."
+      );
+    } finally {
+      setEnviandoAnexo(false);
+    }
+  }
+
+  function removerAnexo(indice: number) {
+    setAnexos((atual) => atual.filter((_, i) => i !== indice));
+  }
+
+  async function enviarFoto(arquivo: File) {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    setEnviandoFoto(true);
+    setErro("");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Sessão expirada.");
+
+      const extensao = arquivo.name.split(".").pop() || "jpg";
+      const caminho = `${user.id}/logo-${Date.now()}.${extensao}`;
+
+      const { error: erroUpload } = await supabase.storage
+        .from("logos")
+        .upload(caminho, arquivo, { upsert: true });
+
+      if (erroUpload) throw erroUpload;
+
+      const { data } = supabase.storage.from("logos").getPublicUrl(caminho);
+
+      setFotoUrl(data.publicUrl);
+    } catch (erroUpload) {
+      console.error("Erro no upload da foto:", erroUpload);
+      setErro("Não conseguimos enviar a imagem. Tente outra.");
+    } finally {
+      setEnviandoFoto(false);
+    }
+  }
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!nomeEmpresa.trim() || !produtosServicos.trim()) {
+      setErro("Preencha ao menos o nome da empresa e o que você vende.");
+      return;
+    }
+
+    const supabase = criarClienteSupabase();
+    if (!supabase) {
+      setErro("Banco de dados não configurado.");
+      return;
+    }
+
+    setSalvando(true);
+    setErro("");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Sessão expirada.");
+
+      const registro: PerfilVendedor & { usuario_id: string } = {
+        usuario_id: user.id,
+        nome_empresa: nomeEmpresa.trim(),
+        area_atuacao: areaAtuacao.trim(),
+        produtos_servicos: produtosServicos.trim(),
+        site: site.trim(),
+        foto_url: fotoUrl,
+        anexos,
+      };
+
+      const { error: erroSalvar } = await supabase
+        .from("perfil")
+        .upsert(registro, { onConflict: "usuario_id" });
+
+      if (erroSalvar) throw erroSalvar;
+
+      aoSalvar(registro);
+      if (!obrigatorio) aoFechar();
+    } catch (erroAoSalvar) {
+      console.error("Erro ao salvar perfil:", erroAoSalvar);
+      setErro("Não conseguimos salvar o perfil. Tente novamente.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center px-6 overflow-y-auto py-8">
+      <div className="w-full max-w-lg bg-pipe-card border border-pipe-border rounded-xl p-8 relative">
+        {!obrigatorio && (
+          <button
+            onClick={aoFechar}
+            className="absolute top-4 right-5 text-pipe-muted hover:text-white text-xl transition"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        )}
+
+        <h2 className="font-display text-3xl text-white">
+          Perfil da{" "}
+          <span className="text-pipe-lime">sua empresa</span>
+        </h2>
+
+        <p className="text-pipe-muted text-sm mt-2">
+          {obrigatorio
+            ? "Falta só este passo: conte o que sua empresa vende. Nossa inteligência usa isso para pontuar empresas e escrever e-mails personalizados."
+            : "Nossa inteligência usa estes dados para pontuar empresas e escrever e-mails personalizados."}
+        </p>
+
+        <form onSubmit={salvar} className="space-y-4 mt-6">
+          <div className="flex items-center gap-4">
+            {fotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={fotoUrl}
+                alt="Logo da empresa"
+                className="w-16 h-16 rounded-full object-cover border border-pipe-border"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-pipe-dark border border-pipe-border flex items-center justify-center text-2xl text-pipe-muted">
+                🏢
+              </div>
+            )}
+
+            <label className="cursor-pointer text-sm font-semibold text-pipe-blue hover:underline">
+              {enviandoFoto
+                ? "Enviando..."
+                : fotoUrl
+                  ? "Trocar foto/logo"
+                  : "📷 Anexar foto ou logo"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={enviandoFoto}
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  if (arquivo) void enviarFoto(arquivo);
+                }}
+              />
+            </label>
+          </div>
+
+          <input
+            required
+            placeholder="Nome da sua empresa (ex.: Bigcompany)"
+            value={nomeEmpresa}
+            onChange={(e) => setNomeEmpresa(e.target.value)}
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+          />
+
+          <input
+            placeholder="Área de atuação (ex.: Cibersegurança)"
+            value={areaAtuacao}
+            onChange={(e) => setAreaAtuacao(e.target.value)}
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+          />
+
+          <input
+            type="url"
+            placeholder="Site da empresa (ex.: https://bigcompany.com.br)"
+            value={site}
+            onChange={(e) => setSite(e.target.value)}
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+          />
+
+          <textarea
+            required
+            rows={5}
+            placeholder={
+              "O que sua empresa vende? Seja específico.\nEx.: Pentest, monitoramento de ameaças 24/7 (SOC), resposta a incidentes e adequação à LGPD para médias empresas."
+            }
+            value={produtosServicos}
+            onChange={(e) => setProdutosServicos(e.target.value)}
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white resize-y"
+          />
+
+          <p className="text-pipe-muted text-xs">
+            💡 Quanto mais concreto, melhores os e-mails: cite serviços,
+            tipo de cliente e o problema que você resolve.
+          </p>
+
+          <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+            <p className="text-sm font-semibold text-white mb-1">
+              📎 Portfólio (opcional)
+            </p>
+
+            <p className="text-pipe-muted text-xs mb-2">
+              Anexe PDFs ou imagens (catálogo, apresentação, print de site).
+              Nossa equipe lê o conteúdo e usa como contexto nas prospecções.
+            </p>
+
+            {anexos.length > 0 && (
+              <ul className="space-y-1.5 mb-2">
+                {anexos.map((anexo, indice) => (
+                  <li
+                    key={`${anexo.url}-${indice}`}
+                    className="flex items-center justify-between gap-2 text-xs bg-pipe-card border border-pipe-border rounded-lg px-2.5 py-1.5"
+                  >
+                    <span className="truncate text-gray-300">
+                      {anexo.tipo === "pdf" ? "📄" : "🖼️"} {anexo.nome}
+                      <span className="text-pipe-muted">
+                        {" "}
+                        · lido ✓
+                      </span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => removerAnexo(indice)}
+                      className="shrink-0 text-red-400 hover:text-red-300"
+                      title="Remover anexo"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <label className="cursor-pointer inline-block text-xs font-semibold text-pipe-blue hover:underline">
+              {enviandoAnexo
+                ? "Lendo anexo..."
+                : "＋ Anexar PDF ou imagem"}
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="hidden"
+                disabled={enviandoAnexo}
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  if (arquivo) void enviarAnexo(arquivo);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+          <button
+            type="submit"
+            disabled={salvando || enviandoFoto}
+            className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+          >
+            {salvando
+              ? "Salvando..."
+              : obrigatorio
+                ? "Salvar e começar →"
+                : "💾 Salvar alterações"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

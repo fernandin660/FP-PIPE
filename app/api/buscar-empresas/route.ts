@@ -1,0 +1,231 @@
+import { NextResponse } from "next/server";
+import {
+  conhecimentoCnae,
+  normalizarTextoLocal,
+  formatarCnpj,
+} from "@/lib/conhecimento-cnae";
+
+const URL_CASADOSDADOS =
+  "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
+const LIMITE_POR_RECORTE = 20;
+const MAX_CHAMADAS = 12;
+const LIMITE_TOTAL_EMPRESAS = 50;
+
+const MAPA_PORTE: Record<string, string[]> = {
+  Pequena: ["01", "03"],
+  "Média": ["05"],
+  Grande: ["05"],
+};
+
+// Segmentos onde empresas imobiliárias são o alvo legítimo da busca.
+// Nos demais, nomes com esses termos são holdings de terras/imóveis
+// (ex.: fazenda registrada como "Gestão Imobiliária") e devem ser excluídos.
+const SEGMENTOS_IMOBILIARIOS = new Set(["Imobiliário", "Construção Civil"]);
+const TERMOS_EXCLUSAO_NOME = [
+  "IMOBILIARIA",
+  "INCORPORADORA",
+  "LOTEADORA",
+  "EMPREENDIMENTOS IMOBILIARIOS",
+];
+
+function nomePareceImobiliario(nome: string): boolean {
+  const nomeNormalizado = normalizarTextoLocal(nome);
+  return TERMOS_EXCLUSAO_NOME.some((termo) =>
+    nomeNormalizado.includes(termo)
+  );
+}
+
+function mapearPortesParaCodigos(portes: string[]): string[] {
+  const codigos = new Set<string>();
+  for (const porte of portes) {
+    for (const codigo of MAPA_PORTE[porte] ?? []) {
+      codigos.add(codigo);
+    }
+  }
+  return Array.from(codigos);
+}
+
+function chaveSemAcento(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+const mapaCnae = new Map<string, string[]>(
+  Object.entries(conhecimentoCnae).map(([chave, codigos]) => [
+    chaveSemAcento(chave),
+    codigos,
+  ])
+);
+
+type EmpresaEncontrada = {
+  cnpj: string;
+  cnpjFormatado: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  situacao: string;
+  dataSituacao: string;
+  segmentoIcp: string;
+  uf: string;
+  municipio: string;
+};
+
+type RespostaCasadosDados = {
+  total?: number;
+  cnpjs?: Array<{
+    cnpj?: string;
+    razao_social?: string;
+    nome_fantasia?: string;
+    situacao_cadastral?: {
+      situacao_atual?: string;
+      motivo?: string;
+      data?: string;
+    };
+  }>;
+};
+
+async function pesquisarRecorte(
+  codigosCnae: string[],
+  uf?: string,
+  municipio?: string,
+  codigosPorte: string[] = []
+): Promise<RespostaCasadosDados | null> {
+  const corpo: Record<string, unknown> = {
+    codigo_atividade_principal: codigosCnae,
+    situacao_cadastral: ["ATIVA"],
+    limite: LIMITE_POR_RECORTE,
+  };
+  if (uf) corpo.uf = [uf];
+  if (municipio) corpo.municipio = [municipio];
+  if (codigosPorte.length > 0) {
+    corpo.porte_empresa = { codigos: codigosPorte };
+  }
+
+  const resposta = await fetch(URL_CASADOSDADOS, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+    },
+    body: JSON.stringify(corpo),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!resposta.ok) return null;
+  return (await resposta.json()) as RespostaCasadosDados;
+}
+
+export async function POST(request: Request) {
+  try {
+    const dados = await request.json();
+    const segmentos: string[] = Array.isArray(dados.segmentos)
+      ? dados.segmentos.filter(
+          (s: unknown): s is string => typeof s === "string"
+        )
+      : [];
+    const estado: string | undefined =
+      typeof dados.estado === "string" && dados.estado.trim()
+        ? normalizarTextoLocal(dados.estado).replace(/\s/g, "")
+        : undefined;
+    const cidade: string | undefined =
+      typeof dados.cidade === "string" && dados.cidade.trim()
+        ? normalizarTextoLocal(dados.cidade)
+        : undefined;
+    const portes: string[] = Array.isArray(dados.portes)
+      ? dados.portes.filter(
+          (p: unknown): p is string => typeof p === "string"
+        )
+      : [];
+    const codigosPorte = mapearPortesParaCodigos(portes);
+
+    if (segmentos.length === 0) {
+      return NextResponse.json(
+        { erro: "Nenhum segmento informado." },
+        { status: 400 }
+      );
+    }
+
+    const mapaEmpresas = new Map<string, EmpresaEncontrada>();
+    const mapaRazoesSociais = new Set<string>();
+    let chamadas = 0;
+
+    const excluiImobiliarios =
+      !segmentos.some((s) => SEGMENTOS_IMOBILIARIOS.has(s));
+
+    for (const segmento of segmentos) {
+      const codigos = mapaCnae.get(chaveSemAcento(segmento));
+      if (!codigos || codigos.length === 0) continue;
+
+      for (const codigo of codigos) {
+        if (chamadas >= MAX_CHAMADAS) break;
+        if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
+        chamadas += 1;
+        try {
+          const resposta = await pesquisarRecorte(
+            [codigo],
+            estado,
+            cidade,
+            codigosPorte
+          );
+          if (resposta?.cnpjs) {
+            for (const item of resposta.cnpjs) {
+              const digitos = (item.cnpj ?? "").replace(/\D/g, "");
+              if (!digitos || digitos.length !== 14) continue;
+              if (mapaEmpresas.has(digitos)) continue;
+
+              const razaoSocialItem = item.razao_social ?? "";
+              const chaveRazao = normalizarTextoLocal(razaoSocialItem);
+
+              // Filiais/matrizes da mesma empresa: mantém só o primeiro CNPJ
+              if (
+                chaveRazao &&
+                mapaRazoesSociais.has(chaveRazao)
+              ) {
+                continue;
+              }
+
+              if (excluiImobiliarios && nomePareceImobiliario(razaoSocialItem)) {
+                continue;
+              }
+
+              mapaRazoesSociais.add(chaveRazao);
+              mapaEmpresas.set(digitos, {
+                cnpj: digitos,
+                cnpjFormatado: formatarCnpj(digitos),
+                razaoSocial: razaoSocialItem,
+                nomeFantasia: item.nome_fantasia ?? "",
+                situacao:
+                  item.situacao_cadastral?.situacao_atual ?? "ATIVA",
+                dataSituacao: item.situacao_cadastral?.data?.slice(0, 10) ?? "",
+                segmentoIcp: segmento,
+                uf: estado ?? "",
+                municipio: cidade ?? "",
+              });
+            }
+          }
+        } catch {
+          // Recorte falhou — segue para o próximo
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (chamadas >= MAX_CHAMADAS) break;
+      if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
+    }
+
+    return NextResponse.json({
+      empresas: Array.from(mapaEmpresas.values()).slice(
+        0,
+        LIMITE_TOTAL_EMPRESAS
+      ),
+      totalUnicos: Math.min(mapaEmpresas.size, LIMITE_TOTAL_EMPRESAS),
+      recortesPesquisados: chamadas,
+    });
+  } catch {
+    return NextResponse.json(
+      { erro: "Não conseguimos buscar as empresas agora. Tente novamente." },
+      { status: 500 }
+    );
+  }
+}
