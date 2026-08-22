@@ -29,7 +29,7 @@ function montarPerfilVendedor(perfil: PerfilVendedor | null): string {
   if (perfil.site) partes.push(`Site: ${perfil.site}.`);
 
   if (perfil.nichos && perfil.nichos.length > 0) {
-    partes.push(`Nichos-alvo confirmados: ${perfil.nichos.join("; ")}.`);
+    partes.push(`Especialidades confirmadas: ${perfil.nichos.join("; ")}.`);
   }
 
   if (perfil.produtos_servicos) {

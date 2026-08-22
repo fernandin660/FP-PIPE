@@ -47,11 +47,12 @@ Empresa que vende:
 Área de atuação: ${areaAtuacao || "(não informada)"}
 Produtos/serviços: ${produtosServicos || "(não informado)"}
 
-Liste de 5 a 8 nichos de clientes ALTAMENTE específicos onde esta oferta costuma converter melhor no Brasil.
+Gere de 6 a 10 itens curtos e clicáveis representando os serviços, especialidades e nichos desta empresa.
 Regras:
-- Cada nicho deve combinar segmento + característica (porte, momento, dor), ex.: "Clínicas médicas de médio porte", "Indústrias alimentícias sem time interno de TI".
-- Máximo 8 palavras por nicho.
-- Nichos distintos entre si, ordenados do mais promissor ao menos.
+- A maioria dos itens deve ser um SERVIÇO/OFERTA específica extraída ou inferida da descrição (ex.: "Gerenciamento de Endpoint", "Treinamento de usuários", "Gestão de vulnerabilidades").
+- Inclua também 2 a 3 itens adjacentes óbvios que essa empresa provavelmente vende mas não citou.
+- Máximo 6 palavras por item, começando com substantivo.
+- Itens distintos entre si, ordenados do mais central ao mais complementar.
 `.trim(),
             },
           ],

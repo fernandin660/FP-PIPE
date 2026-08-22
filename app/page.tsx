@@ -849,7 +849,7 @@ export default function Home() {
     if (perfil?.site) partes.push(`Site: ${perfil.site}`);
 
     if (perfil?.nichos && perfil.nichos.length > 0) {
-      partes.push(`Nichos confirmados pelo cliente: ${perfil.nichos.join("; ")}`);
+      partes.push(`Especialidades/serviços confirmados pelo cliente: ${perfil.nichos.join("; ")}`);
     }
 
     (perfil?.anexos ?? []).forEach((anexo) => {
@@ -875,7 +875,7 @@ export default function Home() {
     if (perfil.site) partes.push(`Site: ${perfil.site}.`);
 
     if (perfil.nichos && perfil.nichos.length > 0) {
-      partes.push(`Nichos-alvo confirmados: ${perfil.nichos.join("; ")}.`);
+      partes.push(`Especialidades confirmadas: ${perfil.nichos.join("; ")}.`);
     }
 
     if (perfil.produtos_servicos) {

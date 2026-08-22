@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { criarClienteSupabase } from "../lib/supabase/client";
 
@@ -55,6 +55,21 @@ export default function ModalPerfil({
   const [sugestoesNichos, setSugestoesNichos] = useState<string[]>([]);
   const [buscandoNichos, setBuscandoNichos] = useState(false);
   const [erroNichos, setErroNichos] = useState("");
+  const ultimaChaveSugestao = useRef<string | null>(null);
+
+  const chaveConteudoAtual = `${areaAtuacao.trim()}|${produtosServicos.trim()}`;
+
+  // Sugere automaticamente ao abrir o perfil já preenchido
+  useEffect(() => {
+    if (!aberto) return;
+    if (nichosEscolhidos.length > 0 || sugestoesNichos.length > 0) return;
+    const suficiente =
+      areaAtuacao.trim().length >= 3 ||
+      produtosServicos.trim().length >= 15;
+    if (!suficiente) return;
+    void buscarSugestoesNichos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
   const [fotoUrl, setFotoUrl] = useState<string | null>(
     perfil?.foto_url ?? null
   );
@@ -171,15 +186,29 @@ export default function ModalPerfil({
         throw new Error(dados.erro || "Erro");
       }
 
+      ultimaChaveSugestao.current = chaveConteudoAtual;
       setSugestoesNichos(dados.nichos);
     } catch (erroSugestao) {
       console.error("Erro ao sugerir nichos:", erroSugestao);
       setErroNichos(
-        "Não conseguimos gerar sugestões agora. Você pode digitar os nichos manualmente abaixo."
+        "Não conseguimos gerar sugestões agora. Você pode digitar os itens manualmente abaixo."
       );
     } finally {
       setBuscandoNichos(false);
     }
+  }
+
+  // Dispara a busca quando o usuário termina de preencher um campo
+  function talvezBuscarSugestoes() {
+    const suficiente =
+      areaAtuacao.trim().length >= 3 ||
+      produtosServicos.trim().length >= 15;
+
+    if (!suficiente) return;
+    if (ultimaChaveSugestao.current === chaveConteudoAtual) return;
+    if (buscandoNichos) return;
+
+    void buscarSugestoesNichos();
   }
 
   function adicionarNichoManual(valor: string) {
@@ -345,6 +374,7 @@ export default function ModalPerfil({
             placeholder="Área de atuação (ex.: Cibersegurança)"
             value={areaAtuacao}
             onChange={(e) => setAreaAtuacao(e.target.value)}
+            onBlur={talvezBuscarSugestoes}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
           />
 
@@ -364,6 +394,7 @@ export default function ModalPerfil({
             }
             value={produtosServicos}
             onChange={(e) => setProdutosServicos(e.target.value)}
+            onBlur={talvezBuscarSugestoes}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white resize-y"
           />
 
@@ -375,7 +406,7 @@ export default function ModalPerfil({
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-sm font-semibold text-white">
-                🎯 Nichos de clientes ideais
+                🎯 Especialidades e nichos
               </p>
 
               <button
@@ -390,15 +421,17 @@ export default function ModalPerfil({
                 {buscandoNichos
                   ? "✨ Analisando..."
                   : sugestoesNichos.length > 0
-                    ? "✨ Sugerir novamente"
-                    : "✨ Sugerir nichos com IA"}
+                    ? "✨ Atualizar sugestões"
+                    : "✨ Sugerir com IA"}
               </button>
             </div>
 
             <p className="text-pipe-muted text-xs mt-1 mb-2">
-              Clique nos nichos que fazem sentido para a sua venda
-              (ou adicione os seus). Nossa IA usa isso para acertar mais
-              nos leads.
+              {buscandoNichos
+                ? "Analisando o que sua empresa vende..."
+                : sugestoesNichos.length > 0
+                  ? "Confirmamos os itens que você vende? Clique para marcar — nossa IA usa isso nos leads."
+                  : "Preencha a área e o que você vende: as sugestões aparecem sozinhas aqui."}
             </p>
 
             {erroNichos && (
