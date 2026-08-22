@@ -558,10 +558,8 @@ export default function Home() {
   const exportarCsv = () => {
     const bloqueado = "🔒 Desbloqueie com créditos";
 
-    const liberada = (indice: number, cnpj: string) =>
-      !CONTATOS_BLOQUEADOS ||
-      indice === 0 ||
-      empresasDesbloqueadas.has(cnpj);
+    const liberada = (_indice: number, cnpj: string) =>
+      !CONTATOS_BLOQUEADOS || empresasDesbloqueadas.has(cnpj);
 
     const cabecalho = [
       "Empresa",
@@ -2606,11 +2604,10 @@ export default function Home() {
                   </div>
 
                   <div className="divide-y divide-pipe-border max-h-[70vh] overflow-y-auto">
-                    {empresasEncontradas.map((empresa, indice) => {
+                    {empresasEncontradas.map((empresa) => {
                       const score = empresa.score;
                       const liberado =
                         !CONTATOS_BLOQUEADOS ||
-                        indice === 0 ||
                         empresasDesbloqueadas.has(empresa.cnpj);
                       const corScore =
                         score === null || score === undefined
@@ -2987,8 +2984,8 @@ export default function Home() {
                   </div>
                   {pontuadas && (
                     <p className="px-4 py-3 text-xs text-pipe-muted border-t border-pipe-border">
-                      Ordenadas pelo score de aderência ao seu ICP. A 1ª
-                      empresa é amostra grátis — desbloqueie para ver todos os
+                      Ordenadas pelo score de aderência ao seu ICP. Você tem
+                      créditos de boas-vindas — desbloqueie os leads para ver
                       nomes, decisores e contatos.
                     </p>
                   )}
