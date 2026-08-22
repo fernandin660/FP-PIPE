@@ -51,7 +51,12 @@ async function extrairDePdf(
   bytes: ArrayBuffer,
   chave: string
 ): Promise<string> {
-  const pdfParse = (await import("pdf-parse")).default;
+  const moduloPdf = await import("pdf-parse");
+  const pdfParse =
+    ((moduloPdf as unknown as { default?: typeof moduloPdf }).default ??
+      moduloPdf) as unknown as (
+    buffer: Buffer
+  ) => Promise<{ text: string }>;
   const resultado = await pdfParse(Buffer.from(bytes));
   const texto = (resultado.text || "").replace(/\s+/g, " ").trim();
 

@@ -320,7 +320,7 @@ export default function PaginaListas() {
 
         const agrupado: Record<string, EmpresaDaLista[]> = {};
 
-        ((vinculos as Array<{
+        ((vinculos as unknown as Array<{
           lista_id: string;
           company: EmpresaDaLista | null;
         }>) ?? []).forEach((vinculo) => {

@@ -427,6 +427,7 @@ export default function Home() {
       decisorNome?: string | null;
       decisorCargo?: string | null;
       cargoPrioritario?: string | null;
+      emailProspeccao?: { assunto: string; mensagem: string } | null;
       linkedin?: string | null;
       origem?: string;
       aprovadorLinkedin?: string | null;
@@ -1051,6 +1052,11 @@ export default function Home() {
       motivo?: string | null;
       telefone?: string | null;
       email?: string | null;
+      endereco?: string | null;
+      decisorNome?: string | null;
+      decisorCargo?: string | null;
+      cargoPrioritario?: string | null;
+      emailProspeccao?: { assunto: string; mensagem: string } | null;
     }>
   ) => {
     if (lista.length === 0) return;
@@ -1105,6 +1111,8 @@ export default function Home() {
         email?: string | null;
         porte?: string | null;
         capitalSocial?: number | null;
+        nomeFantasia?: string | null;
+        endereco?: string | null;
         decisorNome?: string | null;
         decisorCargo?: string | null;
       cargoPrioritario?: string | null;
@@ -1204,7 +1212,6 @@ export default function Home() {
                     capital_social: e.capitalSocial ?? null,
                     porte: e.porte ?? null,
                     endereco: e.endereco ?? null,
-                    nome_fantasia: e.nomeFantasia || "",
                     email_assunto: e.emailProspeccao?.assunto ?? null,
                     email_corpo: e.emailProspeccao?.mensagem ?? null,
                     score: e.score ?? null,
@@ -1731,10 +1738,6 @@ export default function Home() {
         aoFechar={() => setModalPerfilAberto(false)}
         aoSalvar={(novoPerfil) => {
           setPerfil(novoPerfil);
-          setNomeEmpresa((valor) => valor || novoPerfil.nome_empresa || "");
-          setProdutosServicos(
-            (valor) => valor || novoPerfil.produtos_servicos || ""
-          );
         }}
       />
 

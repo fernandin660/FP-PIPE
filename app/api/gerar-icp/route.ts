@@ -171,14 +171,16 @@ export async function POST(request: Request) {
       tipoLocalizacao,
       estadoSelecionado,
       cidade,
-      segmentosSelecionados = [],
+      segmentosSelecionados = [] as string[],
     } = await request.json();
 
     const conteudoSite = siteEmpresa
       ? await buscarTextoSite(siteEmpresa)
       : "";
 
-    const blocosConhecimento = segmentosSelecionados
+    const listaSegmentos = (segmentosSelecionados ?? []) as string[];
+
+    const blocosConhecimento = listaSegmentos
       .map((segmento) => {
         const conteudo = conhecimentoSegmentos[segmento];
         return conteudo ? `=== ${segmento} ===\n${conteudo}` : "";
