@@ -194,7 +194,7 @@ export default function Home() {
       const { data } = await supabase
         .from("perfil")
         .select(
-          "nome_empresa, area_atuacao, produtos_servicos, site, foto_url, anexos"
+          "nome_empresa, area_atuacao, produtos_servicos, site, foto_url, anexos, nichos"
         )
         .eq("usuario_id", usuarioId)
         .maybeSingle();
@@ -848,6 +848,10 @@ export default function Home() {
 
     if (perfil?.site) partes.push(`Site: ${perfil.site}`);
 
+    if (perfil?.nichos && perfil.nichos.length > 0) {
+      partes.push(`Nichos confirmados pelo cliente: ${perfil.nichos.join("; ")}`);
+    }
+
     (perfil?.anexos ?? []).forEach((anexo) => {
       if (anexo.texto) {
         partes.push(
@@ -869,6 +873,10 @@ export default function Home() {
     if (perfil.area_atuacao) partes.push(`Área: ${perfil.area_atuacao}.`);
 
     if (perfil.site) partes.push(`Site: ${perfil.site}.`);
+
+    if (perfil.nichos && perfil.nichos.length > 0) {
+      partes.push(`Nichos-alvo confirmados: ${perfil.nichos.join("; ")}.`);
+    }
 
     if (perfil.produtos_servicos) {
       partes.push(`Vendemos: ${perfil.produtos_servicos}`);

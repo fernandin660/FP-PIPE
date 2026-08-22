@@ -18,6 +18,7 @@ export type PerfilVendedor = {
   site?: string | null;
   foto_url?: string | null;
   anexos?: AnexoPerfil[] | null;
+  nichos?: string[] | null;
 };
 
 type Props = {
@@ -48,6 +49,12 @@ export default function ModalPerfil({
   const [anexos, setAnexos] = useState<AnexoPerfil[]>(
     perfil?.anexos ?? []
   );
+  const [nichosEscolhidos, setNichosEscolhidos] = useState<string[]>(
+    perfil?.nichos ?? []
+  );
+  const [sugestoesNichos, setSugestoesNichos] = useState<string[]>([]);
+  const [buscandoNichos, setBuscandoNichos] = useState(false);
+  const [erroNichos, setErroNichos] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(
     perfil?.foto_url ?? null
   );
@@ -133,6 +140,56 @@ export default function ModalPerfil({
     setAnexos((atual) => atual.filter((_, i) => i !== indice));
   }
 
+  function alternarNicho(nicho: string) {
+    setNichosEscolhidos((atual) =>
+      atual.includes(nicho)
+        ? atual.filter((n) => n !== nicho)
+        : [...atual, nicho]
+    );
+  }
+
+  async function buscarSugestoesNichos() {
+    if (buscandoNichos) return;
+    if (!areaAtuacao.trim() && !produtosServicos.trim()) return;
+
+    setBuscandoNichos(true);
+    setErroNichos("");
+
+    try {
+      const resposta = await fetch("/api/sugerir-nichos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          areaAtuacao,
+          produtosServicos,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok || !Array.isArray(dados.nichos)) {
+        throw new Error(dados.erro || "Erro");
+      }
+
+      setSugestoesNichos(dados.nichos);
+    } catch (erroSugestao) {
+      console.error("Erro ao sugerir nichos:", erroSugestao);
+      setErroNichos(
+        "Não conseguimos gerar sugestões agora. Você pode digitar os nichos manualmente abaixo."
+      );
+    } finally {
+      setBuscandoNichos(false);
+    }
+  }
+
+  function adicionarNichoManual(valor: string) {
+    const nicho = valor.trim();
+    if (!nicho) return;
+    setNichosEscolhidos((atual) =>
+      atual.includes(nicho) ? atual : [...atual, nicho]
+    );
+  }
+
   async function enviarFoto(arquivo: File) {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
@@ -199,6 +256,7 @@ export default function ModalPerfil({
         site: site.trim(),
         foto_url: fotoUrl,
         anexos,
+        nichos: nichosEscolhidos,
       };
 
       const { error: erroSalvar } = await supabase
@@ -313,6 +371,94 @@ export default function ModalPerfil({
             💡 Quanto mais concreto, melhores os e-mails: cite serviços,
             tipo de cliente e o problema que você resolve.
           </p>
+
+          <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-white">
+                🎯 Nichos de clientes ideais
+              </p>
+
+              <button
+                type="button"
+                onClick={() => void buscarSugestoesNichos()}
+                disabled={
+                  buscandoNichos ||
+                  (!areaAtuacao.trim() && !produtosServicos.trim())
+                }
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-pipe-blue/15 border border-pipe-blue/40 text-pipe-blue hover:bg-pipe-blue/25 disabled:opacity-40 disabled:cursor-not-allowed transition whitespace-nowrap"
+              >
+                {buscandoNichos
+                  ? "✨ Analisando..."
+                  : sugestoesNichos.length > 0
+                    ? "✨ Sugerir novamente"
+                    : "✨ Sugerir nichos com IA"}
+              </button>
+            </div>
+
+            <p className="text-pipe-muted text-xs mt-1 mb-2">
+              Clique nos nichos que fazem sentido para a sua venda
+              (ou adicione os seus). Nossa IA usa isso para acertar mais
+              nos leads.
+            </p>
+
+            {erroNichos && (
+              <p className="text-yellow-400/90 text-xs mb-2">
+                ⚠️ {erroNichos}
+              </p>
+            )}
+
+            {(nichosEscolhidos.length > 0 ||
+              sugestoesNichos.length > 0) && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {Array.from(
+                  new Set([...nichosEscolhidos, ...sugestoesNichos])
+                ).map((nicho) => {
+                  const escolhido = nichosEscolhidos.includes(nicho);
+                  return (
+                    <button
+                      key={nicho}
+                      type="button"
+                      onClick={() => alternarNicho(nicho)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                        escolhido
+                          ? "bg-pipe-lime text-black border-pipe-lime font-semibold"
+                          : "bg-pipe-card text-gray-300 border-pipe-border hover:border-pipe-blue hover:text-white"
+                      }`}
+                    >
+                      {escolhido ? "✓ " : "+ "}
+                      {nicho}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const alvo = e.currentTarget.elements.namedItem(
+                  "nichoManualInput"
+                ) as HTMLInputElement | null;
+                if (alvo) {
+                  adicionarNichoManual(alvo.value);
+                  alvo.value = "";
+                }
+              }}
+              className="flex gap-2"
+            >
+              <input
+                name="nichoManualInput"
+                placeholder="Ou digite um nicho (ex.: Escritórios de contabilidade)"
+                className="flex-1 bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-xs focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+              />
+              <button
+                type="submit"
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:text-white hover:border-pipe-blue transition"
+              >
+                Adicionar
+              </button>
+            </form>
+          </div>
 
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
             <p className="text-sm font-semibold text-white mb-1">
