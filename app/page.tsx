@@ -470,6 +470,91 @@ export default function Home() {
     );
   };
 
+  const [salvandoLista, setSalvandoLista] = useState(false);
+  const [listaJaSalva, setListaJaSalva] = useState(false);
+
+  const salvarListaAtual = async () => {
+    if (!usuarioEmail || listaJaSalva || salvandoLista) return;
+
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    const comScore = empresasEncontradas.filter(
+      (e) => typeof e.score === "number" && e.score !== null
+    );
+
+    if (comScore.length === 0) {
+      alert("Gere e pontue a lista antes de salvar.");
+      return;
+    }
+
+    setSalvandoLista(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Sessão expirada.");
+
+      const nomeLista = `${
+        segmentosSelecionados[0] ?? "Leads"
+      } · ${
+        tipoLocalizacao === "Cidade específica"
+          ? cidade
+          : tipoLocalizacao === "Estado específico"
+            ? estadoSelecionado
+            : "Brasil"
+      } · ${new Date().toLocaleDateString("pt-BR")}`;
+
+      const { data: listaCriada, error: erroLista } = await supabase
+        .from("listas")
+        .insert({
+          usuario_id: user.id,
+          nome: nomeLista,
+          segmentos: segmentosSelecionados,
+          icp_resumo: icpGerado?.resumo_icp ?? "",
+          localizacao:
+            tipoLocalizacao === "Cidade específica"
+              ? cidade
+              : tipoLocalizacao === "Estado específico"
+                ? `Estado de ${estadoSelecionado}`
+                : "Brasil",
+        })
+        .select("id")
+        .single();
+
+      if (erroLista) throw erroLista;
+
+      if (listaCriada?.id) {
+        const { data: linhasEmpresas } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("usuario_id", user.id)
+          .in(
+            "cnpj",
+            comScore.map((e) => e.cnpj)
+          );
+
+        if (linhasEmpresas && linhasEmpresas.length > 0) {
+          await supabase.from("lista_empresas").insert(
+            linhasEmpresas.map((linha) => ({
+              lista_id: listaCriada.id,
+              company_id: linha.id,
+            }))
+          );
+        }
+      }
+
+      setListaJaSalva(true);
+    } catch (erroSalvarLista) {
+      console.error("Erro ao salvar lista:", erroSalvarLista);
+      alert("Não conseguimos salvar a lista agora. Tente novamente.");
+    } finally {
+      setSalvandoLista(false);
+    }
+  };
+
   const exportarCsv = () => {
     const bloqueado = "🔒 Desbloqueie com créditos";
 
@@ -1173,6 +1258,7 @@ export default function Home() {
       });
       setEmpresasEncontradas(atualizadas);
       setPontuadas(true);
+      setListaJaSalva(false);
 
       try {
         const supabase = criarClienteSupabase();
@@ -1255,57 +1341,8 @@ export default function Home() {
                   .match({ usuario_id: user.id, cnpj: e.cnpj });
               }
 
-              // Cria a lista da rodada e vincula as empresas
-              try {
-                const nomeLista = `${
-                  segmentosSelecionados[0] ?? "Leads"
-                } · ${
-                  tipoLocalizacao === "Cidade específica"
-                    ? cidade
-                    : tipoLocalizacao === "Estado específico"
-                      ? estadoSelecionado
-                      : "Brasil"
-                } · ${new Date().toLocaleDateString("pt-BR")}`;
-
-                const { data: listaCriada } = await supabase
-                  .from("listas")
-                  .insert({
-                    usuario_id: user.id,
-                    nome: nomeLista,
-                    segmentos: segmentosSelecionados,
-                    icp_resumo: icpGerado?.resumo_icp ?? "",
-                    localizacao:
-                      tipoLocalizacao === "Cidade específica"
-                        ? cidade
-                        : tipoLocalizacao === "Estado específico"
-                          ? `Estado de ${estadoSelecionado}`
-                          : "Brasil",
-                  })
-                  .select("id")
-                  .single();
-
-                if (listaCriada?.id && comScore.length > 0) {
-                  const { data: linhasEmpresas } = await supabase
-                    .from("companies")
-                    .select("id")
-                    .eq("usuario_id", user.id)
-                    .in(
-                      "cnpj",
-                      comScore.map((e) => e.cnpj)
-                    );
-
-                  if (linhasEmpresas && linhasEmpresas.length > 0) {
-                    await supabase.from("lista_empresas").insert(
-                      linhasEmpresas.map((linha) => ({
-                        lista_id: listaCriada.id,
-                        company_id: linha.id,
-                      }))
-                    );
-                  }
-                }
-              } catch (erroLista) {
-                console.error("Não foi possível criar a lista:", erroLista);
-              }
+              // A lista agora é salva apenas quando o usuário clica em
+              // "Salvar em minhas listas" (função salvarListaAtual).
             }
           }
         }
@@ -1473,6 +1510,8 @@ export default function Home() {
   if (!usuarioEmail) {
     return <TelaEntrada />;
   }
+
+  const mostrandoResultados = empresasEncontradas.length > 0;
 
   return (
 
@@ -1751,12 +1790,11 @@ export default function Home() {
 
       {tela === "app" && (
         <div
-          className={`max-w-3xl px-6 py-12 w-full mx-auto ${
-            usuarioEmail ? "lg:pl-72 lg:mx-0" : ""
-          }`}
+          className={`px-6 py-12 w-full mx-auto ${
+            mostrandoResultados ? "max-w-7xl" : etapa === 2 ? "max-w-6xl" : "max-w-3xl"
+          } ${usuarioEmail ? "lg:pl-72 lg:mx-0" : ""}`}
         >
-          {/* PROGRESSO */}
-
+          {!mostrandoResultados && (
           <div className="flex gap-2 mb-10">
             {[1, 2].map((numero) => (
               <div
@@ -1767,6 +1805,7 @@ export default function Home() {
               />
             ))}
           </div>
+          )}
 
           {/* ========================= */}
           {/* ETAPA 2                   */}
@@ -2032,6 +2071,119 @@ export default function Home() {
 
           {etapa === 2 && (
             <>
+            <div
+              className={
+                mostrandoResultados
+                  ? ""
+                  : "grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8 items-start"
+              }
+            >
+              {!mostrandoResultados && (
+                <aside className="bg-pipe-card/40 border border-pipe-border rounded-xl p-5 lg:sticky lg:top-8 space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-pipe-blue tracking-widest uppercase mb-1">
+                      Sua operação
+                    </p>
+
+                    <h2 className="font-bold text-lg text-white">
+                      Filtros escolhidos
+                    </h2>
+                  </div>
+
+                  <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      Área de atuação
+                    </p>
+
+                    <p className="text-sm text-gray-200">
+                      {perfil?.area_atuacao || perfil?.nome_empresa || "—"}
+                    </p>
+                  </div>
+
+                  <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      Porte da empresa
+                    </p>
+
+                    <p className="text-sm text-gray-200">
+                      {porteEmpresa.length > 0 ? porteEmpresa.join(", ") : "—"}
+                    </p>
+                  </div>
+
+                  <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      Funcionários
+                    </p>
+
+                    <p className="text-sm text-gray-200">
+                      {faixaFuncionarios.length > 0
+                        ? faixaFuncionarios.join(", ")
+                        : "—"}
+                    </p>
+                  </div>
+
+                  <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      Localização
+                    </p>
+
+                    <p className="text-sm text-gray-200">
+                      {tipoLocalizacao === "Estado específico"
+                        ? `Estado de ${estadoSelecionado}`
+                        : tipoLocalizacao === "Cidade específica"
+                          ? `${cidade} - ${estadoSelecionado}`
+                          : "Brasil inteiro"}
+                    </p>
+                  </div>
+
+                  {segmentosSelecionados.length > 0 && (
+                    <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                        Segmentos
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {segmentosSelecionados.map((segmento) => (
+                          <span
+                            key={segmento}
+                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-gray-300"
+                          >
+                            {segmento}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {perfil?.nichos && perfil.nichos.length > 0 && (
+                    <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                        Especialidades confirmadas
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {perfil.nichos.map((nicho) => (
+                          <span
+                            key={nicho}
+                            className="bg-pipe-lime/10 border border-pipe-lime/30 px-2 py-0.5 rounded-full text-xs text-pipe-lime"
+                          >
+                            {nicho}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setEtapa(1)}
+                    className="w-full border border-pipe-border text-gray-300 py-2 rounded-lg text-xs font-semibold hover:bg-pipe-card hover:text-white transition"
+                  >
+                    ← Ajustar filtros
+                  </button>
+                </aside>
+              )}
+
+              <div>
               <div className="mb-8">
                 <p className="text-sm font-semibold text-pipe-blue tracking-widest uppercase">
                   Etapa 2 de 2
@@ -2328,39 +2480,92 @@ export default function Home() {
                 </div>
               )}
 
-              <button
-                onClick={buscarEmpresas}
-                disabled={!icpGerado || buscandoEmpresas}
-                className="mt-8 w-full bg-pipe-lime text-black font-bold py-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-lg"
-              >
-                {buscandoEmpresas
-                  ? pontuandoEmpresas
-                    ? "Analisando aderência das empresas..."
-                    : "Buscando empresas no seu ICP..."
-                  : "Descobrir e pontuar empresas do meu ICP →"}
-              </button>
+              {!mostrandoResultados && (
+                <>
+                  <button
+                    onClick={buscarEmpresas}
+                    disabled={!icpGerado || buscandoEmpresas}
+                    className="mt-8 w-full bg-pipe-lime text-black font-bold py-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-lg"
+                  >
+                    {buscandoEmpresas
+                      ? pontuandoEmpresas
+                        ? "Analisando aderência das empresas..."
+                        : "Buscando empresas no seu ICP..."
+                      : "Descobrir e pontuar empresas do meu ICP →"}
+                  </button>
 
-              <button
-                onClick={() => setModalLeadAberto(true)}
-                className="mt-3 w-full border border-pipe-lime/40 text-pipe-lime py-2.5 rounded-lg text-sm font-semibold hover:bg-pipe-lime/10 transition"
-              >
-                ＋ Inserir lead manualmente (já tenho os dados)
-              </button>
+                  <button
+                    onClick={() => setModalLeadAberto(true)}
+                    className="mt-3 w-full border border-pipe-lime/40 text-pipe-lime py-2.5 rounded-lg text-sm font-semibold hover:bg-pipe-lime/10 transition"
+                  >
+                    ＋ Inserir lead manualmente (já tenho os dados)
+                  </button>
 
-              {empresasEncontradas.length > 0 && (
-                <button
-                  onClick={exportarCsv}
-                  className="mt-3 w-full border border-pipe-border text-gray-300 py-2.5 rounded-lg text-sm font-semibold hover:bg-pipe-card transition"
-                >
-                  ⬇️ Exportar lista atual em CSV ({empresasEncontradas.length}{" "}
-                  leads)
-                </button>
+                  {erroEmpresas && (
+                    <p className="mt-3 text-sm text-red-400 text-center">
+                      {erroEmpresas}
+                    </p>
+                  )}
+                </>
               )}
+              </div>
+            </div>
 
-              {erroEmpresas && (
-                <p className="mt-3 text-sm text-red-400 text-center">
-                  {erroEmpresas}
-                </p>
+              {mostrandoResultados && (
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                  <div>
+                    <p className="text-sm font-semibold text-pipe-blue tracking-widest uppercase">
+                      Sua lista de leads
+                    </p>
+
+                    <h1 className="font-display text-4xl mt-1 text-white">
+                      {empresasEncontradas.length} empresas encontradas
+                    </h1>
+
+                    <p className="text-pipe-muted mt-2 text-sm">
+                      Ordenadas por aderência ao seu ICP — clique num lead para
+                      ver a ficha completa.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      onClick={() => void salvarListaAtual()}
+                      disabled={salvandoLista || listaJaSalva}
+                      className={`text-sm font-bold px-4 py-2.5 rounded-lg border transition ${
+                        listaJaSalva
+                          ? "bg-pipe-lime/15 border-pipe-lime/40 text-pipe-lime"
+                          : "bg-pipe-lime text-black border-pipe-lime hover:opacity-90 disabled:opacity-50"
+                      }`}
+                    >
+                      {listaJaSalva
+                        ? "✓ Salva em minhas listas"
+                        : salvandoLista
+                          ? "Salvando..."
+                          : "💾 Salvar em minhas listas"}
+                    </button>
+
+                    <button
+                      onClick={exportarCsv}
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-card hover:text-white transition"
+                    >
+                      ⬇️ Exportar CSV
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setEmpresasEncontradas([]);
+                        setPontuadas(false);
+                        setListaJaSalva(false);
+                        setEmpresasSelecionadas(new Set());
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-pipe-muted hover:bg-pipe-card hover:text-white transition"
+                    >
+                      🔄 Nova busca
+                    </button>
+                  </div>
+                </div>
               )}
 
               {empresasEncontradas.length > 0 && (
@@ -2400,7 +2605,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="divide-y divide-pipe-border max-h-96 overflow-y-auto">
+                  <div className="divide-y divide-pipe-border max-h-[70vh] overflow-y-auto">
                     {empresasEncontradas.map((empresa, indice) => {
                       const score = empresa.score;
                       const liberado =
@@ -2790,12 +2995,14 @@ export default function Home() {
                 </div>
               )}
 
-              <button
-                onClick={() => setEtapa(1)}
-                className="mt-3 w-full border border-pipe-border text-pipe-muted py-3 rounded-lg hover:bg-pipe-card hover:text-white transition"
-              >
-                ← Voltar e editar informações
-              </button>
+              {!mostrandoResultados && (
+                <button
+                  onClick={() => setEtapa(1)}
+                  className="mt-3 w-full border border-pipe-border text-pipe-muted py-3 rounded-lg hover:bg-pipe-card hover:text-white transition"
+                >
+                  ← Voltar e editar informações
+                </button>
+              )}
             </>
           )}
         </div>
