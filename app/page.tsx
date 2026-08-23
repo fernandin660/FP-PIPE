@@ -562,12 +562,9 @@ export default function Inicio() {
           </div>
         </div>
 
-        <p className="text-pipe-muted/60 text-xs text-center mt-6 max-w-2xl mx-auto">
-          E-mail verificado = e-mail profissional do decisor, confirmado na
-          busca. Telefones exibidos são os institucionais da empresa (Receita
-          Federal e Google Maps) — nunca o número pessoal do contato. · Todos
-          os planos começam com teste grátis de 5 créditos · cancele quando
-          quiser · preços de lançamento
+        <p className="text-pipe-muted/60 text-xs text-center mt-6">
+          Todos os planos começam com teste grátis de 5 créditos · cancele
+          quando quiser · preços de lançamento
         </p>
       </section>
 
