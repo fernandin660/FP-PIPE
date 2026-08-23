@@ -257,10 +257,10 @@ export default function Inicio() {
             style={{ ["--rot" as string]: "-1deg", ["--delay" as string]: "1.6s" }}
           >
             <p className="text-xs text-pipe-muted">
-              🔎 linkedin.com/in/lucascamposa
+              🔎 linkedin.com/in/ricardo-almeida-ti
             </p>
             <p className="text-sm text-white font-medium mt-1 truncate">
-              lucas.campos@frigol.com.br
+              ricardo.almeida@metalurgica-exemplo.com.br
             </p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
