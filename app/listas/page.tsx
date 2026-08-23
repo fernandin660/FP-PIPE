@@ -112,6 +112,9 @@ export default function PaginaListas() {
   const [empresaDetalhe, setEmpresaDetalhe] = useState<EmpresaDaLista | null>(
     null
   );
+  const [filtroContato, setFiltroContato] = useState<"todos" | "com" | "sem">(
+    "todos"
+  );
   const [modalAbordagemAberto, setModalAbordagemAberto] = useState(false);
   const [edicaoLead, setEdicaoLead] = useState({
     nome: "",
@@ -551,6 +554,17 @@ export default function PaginaListas() {
     return "bg-red-500/15 text-red-400 border border-red-500/40";
   }
 
+  function temContato(e: EmpresaDaLista): boolean {
+    return Boolean(
+      e.campeao_email ||
+        e.campeao_telefone ||
+        e.campeao_linkedin ||
+        e.aprovador_email ||
+        e.aprovador_telefone ||
+        e.aprovador_linkedin
+    );
+  }
+
   return (
     <>
       <Sidebar
@@ -708,11 +722,52 @@ export default function PaginaListas() {
                   </div>
 
                   {aberta === lista.id && (
-                    <div className="mt-4 pt-4 border-t border-pipe-border divide-y divide-pipe-border">
+                    <div className="mt-4 pt-4 border-t border-pipe-border">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        {(
+                          [
+                            ["todos", `Todos (${empresas.length})`],
+                            [
+                              "com",
+                              `✅ Com contato (${
+                                empresas.filter(temContato).length
+                              })`,
+                            ],
+                            [
+                              "sem",
+                              `⚪ Sem contato (${
+                                empresas.length - empresas.filter(temContato).length
+                              })`,
+                            ],
+                          ] as const
+                        ).map(([valor, rotulo]) => (
+                          <button
+                            key={valor}
+                            onClick={() => setFiltroContato(valor)}
+                            className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
+                              filtroContato === valor
+                                ? "bg-pipe-blue text-white"
+                                : "bg-pipe-dark text-pipe-muted hover:text-white border border-pipe-border"
+                            }`}
+                          >
+                            {rotulo}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="divide-y divide-pipe-border">
                       {empresas
+                        .filter((e) =>
+                          filtroContato === "com"
+                            ? temContato(e)
+                            : filtroContato === "sem"
+                              ? !temContato(e)
+                              : true
+                        )
                         .slice()
                         .sort(
                           (a, b) =>
+                            Number(temContato(b)) - Number(temContato(a)) ||
                             (b.score ?? -1) - (a.score ?? -1)
                         )
                         .map((empresa) => (
@@ -744,6 +799,14 @@ export default function PaginaListas() {
                                     ✔️ Confirmado
                                   </span>
                                 ) : null}
+                                {temContato(empresa) ? (
+                                  <span
+                                    className="ml-2 text-[10px] font-bold text-pipe-lime"
+                                    title="Este lead já tem e-mail, telefone ou LinkedIn registrado"
+                                  >
+                                    ✅ Contato
+                                  </span>
+                                ) : null}
                               </button>
 
                               <p className="text-xs text-pipe-muted mt-0.5">
@@ -760,6 +823,7 @@ export default function PaginaListas() {
                             </div>
                           </div>
                         ))}
+                      </div>
                     </div>
                   )}
                 </div>
