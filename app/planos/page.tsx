@@ -91,7 +91,7 @@ export default function Planos() {
       <header className="sticky top-0 z-40 backdrop-blur bg-pipe-bg/85 border-b border-pipe-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
-            href="/inicio"
+            href="/"
             className="font-display text-2xl text-white hover:opacity-90 transition"
           >
             FP <span className="text-pipe-lime">PIPE</span>
@@ -99,13 +99,13 @@ export default function Planos() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/inicio"
+              href="/"
               className="text-sm text-pipe-muted hover:text-white transition hidden sm:block"
             >
               ← Voltar
             </Link>
             <Link
-              href="/"
+              href="/prospeccao"
               className="text-sm font-semibold text-black bg-pipe-lime rounded-lg px-4 py-2 hover:opacity-90 transition"
             >
               Criar conta grátis
@@ -225,7 +225,7 @@ export default function Planos() {
               </ul>
 
               <Link
-                href="/"
+                href="/prospeccao"
                 className={`mt-7 block text-center font-semibold rounded-lg py-3 transition ${
                   plano.destaques
                     ? "bg-pipe-lime text-black hover:opacity-90"
@@ -289,10 +289,10 @@ export default function Planos() {
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-pipe-muted/60">
           <p>© FP Pipe — Inteligência comercial para quem vende B2B.</p>
           <div className="flex items-center gap-6">
-            <Link href="/inicio" className="hover:text-white transition">
+            <Link href="/" className="hover:text-white transition">
               Início
             </Link>
-            <Link href="/" className="hover:text-white transition">
+            <Link href="/login" className="hover:text-white transition">
               Entrar
             </Link>
           </div>

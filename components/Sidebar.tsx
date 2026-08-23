@@ -55,7 +55,7 @@ export default function Sidebar({
   return (
     <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-pipe-card border-r border-pipe-border z-40">
       <div className="px-5 py-6">
-        <Link href="/" className="font-display text-2xl text-white">
+        <Link href="/prospeccao" className="font-display text-2xl text-white">
           FP <span className="text-pipe-lime">Pipe</span>
         </Link>
       </div>

@@ -134,12 +134,12 @@ export default function PaginaModelos() {
       <main className="min-h-screen bg-pipe-dark px-6 py-12 lg:pl-72">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <Link href="/" className="font-display text-3xl text-white">
+            <Link href="/prospeccao" className="font-display text-3xl text-white">
               FP <span className="text-pipe-lime">Pipe</span>
             </Link>
 
             <Link
-              href="/"
+              href="/prospeccao"
               className="bg-pipe-lime text-black font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
             >
               + Nova prospecção

@@ -55,7 +55,7 @@ export default function PaginaLogin() {
         return;
       }
 
-      router.push("/");
+      router.push("/prospeccao");
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -74,7 +74,7 @@ export default function PaginaLogin() {
       }
 
       if (data.session) {
-        router.push("/");
+        router.push("/prospeccao");
       } else {
         setMensagem(
           "Conta criada! Confira seu e-mail para confirmar o cadastro."
