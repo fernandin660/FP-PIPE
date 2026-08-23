@@ -189,7 +189,12 @@ export async function POST(requisicao: Request) {
 
       await supabase
         .from("contatos")
-        .insert({ ...contatoCache, usuario_id: user.id });
+        .insert({
+          ...contatoCache,
+          usuario_id: user.id,
+          emails: [contatoCache.email],
+          telefones: [],
+        });
 
       return NextResponse.json({
         encontrado: true,
@@ -308,7 +313,12 @@ export async function POST(requisicao: Request) {
 
   const { data: salvo } = await supabase
     .from("contatos")
-    .insert({ ...contato, usuario_id: user.id })
+    .insert({
+      ...contato,
+      usuario_id: user.id,
+      emails: [contato.email],
+      telefones: [],
+    })
     .select()
     .single();
 

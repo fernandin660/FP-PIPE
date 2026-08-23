@@ -55,6 +55,17 @@ type ListaSalva = {
   criado_em: string;
 };
 
+type ContatoPessoa = {
+  id: string;
+  company_id: string | null;
+  nome: string | null;
+  cargo: string | null;
+  email: string | null;
+  emails: string[] | null;
+  telefones: string[] | null;
+  linkedin_url: string | null;
+};
+
 type EmpresaDaLista = {
   id: string;
   cnpj: string;
@@ -110,6 +121,16 @@ export default function PaginaListas() {
   });
   const [salvandoLead, setSalvandoLead] = useState(false);
   const [leadSalvo, setLeadSalvo] = useState(false);
+  const [contatosLead, setContatosLead] = useState<ContatoPessoa[]>([]);
+  const [formContato, setFormContato] = useState({
+    aberto: false,
+    nome: "",
+    cargo: "",
+    emails: "",
+    telefones: "",
+    linkedin: "",
+  });
+  const [salvandoContato, setSalvandoContato] = useState(false);
   const [listaIcpResumo, setListaIcpResumo] = useState("");
   const [listaAtualId, setListaAtualId] = useState<string | null>(null);
   const [perfilVendedor, setPerfilVendedor] = useState("");
@@ -135,6 +156,92 @@ export default function PaginaListas() {
       infos: empresa.informacoes_adicionais ?? "",
     });
     setLeadSalvo(false);
+    setFormContato((v) => ({ ...v, aberto: false }));
+    void carregarContatosLead(empresa.id);
+  };
+
+  const carregarContatosLead = async (companyId: string) => {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    const { data } = await supabase
+      .from("contatos")
+      .select(
+        "id, nome, cargo, email, emails, telefones, linkedin_url"
+      )
+      .eq("company_id", companyId)
+      .order("criado_em", { ascending: false });
+
+    setContatosLead((data as ContatoPessoa[]) ?? []);
+  };
+
+  const adicionarContatoManual = async () => {
+    if (!empresaDetalhe || salvandoContato) return;
+
+    const emailsLista = formContato.emails
+      .split(/[,;\n]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const telefonesLista = formContato.telefones
+      .split(/[,;\n]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    if (!formContato.nome.trim() && emailsLista.length === 0) return;
+
+    setSalvandoContato(true);
+
+    try {
+      const supabase = criarClienteSupabase();
+      if (!supabase) return;
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: criado, error } = await supabase
+        .from("contatos")
+        .insert({
+          usuario_id: user.id,
+          company_id: empresaDetalhe.id,
+          nome: formContato.nome.trim() || null,
+          cargo: formContato.cargo.trim() || null,
+          email: emailsLista[0] ?? null,
+          emails: emailsLista,
+          telefones: telefonesLista,
+          linkedin_url: formContato.linkedin.trim() || null,
+          origem: "manual",
+        })
+        .select()
+        .single();
+
+      if (!error && criado) {
+        setContatosLead((atual) => [
+          criado as ContatoPessoa,
+          ...atual,
+        ]);
+        setFormContato({
+          aberto: false,
+          nome: "",
+          cargo: "",
+          emails: "",
+          telefones: "",
+          linkedin: "",
+        });
+      }
+    } finally {
+      setSalvandoContato(false);
+    }
+  };
+
+  const removerContatoLead = async (id: string) => {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    await supabase.from("contatos").delete().eq("id", id);
+
+    setContatosLead((atual) => atual.filter((c) => c.id !== id));
   };
 
   const salvarDadosLead = async () => {
@@ -294,8 +401,51 @@ export default function PaginaListas() {
     carregar();
   }, [router]);
 
-  const exportarLista = (lista: ListaSalva) => {
+  const exportarLista = async (lista: ListaSalva) => {
     const empresas = empresasPorLista[lista.id] ?? [];
+
+    // Dossiê de contatos por empresa (todos os influenciadores registrados).
+    const mapaContatos: Record<string, string> = {};
+
+    if (empresas.length > 0) {
+      const supabase = criarClienteSupabase();
+
+      if (supabase) {
+        const { data: pessoas } = await supabase
+          .from("contatos")
+          .select(
+            "company_id, nome, cargo, email, emails, telefones"
+          )
+          .in(
+            "company_id",
+            empresas.map((e) => e.id)
+          );
+
+        ((pessoas as ContatoPessoa[] | null) ?? []).forEach((c) => {
+          if (!c.company_id) return;
+
+          const emailsPessoa =
+            (c.emails?.length ?? 0) > 0
+              ? c.emails!
+              : c.email
+                ? [c.email]
+                : [];
+          const partes = [
+            c.nome || "Sem nome",
+            c.cargo ? `(${c.cargo})` : "",
+            emailsPessoa.join(" / "),
+            (c.telefones ?? []).join(" / "),
+          ].filter(Boolean);
+
+          const linha = partes.join(" ").replace(/\s+/g, " ").trim();
+          if (!linha) return;
+
+          mapaContatos[c.company_id] = mapaContatos[c.company_id]
+            ? `${mapaContatos[c.company_id]} || ${linha}`
+            : linha;
+        });
+      }
+    }
 
     baixarCsv(
       `${lista.nome.replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").toLowerCase()}.csv`,
@@ -323,6 +473,7 @@ export default function PaginaListas() {
         "Influenciador Email",
         "Confirmado",
         "Informacoes Adicionais",
+        "Contatos do Lead",
       ],
       empresas.map((e) => [
         e.razao_social,
@@ -354,6 +505,7 @@ export default function PaginaListas() {
         e.campeao_email,
         e.confirmado ? "Sim" : "Nao",
         e.informacoes_adicionais,
+        mapaContatos[e.id] ?? "",
       ])
     );
   };
@@ -535,7 +687,7 @@ export default function PaginaListas() {
 
                       {empresas.length > 0 && (
                         <button
-                          onClick={() => exportarLista(lista)}
+                          onClick={() => void exportarLista(lista)}
                           className="border border-pipe-border text-gray-300 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                         >
                           ⬇️ CSV
@@ -1015,6 +1167,190 @@ export default function PaginaListas() {
                     className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
                   />
                 </div>
+              </section>
+
+              <section className="border-t border-pipe-border pt-4">
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                    👥 Contatos deste lead ({contatosLead.length})
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      setFormContato((v) => ({ ...v, aberto: !v.aberto }))
+                    }
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
+                  >
+                    {formContato.aberto ? "✕ Cancelar" : "＋ Adicionar contato"}
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-pipe-muted mb-3">
+                  Dossiê completo do lead: influenciadores vindos do Buscador ou
+                  cadastrados à mão, com todos os e-mails e telefones.
+                </p>
+
+                {formContato.aberto && (
+                  <div className="mb-3 bg-pipe-dark/60 border border-pipe-border rounded-xl p-3 space-y-2">
+                    <input
+                      value={formContato.nome}
+                      onChange={(e) =>
+                        setFormContato((v) => ({ ...v, nome: e.target.value }))
+                      }
+                      placeholder="Nome"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <input
+                      value={formContato.cargo}
+                      onChange={(e) =>
+                        setFormContato((v) => ({ ...v, cargo: e.target.value }))
+                      }
+                      placeholder="Cargo"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <textarea
+                      value={formContato.emails}
+                      onChange={(e) =>
+                        setFormContato((v) => ({
+                          ...v,
+                          emails: e.target.value,
+                        }))
+                      }
+                      rows={2}
+                      placeholder="E-mails (vários: separe por ; ou vírgula)"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue resize-y"
+                    />
+
+                    <textarea
+                      value={formContato.telefones}
+                      onChange={(e) =>
+                        setFormContato((v) => ({
+                          ...v,
+                          telefones: e.target.value,
+                        }))
+                      }
+                      rows={2}
+                      placeholder="Telefones (vários: separe por ; ou vírgula)"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue resize-y"
+                    />
+
+                    <input
+                      value={formContato.linkedin}
+                      onChange={(e) =>
+                        setFormContato((v) => ({
+                          ...v,
+                          linkedin: e.target.value,
+                        }))
+                      }
+                      placeholder="LinkedIn (https://linkedin.com/in/...)"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <button
+                      onClick={() => void adicionarContatoManual()}
+                      disabled={
+                        salvandoContato ||
+                        (!formContato.nome.trim() && !formContato.emails.trim())
+                      }
+                      className="w-full text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                    >
+                      {salvandoContato
+                        ? "Salvando..."
+                        : "💾 Salvar contato"}
+                    </button>
+                  </div>
+                )}
+
+                {contatosLead.length === 0 && !formContato.aberto && (
+                  <p className="text-xs text-pipe-muted italic">
+                    Nenhum contato registrado ainda para este lead.
+                  </p>
+                )}
+
+                <ul className="space-y-2">
+                  {contatosLead.map((c) => {
+                    const emailsPessoa = c.emails?.length
+                      ? c.emails
+                      : c.email
+                        ? [c.email]
+                        : [];
+
+                    return (
+                      <li
+                        key={c.id}
+                        className="bg-pipe-dark/60 border border-pipe-border rounded-xl p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {c.nome ?? "Sem nome"}
+                              {c.cargo && (
+                                <span className="font-normal text-pipe-muted">
+                                  {" "}
+                                  · {c.cargo}
+                                </span>
+                              )}
+                            </p>
+
+                            {emailsPessoa.length > 0 && (
+                              <p className="mt-1 text-xs break-all">
+                                {emailsPessoa.map((mail, i) => (
+                                  <span key={`${c.id}-m-${i}`}>
+                                    {i > 0 && "; "}
+                                    <a
+                                      href={`mailto:${mail}`}
+                                      className="text-pipe-lime hover:underline"
+                                    >
+                                      {mail}
+                                    </a>
+                                  </span>
+                                ))}
+                              </p>
+                            )}
+
+                            {(c.telefones?.length ?? 0) > 0 && (
+                              <p className="mt-0.5 text-xs text-pipe-muted">
+                                📞{" "}
+                                {c.telefones?.map((t, i) => (
+                                  <span key={`${c.id}-t-${i}`}>
+                                    {i > 0 && " · "}
+                                    <a
+                                      href={`tel:${t.replace(/[^\d+]/g, "")}`}
+                                      className="hover:text-white"
+                                    >
+                                      {t}
+                                    </a>
+                                  </span>
+                                ))}
+                              </p>
+                            )}
+
+                            {c.linkedin_url && (
+                              <a
+                                href={c.linkedin_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 inline-block text-xs text-pipe-blue hover:underline"
+                              >
+                                LinkedIn ↗
+                              </a>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => void removerContatoLead(c.id)}
+                            title="Remover contato"
+                            className="shrink-0 w-7 h-7 rounded-lg text-pipe-muted hover:text-red-400 hover:bg-red-500/10 transition"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </section>
             </div>
           </aside>
