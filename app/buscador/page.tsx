@@ -147,6 +147,18 @@ export default function PaginaBuscador() {
   const [historico, setHistorico] = useState<ContatoEncontrado[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaResumida[]>([]);
 
+  const [objetivoContato, setObjetivoContato] = useState("");
+  const [canalContato, setCanalContato] = useState("");
+  const [gerandoAbordagem, setGerandoAbordagem] = useState(false);
+  const [erroAbordagem, setErroAbordagem] = useState("");
+  const [abordagemContato, setAbordagemContato] = useState<{
+    argumento: string | null;
+    assunto: string | null;
+    conteudo: string;
+    canal: string;
+  } | null>(null);
+  const [copiadoAbordagem, setCopiadoAbordagem] = useState(false);
+
   const carregarHistorico = useCallback(
     async (idUsuario: string) => {
       const supabase = criarClienteSupabase();
@@ -231,6 +243,8 @@ export default function PaginaBuscador() {
     setErroMensagem(false);
     setResultado(null);
     setCopiado(false);
+    setAbordagemContato(null);
+    setErroAbordagem("");
 
     try {
       const resposta = await fetch("/api/buscar-contato", {
@@ -286,6 +300,73 @@ export default function PaginaBuscador() {
       setTimeout(() => setCopiado(false), 2000);
     } catch {
       console.error("Não conseguimos copiar o e-mail.");
+    }
+  };
+
+  const gerarAbordagemContato = async () => {
+    if (
+      !resultado?.id ||
+      gerandoAbordagem ||
+      !objetivoContato ||
+      !canalContato
+    ) {
+      return;
+    }
+
+    setGerandoAbordagem(true);
+    setErroAbordagem("");
+    setAbordagemContato(null);
+    setCopiadoAbordagem(false);
+
+    try {
+      const resposta = await fetch("/api/gerar-abordagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contatoId: resultado.id,
+          produto: "__portfolio__",
+          objetivo: objetivoContato,
+          canal: canalContato,
+        }),
+      });
+
+      const dados = (await resposta.json()) as {
+        abordagem?: {
+          argumento: string | null;
+          assunto: string | null;
+          conteudo: string;
+          canal: string;
+        };
+        erro?: string;
+      };
+
+      if (!resposta.ok || !dados.abordagem) {
+        setErroAbordagem(dados.erro ?? "Não conseguimos gerar agora.");
+        return;
+      }
+
+      setAbordagemContato(dados.abordagem);
+    } catch {
+      setErroAbordagem("Falha de conexão. Tente novamente.");
+    } finally {
+      setGerandoAbordagem(false);
+    }
+  };
+
+  const copiarAbordagem = async () => {
+    if (!abordagemContato) return;
+
+    try {
+      const texto =
+        abordagemContato.canal === "email" && abordagemContato.assunto
+          ? `${abordagemContato.assunto}\n\n${abordagemContato.conteudo}`
+          : abordagemContato.conteudo;
+
+      await navigator.clipboard.writeText(texto);
+      setCopiadoAbordagem(true);
+      setTimeout(() => setCopiadoAbordagem(false), 2000);
+    } catch {
+      console.error("Não conseguimos copiar.");
     }
   };
 
@@ -412,6 +493,91 @@ export default function PaginaBuscador() {
                       contatoId={resultado.id}
                       empresas={empresas}
                     />
+                  </div>
+                )}
+
+                {resultado.id && (
+                  <div className="mt-5 border-t border-pipe-border pt-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue mb-3">
+                      🤖 Gerar abordagem para este contato
+                    </p>
+
+                    <p className="text-[11px] text-pipe-muted mb-3">
+                      Usaremos o perfil do LinkedIn encontrado + o que sua
+                      empresa vende (todo o portfólio). Custo: 1 Crédito de IA.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <select
+                        value={objetivoContato}
+                        onChange={(e) => setObjetivoContato(e.target.value)}
+                        className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      >
+                        <option value="">Objetivo da abordagem...</option>
+                        <option value="agendar_reuniao">📅 Agendar reunião</option>
+                        <option value="gerar_interesse">✨ Gerar interesse</option>
+                        <option value="fazer_diagnostico">🩺 Fazer diagnóstico</option>
+                        <option value="apresentar_solucao">💡 Apresentar solução</option>
+                        <option value="descobrir_responsavel">🔎 Descobrir o responsável</option>
+                        <option value="outro">✏️ Outro</option>
+                      </select>
+
+                      <select
+                        value={canalContato}
+                        onChange={(e) => setCanalContato(e.target.value)}
+                        className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      >
+                        <option value="">Canal...</option>
+                        <option value="email">✉️ E-mail</option>
+                        <option value="linkedin">💼 LinkedIn</option>
+                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="ligacao">📞 Ligação</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={gerarAbordagemContato}
+                      disabled={
+                        gerandoAbordagem || !objetivoContato || !canalContato
+                      }
+                      className="mt-3 w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 disabled:opacity-50 transition"
+                    >
+                      {gerandoAbordagem
+                        ? "🤖 Nossa equipe está escrevendo..."
+                        : "🤖 Gerar abordagem"}
+                    </button>
+
+                    {erroAbordagem && (
+                      <p className="mt-3 text-sm text-red-400">{erroAbordagem}</p>
+                    )}
+
+                    {abordagemContato && (
+                      <div className="mt-4 space-y-2">
+                        {abordagemContato.argumento && (
+                          <p className="text-xs text-pipe-lime border-l-2 border-pipe-lime/40 pl-3">
+                            💡 {abordagemContato.argumento}
+                          </p>
+                        )}
+
+                        {abordagemContato.canal === "email" &&
+                          abordagemContato.assunto && (
+                            <p className="text-sm text-gray-200">
+                              <strong>Assunto:</strong> {abordagemContato.assunto}
+                            </p>
+                          )}
+
+                        <pre className="whitespace-pre-wrap font-sans text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
+{abordagemContato.conteudo}
+                        </pre>
+
+                        <button
+                          onClick={copiarAbordagem}
+                          className="text-xs font-semibold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 transition"
+                        >
+                          {copiadoAbordagem ? "✅ Copiado!" : "📋 Copiar abordagem"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

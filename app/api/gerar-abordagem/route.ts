@@ -28,8 +28,16 @@ type Perfil = {
   nichos: string[] | null;
 } | null;
 
+type ContatoAlvo = {
+  nome: string | null;
+  cargo: string | null;
+  empresa: string | null;
+  linkedin_url: string | null;
+};
+
 type CorpoGeracao = {
   companyId?: unknown;
+  contatoId?: unknown;
   produto?: unknown;
   objetivo?: unknown;
   canal?: unknown;
@@ -121,27 +129,52 @@ export async function POST(requisicao: Request) {
   }
 
   const companyId = String(corpo.companyId ?? "");
+  const contatoId = String(corpo.contatoId ?? "");
   const produto = String(corpo.produto ?? "").trim();
   const objetivoChave = String(corpo.objetivo ?? "").trim();
   const canal = String(corpo.canal ?? "").trim();
 
-  if (!companyId || !produto || !objetivoChave || !CANAIS_VALIDOS.has(canal)) {
+  if (
+    (!companyId && !contatoId) ||
+    !produto ||
+    !objetivoChave ||
+    !CANAIS_VALIDOS.has(canal)
+  ) {
     return NextResponse.json(
       { erro: "Escolha o produto, o objetivo e o canal antes de gerar." },
       { status: 400 }
     );
   }
 
-  const { data: empresa } = await supabase
-    .from("companies")
-    .select(
-      "razao_social, nome_fantasia, municipio, uf, endereco, segmento_icp, porte, capital_social, decisor_nome"
-    )
-    .eq("id", companyId)
-    .single();
+  let dadosEmpresa: Empresa | null = null;
+  let dadosContato: ContatoAlvo | null = null;
 
-  if (!empresa) {
-    return NextResponse.json({ erro: "Empresa não encontrada." }, { status: 404 });
+  if (companyId) {
+    const { data: empresa } = await supabase
+      .from("companies")
+      .select(
+        "razao_social, nome_fantasia, municipio, uf, endereco, segmento_icp, porte, capital_social, decisor_nome"
+      )
+      .eq("id", companyId)
+      .single();
+
+    if (!empresa) {
+      return NextResponse.json({ erro: "Empresa não encontrada." }, { status: 404 });
+    }
+
+    dadosEmpresa = empresa as Empresa;
+  } else {
+    const { data: contato } = await supabase
+      .from("contatos")
+      .select("nome, cargo, empresa, linkedin_url")
+      .eq("id", contatoId)
+      .single();
+
+    if (!contato) {
+      return NextResponse.json({ erro: "Contato não encontrado." }, { status: 404 });
+    }
+
+    dadosContato = contato as ContatoAlvo;
   }
 
   const { data: perfil } = await supabase
@@ -186,18 +219,45 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const dadosEmpresa = empresa as Empresa;
   const dadosPerfil = (perfil ?? null) as Perfil;
 
-  const nomeAmigavel =
-    dadosEmpresa.nome_fantasia?.replace(/\s*(LTDA|ME|EIRELI|S\/A|SA)\.?$/i, "").trim() ||
-    dadosEmpresa.razao_social ||
-    "a empresa";
+  let blocoAlvo = "";
+  let nomeParaSaudacao: string | null = null;
+  let contextoEmpresaAlvo = "";
 
-  const localizacao =
-    dadosEmpresa.endereco ||
-    [dadosEmpresa.municipio, dadosEmpresa.uf].filter(Boolean).join(", ") ||
-    "Brasil";
+  if (dadosEmpresa) {
+    const nomeAmigavel =
+      dadosEmpresa.nome_fantasia?.replace(/\s*(LTDA|ME|EIRELI|S\/A|SA)\.?$/i, "").trim() ||
+      dadosEmpresa.razao_social ||
+      "a empresa";
+
+    const localizacao =
+      dadosEmpresa.endereco ||
+      [dadosEmpresa.municipio, dadosEmpresa.uf].filter(Boolean).join(", ") ||
+      "Brasil";
+
+    nomeParaSaudacao = dadosEmpresa.decisor_nome || null;
+    contextoEmpresaAlvo = nomeAmigavel;
+
+    blocoAlvo = `EMPRESA-ALVO:
+- Nome: ${nomeAmigavel}
+- Segmento/atividade: ${dadosEmpresa.segmento_icp || ""}
+- Localização: ${localizacao}
+${dadosEmpresa.porte ? `- Porte: ${dadosEmpresa.porte}` : ""}
+${typeof dadosEmpresa.capital_social === "number" ? `- Capital social: R$ ${dadosEmpresa.capital_social}` : ""}
+${dadosEmpresa.decisor_nome ? `- Sócio/decisor identificado: ${dadosEmpresa.decisor_nome}` : ""}`;
+  } else if (dadosContato) {
+    nomeParaSaudacao = dadosContato.nome || null;
+
+    blocoAlvo = `PESSOA-ALVO (contato encontrado via LinkedIn):
+- Nome: ${dadosContato.nome || "não informado"}
+- Cargo: ${dadosContato.cargo || "não informado"}
+- Empresa onde trabalha: ${dadosContato.empresa || "não informada"}
+${dadosContato.linkedin_url ? `- LinkedIn: ${dadosContato.linkedin_url}` : ""}
+Trata-se de uma pessoa específica: fale com ELA, no contexto do cargo dela, e adapte o gancho à provável realidade da empresa onde trabalha.`;
+
+    contextoEmpresaAlvo = dadosContato.empresa || "a empresa";
+  }
 
   const portifolioTexto = [
     dadosPerfil?.produtos_servicos ? `O que vendemos: ${dadosPerfil.produtos_servicos}` : "",
@@ -221,19 +281,13 @@ ${portifolioTexto ? `\nCONTEXTO DO PORTFÓLIO:\n${portifolioTexto}` : ""}`
   const prompt = `QUEM VENDE: ${dadosPerfil?.nome_empresa || "nosso representante comercial"}.
 ${instrucaoProduto}
 
-EMPRESA-ALVO:
-- Nome: ${nomeAmigavel}
-- Segmento/atividade: ${dadosEmpresa.segmento_icp || ""}
-- Localização: ${localizacao}
-${dadosEmpresa.porte ? `- Porte: ${dadosEmpresa.porte}` : ""}
-${typeof dadosEmpresa.capital_social === "number" ? `- Capital social: R$ ${dadosEmpresa.capital_social}` : ""}
-${dadosEmpresa.decisor_nome ? `- Sócio/decisor identificado: ${dadosEmpresa.decisor_nome}` : ""}
+${blocoAlvo}
 
 OBJETIVO DA ABORDAGEM: ${objetivoLegivel}.
 Adapte o CTA e o foco ao objetivo (ex.: follow-up retoma contexto; diagnóstico propõe perguntas; apresentar solução mostra aplicação concreta).
 
 ${instrucoesDeCanal(canal)}
-${instrucoesSaudacao(canal, dadosEmpresa.decisor_nome, nomeAmigavel)}
+${instrucoesSaudacao(canal, nomeParaSaudacao, contextoEmpresaAlvo)}
 
 REGRAS DE ARGUMENTAÇÃO:
 1. Primeiro identifique o MELHOR ARGUMENTO: UMA conexão específica entre o produto oferecido e a operação real desta empresa (ex.: transportadora refrigerada -> rastreabilidade e continuidade da cadeia fria).
@@ -272,7 +326,8 @@ RESPONDA APENAS COM ESTE JSON:
     .from("abordagens")
     .insert({
       usuario_id: user.id,
-      company_id: companyId,
+      company_id: companyId || null,
+      contato_id: contatoId || null,
       produto,
       objetivo: objetivoLegivel,
       canal,

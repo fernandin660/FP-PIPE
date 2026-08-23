@@ -72,6 +72,11 @@ export default function ModalAbordagem({
   const [copiado, setCopiado] = useState(false);
   const [historico, setHistorico] = useState<AbordagemSalva[]>([]);
 
+  const [mostrandoModelo, setMostrandoModelo] = useState(false);
+  const [nomeModelo, setNomeModelo] = useState("");
+  const [salvandoModelo, setSalvandoModelo] = useState(false);
+  const [modeloSalvo, setModeloSalvo] = useState(false);
+
   useEffect(() => {
     if (!aberto || !empresa) return;
 
@@ -181,6 +186,8 @@ export default function ModalAbordagem({
     setResultado(abordagem);
     setEditando(false);
     setCopiado(false);
+    setModeloSalvo(false);
+    setMostrandoModelo(false);
     setAssuntoEdicao(abordagem.assunto ?? "");
     setConteudoEdicao(abordagem.conteudo);
   };
@@ -239,6 +246,40 @@ export default function ModalAbordagem({
       setTimeout(() => setCopiado(false), 2000);
     } catch {
       console.error("Não conseguimos copiar.");
+    }
+  };
+
+  const salvarComoModelo = async () => {
+    if (!resultado || salvandoModelo) return;
+
+    setSalvandoModelo(true);
+
+    try {
+      const supabase = criarClienteSupabase();
+      if (!supabase) return;
+
+      const nomeFinal =
+        nomeModelo.trim() ||
+        `Modelo ${CANAIS.find((c) => c.chave === resultado.canal)?.rotulo ?? resultado.canal}`;
+
+      const { error } = await supabase.from("modelos").insert({
+        usuario_id: (await supabase.auth.getUser()).data.user?.id,
+        nome: nomeFinal,
+        canal: resultado.canal,
+        objetivo: resultado.objetivo,
+        produto: resultado.produto,
+        argumento: resultado.argumento,
+        assunto: resultado.assunto,
+        conteudo: resultado.conteudo,
+      });
+
+      if (!error) {
+        setModeloSalvo(true);
+        setMostrandoModelo(false);
+        setNomeModelo("");
+      }
+    } finally {
+      setSalvandoModelo(false);
     }
   };
 
@@ -494,6 +535,42 @@ export default function ModalAbordagem({
                   >
                     {gerando ? "Gerando..." : "🔄 Gerar novamente"}
                   </button>
+
+                  {!modeloSalvo ? (
+                    mostrandoModelo ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={nomeModelo}
+                          onChange={(e) => setNomeModelo(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") salvarComoModelo();
+                          }}
+                          placeholder="Nome do modelo"
+                          autoFocus
+                          className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pipe-blue w-40"
+                        />
+
+                        <button
+                          onClick={salvarComoModelo}
+                          disabled={salvandoModelo}
+                          className="text-xs font-bold bg-amber-500 text-black px-3 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                        >
+                          {salvandoModelo ? "..." : "Salvar"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setMostrandoModelo(true)}
+                        className="text-xs font-semibold border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/10 transition"
+                      >
+                        ⭐ Salvar como modelo
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-xs font-semibold text-amber-400 self-center">
+                      ⭐ Salvo nos Modelos
+                    </span>
+                  )}
                 </div>
               </section>
             )}

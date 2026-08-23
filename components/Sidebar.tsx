@@ -106,6 +106,7 @@ export default function Sidebar({
           "🔎",
           pathname === "/buscador"
         )}
+        {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
       </nav>
 
       <div className="px-4 pb-5">
