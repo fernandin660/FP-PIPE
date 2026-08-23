@@ -161,7 +161,7 @@ export async function POST(requisicao: Request) {
   }
 
   const respostaAnymail = await fetch(
-    "https://api.anymailfinder.com/v5.1/find-email/person",
+    "https://api.anymailfinder.com/v5.1/find-email/linkedin-url",
     {
       method: "POST",
       headers: {
@@ -174,6 +174,7 @@ export async function POST(requisicao: Request) {
 
   const dados = (await respostaAnymail.json().catch(() => ({}))) as {
     email?: string;
+    valid_email?: string | null;
     email_status?: string;
     full_name?: string;
     person_full_name?: string;
@@ -181,6 +182,7 @@ export async function POST(requisicao: Request) {
     person_job_title?: string;
     company_name?: string;
     company?: string;
+    person_company_name?: string;
     credits_charged?: number;
   };
 
@@ -191,7 +193,9 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  if (!dados.email || dados.email_status !== "valid") {
+  const emailVerificado = dados.valid_email || dados.email;
+
+  if (!emailVerificado || dados.email_status !== "valid") {
     return NextResponse.json({
       encontrado: false,
       mensagem:
@@ -211,8 +215,9 @@ export async function POST(requisicao: Request) {
     linkedin_url: linkedinUrl,
     nome: dados.person_full_name || dados.full_name || null,
     cargo: dados.person_job_title || dados.job_title || null,
-    empresa: dados.company_name || dados.company || null,
-    email: dados.email,
+    empresa:
+      dados.person_company_name || dados.company_name || dados.company || null,
+    email: emailVerificado,
   };
 
   const { data: salvo } = await supabase
