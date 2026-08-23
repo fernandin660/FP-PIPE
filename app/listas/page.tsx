@@ -134,6 +134,12 @@ export default function PaginaListas() {
     linkedin: "",
   });
   const [salvandoContato, setSalvandoContato] = useState(false);
+  const [empresaContato, setEmpresaContato] = useState<{
+    email: string | null;
+    telefone: string | null;
+  }>({ email: null, telefone: null });
+  const [buscandoReceita, setBuscandoReceita] = useState(false);
+  const [erroReceita, setErroReceita] = useState("");
   const [listaIcpResumo, setListaIcpResumo] = useState("");
   const [listaAtualId, setListaAtualId] = useState<string | null>(null);
   const [perfilVendedor, setPerfilVendedor] = useState("");
@@ -160,7 +166,64 @@ export default function PaginaListas() {
     });
     setLeadSalvo(false);
     setFormContato((v) => ({ ...v, aberto: false }));
+    setEmpresaContato({
+      email: empresa.email ?? null,
+      telefone: empresa.telefone ?? null,
+    });
+    setErroReceita("");
     void carregarContatosLead(empresa.id);
+  };
+
+  const buscarNaReceita = async () => {
+    if (!empresaDetalhe || buscandoReceita) return;
+
+    setBuscandoReceita(true);
+    setErroReceita("");
+
+    try {
+      const resposta = await fetch("/api/enriquecer-receita", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: empresaDetalhe.id }),
+      });
+
+      const dados = (await resposta.json()) as {
+        email?: string | null;
+        telefone?: string | null;
+        erro?: string;
+      };
+
+      if (!resposta.ok) {
+        setErroReceita(dados.erro ?? "Falha na consulta.");
+        return;
+      }
+
+      setEmpresaContato({
+        email: dados.email ?? null,
+        telefone: dados.telefone ?? null,
+      });
+
+      const emailFinal = dados.email ?? empresaDetalhe.email;
+      const telefoneFinal = dados.telefone ?? empresaDetalhe.telefone;
+
+      setEmpresaDetalhe((prev) =>
+        prev ? { ...prev, email: emailFinal, telefone: telefoneFinal } : prev
+      );
+
+      setEmpresasPorLista((prev) => {
+        const novo = { ...prev };
+        for (const listaId of Object.keys(novo)) {
+          novo[listaId] = novo[listaId].map((e) =>
+            e.id === empresaDetalhe.id
+              ? { ...e, email: emailFinal, telefone: telefoneFinal }
+              : e
+          );
+        }
+        return novo;
+      });
+    } finally {
+      setBuscandoReceita(false);
+    }
   };
 
   const carregarContatosLead = async (companyId: string) => {
@@ -1176,6 +1239,57 @@ export default function PaginaListas() {
                   Escolha o produto, o objetivo e o canal — cada abordagem fica
                   salva no histórico deste lead.
                 </p>
+              </section>
+
+              <section className="border-t border-pipe-border pt-4">
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                    🏢 Contato institucional da empresa
+                  </p>
+
+                  <button
+                    onClick={() => void buscarNaReceita()}
+                    disabled={buscandoReceita}
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                  >
+                    {buscandoReceita
+                      ? "Buscando..."
+                      : "🔍 Buscar na Receita"}
+                  </button>
+                </div>
+
+                {erroReceita && (
+                  <p className="text-xs text-red-400 mb-2">{erroReceita}</p>
+                )}
+
+                <div className="space-y-1 text-xs">
+                  {empresaContato.email ? (
+                    <a
+                      href={`mailto:${empresaContato.email}`}
+                      className="block text-pipe-lime hover:underline break-all"
+                    >
+                      ✉️ {empresaContato.email}
+                    </a>
+                  ) : (
+                    <p className="text-pipe-muted">✉️ —</p>
+                  )}
+
+                  {empresaContato.telefone ? (
+                    <a
+                      href={`tel:${empresaContato.telefone.replace(/[^\d+]/g, "")}`}
+                      className="block text-white hover:text-pipe-lime"
+                    >
+                      📞 {empresaContato.telefone}
+                    </a>
+                  ) : (
+                    <p className="text-pipe-muted">📞 —</p>
+                  )}
+
+                  <p className="text-[11px] text-pipe-muted italic pt-1">
+                    E-mail e telefone que a empresa declara oficialmente à
+                    Receita Federal. Preenche só o que estiver vazio.
+                  </p>
+                </div>
               </section>
 
               <section className="border-t border-pipe-border pt-4">
