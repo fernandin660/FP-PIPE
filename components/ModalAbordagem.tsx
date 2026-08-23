@@ -245,15 +245,14 @@ export default function ModalAbordagem({
   const rotuloCanal = CANAIS.find((c) => c.chave === resultado?.canal)?.rotulo;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        aria-label="Fechar"
+    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center px-6 overflow-y-auto py-8">
+      <div
+        aria-hidden="true"
         onClick={aoFechar}
-        className="absolute inset-0 bg-black/70 cursor-default"
-        tabIndex={-1}
+        className="fixed inset-0 cursor-default"
       />
 
-      <div className="relative bg-pipe-card border border-pipe-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="relative bg-pipe-card border border-pipe-border rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4 z-10">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">

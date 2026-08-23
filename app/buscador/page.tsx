@@ -19,6 +19,116 @@ type ContatoEncontrado = {
   email: string;
 };
 
+type EmpresaResumida = {
+  id: string;
+  nome_fantasia: string | null;
+  razao_social: string | null;
+};
+
+function normalizar(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function AtribuirLead({
+  contatoId,
+  empresas,
+}: {
+  contatoId: string;
+  empresas: EmpresaResumida[];
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [concluido, setConcluido] = useState<string | null>(null);
+
+  const termo = normalizar(busca.trim());
+
+  const sugestoes =
+    termo.length === 0
+      ? empresas.slice(0, 5)
+      : empresas
+          .filter((empresa) =>
+            normalizar(
+              `${empresa.nome_fantasia ?? ""} ${empresa.razao_social ?? ""}`
+            ).includes(termo)
+          )
+          .slice(0, 6);
+
+  const atribuir = async (empresa: EmpresaResumida) => {
+    if (enviando) return;
+
+    setEnviando(true);
+
+    try {
+      const resposta = await fetch("/api/buscar-contato", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contatoId, companyId: empresa.id }),
+      });
+
+      if (resposta.ok) {
+        setConcluido(empresa.nome_fantasia || empresa.razao_social || "lead");
+        setAberto(false);
+        setBusca("");
+      }
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAberto((valor) => !valor)}
+        title="Vincular este contato a um lead da sua lista"
+        className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition ${
+          concluido
+            ? "border-pipe-lime/40 text-pipe-lime"
+            : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
+        }`}
+      >
+        {concluido ? `📎 ${concluido}` : "📎 Atribuir"}
+      </button>
+
+      {aberto && (
+        <div className="absolute right-0 bottom-full mb-2 z-30 w-72 bg-pipe-card border border-pipe-border rounded-xl p-3 shadow-2xl">
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Digite o nome do lead..."
+            autoFocus
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+          />
+
+          <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+            {sugestoes.map((empresa) => (
+              <button
+                key={empresa.id}
+                onClick={() => atribuir(empresa)}
+                disabled={enviando}
+                className="w-full text-left text-xs text-gray-200 px-3 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition truncate"
+              >
+                {empresa.nome_fantasia ||
+                  empresa.razao_social ||
+                  "Lead sem nome"}
+              </button>
+            ))}
+
+            {sugestoes.length === 0 && (
+              <p className="text-xs text-pipe-muted px-3 py-2">
+                Nenhum lead encontrado.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PaginaBuscador() {
   const router = useRouter();
 
@@ -35,6 +145,7 @@ export default function PaginaBuscador() {
   const [resultado, setResultado] = useState<ContatoEncontrado | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [historico, setHistorico] = useState<ContatoEncontrado[]>([]);
+  const [empresas, setEmpresas] = useState<EmpresaResumida[]>([]);
 
   const carregarHistorico = useCallback(
     async (idUsuario: string) => {
@@ -95,6 +206,14 @@ export default function PaginaBuscador() {
         .maybeSingle();
 
       setSaldoContatos(dadosContatos?.saldo ?? 5);
+
+      const { data: dadosEmpresas } = await supabase
+        .from("companies")
+        .select("id, nome_fantasia, razao_social")
+        .order("criado_em", { ascending: false })
+        .limit(300);
+
+      setEmpresas((dadosEmpresas as EmpresaResumida[]) ?? []);
 
       await carregarHistorico(user.id);
 
@@ -286,6 +405,15 @@ export default function PaginaBuscador() {
                 >
                   ✉️ {resultado.email}
                 </a>
+
+                {resultado.id && (
+                  <div className="mt-3 flex justify-end">
+                    <AtribuirLead
+                      contatoId={resultado.id}
+                      empresas={empresas}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -317,6 +445,13 @@ export default function PaginaBuscador() {
                       <span className="text-xs text-pipe-lime break-all max-w-[220px] truncate">
                         {contato.email}
                       </span>
+
+                      {contato.id && (
+                        <AtribuirLead
+                          contatoId={contato.id}
+                          empresas={empresas}
+                        />
+                      )}
 
                       <button
                         onClick={() =>

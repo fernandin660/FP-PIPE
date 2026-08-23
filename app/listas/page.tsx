@@ -101,11 +101,6 @@ export default function PaginaListas() {
     null
   );
   const [modalAbordagemAberto, setModalAbordagemAberto] = useState(false);
-  const [rascunhoAssunto, setRascunhoAssunto] = useState("");
-  const [rascunhoCorpo, setRascunhoCorpo] = useState("");
-  const [salvandoEmail, setSalvandoEmail] = useState(false);
-  const [copiadoEmail, setCopiadoEmail] = useState(false);
-  const [gerandoEmail, setGerandoEmail] = useState(false);
   const [listaIcpResumo, setListaIcpResumo] = useState("");
   const [listaAtualId, setListaAtualId] = useState<string | null>(null);
   const [perfilVendedor, setPerfilVendedor] = useState("");
@@ -119,9 +114,6 @@ export default function PaginaListas() {
     lista?: ListaSalva
   ) => {
     setEmpresaDetalhe(empresa);
-    setRascunhoAssunto(empresa.email_assunto ?? "");
-    setRascunhoCorpo(empresa.email_corpo ?? "");
-    setCopiadoEmail(false);
     setListaIcpResumo(lista?.icp_resumo ?? "");
     setListaAtualId(lista?.id ?? null);
     setPerfilVendedor(
@@ -171,107 +163,6 @@ export default function PaginaListas() {
 
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [empresaDetalhe]);
-
-  const salvarEmail = async () => {
-    if (!empresaDetalhe || salvandoEmail) return;
-
-    setSalvandoEmail(true);
-
-    try {
-      const supabase = criarClienteSupabase();
-
-      if (supabase) {
-        await supabase
-          .from("companies")
-          .update({
-            email_assunto: rascunhoAssunto,
-            email_corpo: rascunhoCorpo,
-          })
-          .eq("id", empresaDetalhe.id);
-      }
-
-      const atualizada: EmpresaDaLista = {
-        ...empresaDetalhe,
-        email_assunto: rascunhoAssunto,
-        email_corpo: rascunhoCorpo,
-      };
-
-      setEmpresaDetalhe(atualizada);
-
-      setEmpresasPorLista((atual) => {
-        const novo: Record<string, EmpresaDaLista[]> = {};
-
-        Object.entries(atual).forEach(([listaId, emps]) => {
-          novo[listaId] = emps.map((e) =>
-            e.id === atualizada.id ? atualizada : e
-          );
-        });
-
-        return novo;
-      });
-    } catch (erroSalvar) {
-      console.error("Erro ao salvar e-mail:", erroSalvar);
-    } finally {
-      setSalvandoEmail(false);
-    }
-  };
-
-  const copiarEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `${rascunhoAssunto}\n\n${rascunhoCorpo}`
-      );
-      setCopiadoEmail(true);
-      setTimeout(() => setCopiadoEmail(false), 2000);
-    } catch {
-      console.error("Não conseguimos copiar o e-mail.");
-    }
-  };
-
-  const gerarEmail = async () => {
-    if (!empresaDetalhe || gerandoEmail) return;
-
-    setGerandoEmail(true);
-
-    try {
-      const resposta = await fetch("/api/gerar-email-empresa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          razaoSocial: empresaDetalhe.razao_social,
-          nomeFantasia: empresaDetalhe.nome_fantasia,
-          municipio: empresaDetalhe.municipio,
-          uf: empresaDetalhe.uf,
-          endereco: empresaDetalhe.endereco,
-          segmentoIcp: empresaDetalhe.segmento_icp,
-          porte: empresaDetalhe.porte,
-          capitalSocial: empresaDetalhe.capital_social,
-          decisorNome: empresaDetalhe.decisor_nome,
-          cargoPrioritario:
-            empresaDetalhe.campeao_cargo ||
-            empresaDetalhe.cargo_prioritario,
-          icpResumo: listaIcpResumo,
-          perfilVendedor: montarPerfilVendedor(perfil),
-        }),
-      });
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao gerar e-mail");
-      }
-
-      setRascunhoAssunto(dados.assunto ?? "");
-      setRascunhoCorpo(dados.mensagem ?? "");
-    } catch (erroGerar) {
-      console.error("Erro ao gerar e-mail:", erroGerar);
-      alert(
-        "Não conseguimos escrever o e-mail agora. Tente novamente em instantes."
-      );
-    } finally {
-      setGerandoEmail(false);
-    }
-  };
 
   useEffect(() => {
     async function carregar() {
@@ -953,34 +844,16 @@ export default function PaginaListas() {
               )}
 
               <section className="border-t border-pipe-border pt-4">
-                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
-                    ✉️ E-mail de prospecção (editável)
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={copiarEmail}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
-                    >
-                      {copiadoEmail ? "Copiado!" : "📋 Copiar"}
-                    </button>
-
-                    <button
-                      onClick={salvarEmail}
-                      disabled={salvandoEmail}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
-                    >
-                      {salvandoEmail ? "Salvando..." : "💾 Salvar"}
-                    </button>
-                  </div>
-                </div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue mb-2">
+                  🤖 Abordagem com IA
+                </p>
 
                 {!listaIcpResumo && (
                   <div className="mb-3 bg-amber-500/5 border border-amber-500/30 rounded-lg p-3">
                     <p className="text-xs text-amber-300 font-semibold mb-1.5">
                       ⚠️ Esta lista foi criada antes de guardarmos o que sua
-                      empresa vende — por isso os e-mails saem genéricos.
+                      empresa vende — complete abaixo para abordagens mais
+                      precisas.
                     </p>
 
                     <textarea
@@ -1005,43 +878,15 @@ export default function PaginaListas() {
 
                 <button
                   onClick={() => setModalAbordagemAberto(true)}
-                  className="w-full mb-2 bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
+                  className="w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
                 >
                   🤖 Gerar abordagem com IA
                 </button>
 
-                {!rascunhoAssunto && !rascunhoCorpo && (
-                  <button
-                    onClick={gerarEmail}
-                    disabled={gerandoEmail}
-                    className="w-full mb-2 border border-pipe-border text-gray-300 text-xs font-semibold py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition"
-                  >
-                    {gerandoEmail
-                      ? "✍️ Nossa equipe está escrevendo o e-mail..."
-                      : "✨ Gerar e-mail simples (antigo)"}
-                  </button>
-                )}
-
-                <div className="space-y-2">
-                  <input
-                    value={rascunhoAssunto}
-                    onChange={(e) => setRascunhoAssunto(e.target.value)}
-                    placeholder="Assunto do e-mail"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                  />
-
-                  <textarea
-                    value={rascunhoCorpo}
-                    onChange={(e) => setRascunhoCorpo(e.target.value)}
-                    rows={10}
-                    placeholder={
-                      rascunhoAssunto || rascunhoCorpo
-                        ? "Corpo do e-mail"
-                        : "Clique em 'Gerar e-mail com IA' ou escreva o seu aqui"
-                    }
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
-                  />
-                </div>
+                <p className="mt-2 text-[11px] text-pipe-muted">
+                  Escolha o produto, o objetivo e o canal — cada abordagem fica
+                  salva no histórico deste lead.
+                </p>
               </section>
             </div>
           </aside>

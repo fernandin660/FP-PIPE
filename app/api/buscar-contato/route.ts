@@ -11,6 +11,83 @@ type CorpoBusca = {
   linkedinUrl?: unknown;
 };
 
+type CorpoAtribuicao = {
+  contatoId?: unknown;
+  companyId?: unknown;
+};
+
+export async function PUT(requisicao: Request) {
+  const supabase = await criarClienteSupabaseServidor();
+  if (!supabase) {
+    return NextResponse.json(
+      { erro: "Autenticação não configurada." },
+      { status: 503 }
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+  }
+
+  let corpo: CorpoAtribuicao;
+  try {
+    corpo = (await requisicao.json()) as CorpoAtribuicao;
+  } catch {
+    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
+  }
+
+  const contatoId = String(corpo.contatoId ?? "");
+  const companyId = String(corpo.companyId ?? "");
+
+  if (!contatoId || !companyId) {
+    return NextResponse.json({ erro: "Dados incompletos." }, { status: 400 });
+  }
+
+  const { data: contato } = await supabase
+    .from("contatos")
+    .select("id, nome, cargo, email, linkedin_url")
+    .eq("id", contatoId)
+    .eq("usuario_id", user.id)
+    .single();
+
+  const { data: empresa } = await supabase
+    .from("companies")
+    .select("id, campeao_email")
+    .eq("id", companyId)
+    .single();
+
+  if (!contato || !empresa) {
+    return NextResponse.json(
+      { erro: "Contato ou lead não encontrado." },
+      { status: 404 }
+    );
+  }
+
+  await supabase
+    .from("contatos")
+    .update({ company_id: companyId })
+    .eq("id", contatoId);
+
+  // Preenche o campeão do lead só se ele ainda não tiver um.
+  if (!empresa.campeao_email) {
+    await supabase
+      .from("companies")
+      .update({
+        campeao_nome: contato.nome,
+        campeao_cargo: contato.cargo,
+        campeao_email: contato.email,
+        campeao_linkedin: contato.linkedin_url,
+      })
+      .eq("id", companyId);
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(requisicao: Request) {
   if (!CHAVE_ANYMAIL) {
     return NextResponse.json(

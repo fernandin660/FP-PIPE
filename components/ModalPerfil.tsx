@@ -364,7 +364,7 @@ export default function ModalPerfil({
 
           <input
             required
-            placeholder="Nome da sua empresa (ex.: Bigcompany)"
+            placeholder="Nome da sua empresa"
             value={nomeEmpresa}
             onChange={(e) => setNomeEmpresa(e.target.value)}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
@@ -380,7 +380,7 @@ export default function ModalPerfil({
 
           <input
             type="url"
-            placeholder="Site da empresa (ex.: https://bigcompany.com.br)"
+            placeholder="Site da empresa (ex.: https://suaempresa.com.br)"
             value={site}
             onChange={(e) => setSite(e.target.value)}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
