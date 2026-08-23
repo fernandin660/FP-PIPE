@@ -100,6 +100,12 @@ export default function Sidebar({
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {item("/", "Nova prospecção", "🎯", pathname === "/")}
         {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
+        {item(
+          "/buscador",
+          "Buscador de contatos",
+          "🔎",
+          pathname === "/buscador"
+        )}
       </nav>
 
       <div className="px-4 pb-5">
