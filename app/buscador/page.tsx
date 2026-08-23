@@ -137,8 +137,44 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
   const [feito, setFeito] = useState<string | null>(null);
   const [erro, setErro] = useState("");
 
+  const [listas, setListas] = useState<{ id: string; nome: string }[]>([]);
+  const [modoLista, setModoLista] = useState<"nova" | "existente">("nova");
+  const [novaListaNome, setNovaListaNome] = useState("");
+  const [listaEscolhida, setListaEscolhida] = useState("");
+
+  const carregarListas = async () => {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    const { data } = await supabase
+      .from("listas")
+      .select("id, nome")
+      .order("criado_em", { ascending: false });
+
+    setListas((data as { id: string; nome: string }[]) ?? []);
+  };
+
+  const abrirPainel = () => {
+    const proximoAberto = !aberto;
+    setAberto(proximoAberto);
+
+    if (proximoAberto) {
+      void carregarListas();
+      if (!novaListaNome.trim()) {
+        setNovaListaNome(
+          `Buscador — ${contato.empresa || "sem empresa"}`
+        );
+      }
+    }
+  };
+
   const cadastrar = async () => {
     if (enviando) return;
+
+    if (modoLista === "existente" && !listaEscolhida) {
+      setErro("Escolha uma lista ou crie uma nova.");
+      return;
+    }
 
     setEnviando(true);
     setErro("");
@@ -155,6 +191,10 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
           linkedinUrl: contato.linkedin_url ?? "",
           cidade,
           uf,
+          listaId:
+            modoLista === "existente" ? listaEscolhida : undefined,
+          novaListaNome:
+            modoLista === "nova" ? novaListaNome : undefined,
         }),
       });
 
@@ -162,6 +202,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
         ok?: boolean;
         comCnpj?: boolean;
         razaoSocial?: string;
+        listaNome?: string | null;
         erro?: string;
       };
 
@@ -172,7 +213,9 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
 
       setFeito(
         `${dados.razaoSocial || contato.empresa || "Lead"}${
-          dados.comCnpj ? " (com CNPJ + contatos)" : ""
+          dados.comCnpj ? " (com CNPJ)" : ""
+        }${
+          dados.listaNome ? ` → ${dados.listaNome}` : ""
         }`
       );
       setAberto(false);
@@ -198,7 +241,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
   return (
     <div className="relative">
       <button
-        onClick={() => setAberto((valor) => !valor)}
+        onClick={abrirPainel}
         title="Criar um lead novo no banco com esta empresa e este contato"
         className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
       >
@@ -231,6 +274,57 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
               className="w-16 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue uppercase"
             />
           </div>
+
+          <div className="flex items-center gap-3 text-[11px] font-semibold pt-1">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                checked={modoLista === "nova"}
+                onChange={() => setModoLista("nova")}
+              />
+              Nova lista
+            </label>
+
+            <label
+              className={`flex items-center gap-1.5 cursor-pointer ${
+                listas.length === 0 ? "opacity-40 pointer-events-none" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                checked={modoLista === "existente"}
+                onChange={() => setModoLista("existente")}
+              />
+              Lista existente
+            </label>
+          </div>
+
+          {modoLista === "nova" ? (
+            <input
+              value={novaListaNome}
+              onChange={(e) => setNovaListaNome(e.target.value)}
+              placeholder="Nome da nova lista"
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            />
+          ) : (
+            <select
+              value={listaEscolhida}
+              onChange={(e) => setListaEscolhida(e.target.value)}
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            >
+              <option value="">
+                {listas.length === 0
+                  ? "Nenhuma lista ainda..."
+                  : "Escolher lista..."}
+              </option>
+
+              {listas.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nome}
+                </option>
+              ))}
+            </select>
+          )}
 
           {erro && <p className="text-[11px] text-red-400">{erro}</p>}
 

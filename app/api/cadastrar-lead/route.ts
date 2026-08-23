@@ -83,6 +83,8 @@ export async function POST(req: NextRequest) {
     linkedinUrl?: string;
     cidade?: string;
     uf?: string;
+    listaId?: string;
+    novaListaNome?: string;
   } | null;
 
   const nomePessoa = (corpo?.nome ?? "").trim() || null;
@@ -361,6 +363,43 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 5) Encaixa o lead na lista escolhida (existente ou nova)
+  let listaFinalId =
+    typeof corpo?.listaId === "string" && corpo.listaId.trim()
+      ? corpo.listaId.trim()
+      : null;
+
+  let listaFinalNome: string | null = null;
+
+  const novaListaNome = (corpo?.novaListaNome ?? "").trim();
+
+  if (!listaFinalId && novaListaNome) {
+    const { data: listaCriada } = await supabase
+      .from("listas")
+      .insert({ usuario_id: user.id, nome: novaListaNome })
+      .select("id, nome")
+      .single();
+
+    if (listaCriada) {
+      listaFinalId = listaCriada.id;
+      listaFinalNome = listaCriada.nome;
+    }
+  } else if (listaFinalId) {
+    const { data: listaExistente } = await supabase
+      .from("listas")
+      .select("nome")
+      .eq("id", listaFinalId)
+      .maybeSingle();
+
+    listaFinalNome = listaExistente?.nome ?? null;
+  }
+
+  if (listaFinalId) {
+    await supabase
+      .from("lista_empresas")
+      .insert({ lista_id: listaFinalId, company_id: leadCriado.id });
+  }
+
   return NextResponse.json({
     ok: true,
     leadId: leadCriado.id,
@@ -369,5 +408,6 @@ export async function POST(req: NextRequest) {
     nomeFantasia,
     municipio,
     uf: ufLocal,
+    listaNome: listaFinalNome,
   });
 }

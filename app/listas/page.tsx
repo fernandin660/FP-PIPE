@@ -660,8 +660,34 @@ export default function PaginaListas() {
     );
   };
 
-  const apagarLista = async (lista: ListaSalva) => {
-    if (
+  const [editandoListaId, setEditandoListaId] = useState<string | null>(null);
+  const [nomeEdicao, setNomeEdicao] = useState("");
+
+  const salvarRenomear = async () => {
+    if (!editandoListaId) return;
+
+    const nome = nomeEdicao.trim();
+
+    if (!nome) {
+      setEditandoListaId(null);
+      return;
+    }
+
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    await supabase
+      .from("listas")
+      .update({ nome })
+      .eq("id", editandoListaId);
+
+    setListas((atual) =>
+      atual.map((l) => (l.id === editandoListaId ? { ...l, nome } : l))
+    );
+    setEditandoListaId(null);
+  };
+
+  const apagarLista = async (lista: ListaSalva) => {    if (
       !confirm(
         `Apagar a lista "${lista.nome}"?\n\nAs empresas continuam salvas no histórico — só o agrupamento desta rodada será removido.`
       )
@@ -815,9 +841,51 @@ export default function PaginaListas() {
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <h2 className="font-bold text-lg text-white">
-                        {lista.nome}
-                      </h2>
+                      {editandoListaId === lista.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={nomeEdicao}
+                            onChange={(e) => setNomeEdicao(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void salvarRenomear();
+                              if (e.key === "Escape") setEditandoListaId(null);
+                            }}
+                            autoFocus
+                            className="bg-pipe-dark border border-pipe-blue rounded-lg px-3 py-1.5 text-sm font-bold text-white focus:outline-none"
+                          />
+
+                          <button
+                            onClick={() => void salvarRenomear()}
+                            title="Salvar nome"
+                            className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
+                          >
+                            ✅
+                          </button>
+
+                          <button
+                            onClick={() => setEditandoListaId(null)}
+                            title="Cancelar"
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                          {lista.nome}
+
+                          <button
+                            onClick={() => {
+                              setEditandoListaId(lista.id);
+                              setNomeEdicao(lista.nome);
+                            }}
+                            title="Renomear lista"
+                            className="text-xs opacity-40 hover:opacity-100 transition"
+                          >
+                            ✏️
+                          </button>
+                        </h2>
+                      )}
 
                       <p className="text-pipe-muted text-xs mt-1">
                         {empresas.length} leads
