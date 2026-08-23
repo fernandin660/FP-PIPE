@@ -135,7 +135,8 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  // Cache global: perfil já buscado antes = resposta grátis e instantânea.
+  // Cache global: perfil já buscado antes = não gasta crédito do provedor,
+  // mas o usuário paga normalmente pela informação.
   const admin = criarClienteSupabaseAdmin();
 
   if (admin) {
@@ -146,23 +147,55 @@ export async function POST(requisicao: Request) {
       .maybeSingle();
 
     if (cacheHit?.email) {
-      const { data: saldoLinha } = await supabase
+      const { data: creditosCache } = await supabase
         .from("creditos_contatos")
         .select("saldo")
         .eq("usuario_id", user.id)
         .maybeSingle();
 
+      let saldoCache = creditosCache?.saldo;
+
+      if (saldoCache === null || saldoCache === undefined) {
+        const { data: criada } = await supabase
+          .from("creditos_contatos")
+          .insert({ usuario_id: user.id, saldo: 5 })
+          .select("saldo")
+          .single();
+
+        saldoCache = criada?.saldo ?? 0;
+      }
+
+      if ((saldoCache ?? 0) <= 0) {
+        return NextResponse.json(
+          { erro: "Você está sem créditos de contato." },
+          { status: 402 }
+        );
+      }
+
+      const novoSaldoCache = Math.max(0, (saldoCache ?? 0) - 1);
+
+      await supabase
+        .from("creditos_contatos")
+        .update({ saldo: novoSaldoCache })
+        .eq("usuario_id", user.id);
+
+      const contatoCache = {
+        linkedin_url: linkedinNormalizado,
+        nome: cacheHit.nome,
+        cargo: cacheHit.cargo,
+        empresa: cacheHit.empresa,
+        email: cacheHit.email,
+      };
+
+      await supabase
+        .from("contatos")
+        .insert({ ...contatoCache, usuario_id: user.id });
+
       return NextResponse.json({
         encontrado: true,
         doCache: true,
-        contato: {
-          nome: cacheHit.nome,
-          cargo: cacheHit.cargo,
-          empresa: cacheHit.empresa,
-          email: cacheHit.email,
-          linkedin_url: linkedinNormalizado,
-        },
-        saldoContatos: saldoLinha?.saldo ?? null,
+        contato: contatoCache,
+        saldoContatos: novoSaldoCache,
       });
     }
   }
