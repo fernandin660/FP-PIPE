@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   const { data: empresa } = await supabase
     .from("companies")
-    .select("id, cnpj, email, telefone")
+    .select("id, cnpj, email, telefone, emails_extra, telefones_extra")
     .eq("id", companyId)
     .eq("usuario_id", user.id)
     .maybeSingle();
@@ -93,21 +93,51 @@ export async function POST(req: NextRequest) {
   const telefoneEncontrado =
     telefoneUtil(receita.ddd_telefone_1) ?? telefoneUtil(receita.ddd_telefone_2);
 
-  // Só preenche o que está vazio — nunca sobrescreve dado que o usuário já tem.
-  const patch: { email?: string; telefone?: string } = {};
+  // Agrega fontes: preenche o primário se vazio; valor diferente vai pros extras.
+  const patch: {
+    email?: string;
+    telefone?: string;
+    emails_extra?: string[];
+    telefones_extra?: string[];
+  } = {};
 
-  if (!empresa.email && emailEncontrado) patch.email = emailEncontrado;
-  if (!empresa.telefone && telefoneEncontrado)
-    patch.telefone = telefoneEncontrado;
+  const emailsAtuais = (empresa.emails_extra ?? []) as string[];
+  const telefonesAtuais = (empresa.telefones_extra ?? []) as string[];
+
+  if (emailEncontrado && emailEncontrado !== (empresa.email ?? "").trim()) {
+    if (!empresa.email) {
+      patch.email = emailEncontrado;
+    } else if (!emailsAtuais.some((e) => e.toLowerCase() === emailEncontrado.toLowerCase())) {
+      patch.emails_extra = [emailEncontrado, ...emailsAtuais];
+    }
+  }
+
+  if (
+    telefoneEncontrado &&
+    telefoneEncontrado.replace(/\D/g, "") !==
+      (empresa.telefone ?? "").replace(/\D/g, "")
+  ) {
+    if (!empresa.telefone) {
+      patch.telefone = telefoneEncontrado;
+    } else if (
+      !telefonesAtuais.some(
+        (t) => t.replace(/\D/g, "") === telefoneEncontrado.replace(/\D/g, "")
+      )
+    ) {
+      patch.telefones_extra = [telefoneEncontrado, ...telefonesAtuais];
+    }
+  }
 
   if (Object.keys(patch).length > 0) {
     await supabase.from("companies").update(patch).eq("id", companyId);
   }
 
   return NextResponse.json({
-    email: patch.email ?? empresa.email ?? null,
-    telefone: patch.telefone ?? empresa.telefone ?? null,
-    emailNovo: Boolean(patch.email),
-    telefoneNovo: Boolean(patch.telefone),
+    empresa: {
+      email: patch.email ?? empresa.email ?? null,
+      telefone: patch.telefone ?? empresa.telefone ?? null,
+      emails_extra: patch.emails_extra ?? emailsAtuais,
+      telefones_extra: patch.telefones_extra ?? telefonesAtuais,
+    },
   });
 }

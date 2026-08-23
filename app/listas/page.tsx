@@ -76,6 +76,8 @@ type EmpresaDaLista = {
   segmento_icp: string | null;
   score: number | null;
   score_motivo: string | null;
+  emails_extra?: string[] | null;
+  telefones_extra?: string[] | null;
   telefone: string | null;
   email: string | null;
   linkedin: string | null;
@@ -135,11 +137,13 @@ export default function PaginaListas() {
   });
   const [salvandoContato, setSalvandoContato] = useState(false);
   const [empresaContato, setEmpresaContato] = useState<{
-    email: string | null;
-    telefone: string | null;
-  }>({ email: null, telefone: null });
+    emails: string[];
+    telefones: string[];
+  }>({ emails: [], telefones: [] });
   const [buscandoReceita, setBuscandoReceita] = useState(false);
   const [erroReceita, setErroReceita] = useState("");
+  const [buscandoMaps, setBuscandoMaps] = useState(false);
+  const [erroMaps, setErroMaps] = useState("");
   const [listaIcpResumo, setListaIcpResumo] = useState("");
   const [listaAtualId, setListaAtualId] = useState<string | null>(null);
   const [perfilVendedor, setPerfilVendedor] = useState("");
@@ -167,11 +171,71 @@ export default function PaginaListas() {
     setLeadSalvo(false);
     setFormContato((v) => ({ ...v, aberto: false }));
     setEmpresaContato({
-      email: empresa.email ?? null,
-      telefone: empresa.telefone ?? null,
+      emails: [empresa.email, ...(empresa.emails_extra ?? [])].filter(
+        (v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i
+      ),
+      telefones: [empresa.telefone, ...(empresa.telefones_extra ?? [])].filter(
+        (v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i
+      ),
     });
     setErroReceita("");
+    setErroMaps("");
     void carregarContatosLead(empresa.id);
+  };
+
+  const aplicarContatoInstitucional = (
+    companyId: string,
+    dados: {
+      email?: string | null;
+      telefone?: string | null;
+      emails_extra?: string[] | null;
+      telefones_extra?: string[] | null;
+    }
+  ) => {
+    const emails = [dados.email, ...(dados.emails_extra ?? [])].filter(
+      (v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i
+    );
+    const telefones = [
+      dados.telefone,
+      ...(dados.telefones_extra ?? []),
+    ]
+      .filter((v): v is string => Boolean(v))
+      .filter(
+        (v, i, arr) =>
+          arr.findIndex((o) => o.replace(/\D/g, "") === v.replace(/\D/g, "")) ===
+          i
+      );
+
+    setEmpresaContato({ emails, telefones });
+    setEmpresaDetalhe((prev) =>
+      prev
+        ? {
+            ...prev,
+            email: dados.email ?? prev.email,
+            telefone: dados.telefone ?? prev.telefone,
+          }
+        : prev
+    );
+    setEmpresasPorLista((prev) => {
+      const novo = { ...prev };
+      for (const listaId of Object.keys(novo)) {
+        novo[listaId] = novo[listaId].map((e) =>
+          e.id === companyId
+            ? {
+                ...e,
+                email: dados.email ?? e.email,
+                telefone: dados.telefone ?? e.telefone,
+                emails_extra: (dados.emails_extra ?? e.emails_extra) as
+                  | string[]
+                  | null,
+                telefones_extra: (dados.telefones_extra ??
+                  e.telefones_extra) as string[] | null,
+              }
+            : e
+        );
+      }
+      return novo;
+    });
   };
 
   const buscarNaReceita = async () => {
@@ -188,41 +252,57 @@ export default function PaginaListas() {
       });
 
       const dados = (await resposta.json()) as {
-        email?: string | null;
-        telefone?: string | null;
+        empresa?: {
+          email?: string | null;
+          telefone?: string | null;
+          emails_extra?: string[];
+          telefones_extra?: string[];
+        };
         erro?: string;
       };
 
-      if (!resposta.ok) {
+      if (!resposta.ok || !dados.empresa) {
         setErroReceita(dados.erro ?? "Falha na consulta.");
         return;
       }
 
-      setEmpresaContato({
-        email: dados.email ?? null,
-        telefone: dados.telefone ?? null,
-      });
-
-      const emailFinal = dados.email ?? empresaDetalhe.email;
-      const telefoneFinal = dados.telefone ?? empresaDetalhe.telefone;
-
-      setEmpresaDetalhe((prev) =>
-        prev ? { ...prev, email: emailFinal, telefone: telefoneFinal } : prev
-      );
-
-      setEmpresasPorLista((prev) => {
-        const novo = { ...prev };
-        for (const listaId of Object.keys(novo)) {
-          novo[listaId] = novo[listaId].map((e) =>
-            e.id === empresaDetalhe.id
-              ? { ...e, email: emailFinal, telefone: telefoneFinal }
-              : e
-          );
-        }
-        return novo;
-      });
+      aplicarContatoInstitucional(empresaDetalhe.id, dados.empresa);
     } finally {
       setBuscandoReceita(false);
+    }
+  };
+
+  const buscarNoMaps = async () => {
+    if (!empresaDetalhe || buscandoMaps) return;
+
+    setBuscandoMaps(true);
+    setErroMaps("");
+
+    try {
+      const resposta = await fetch("/api/buscar-maps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: empresaDetalhe.id }),
+      });
+
+      const dados = (await resposta.json()) as {
+        empresa?: {
+          email?: string | null;
+          telefone?: string | null;
+          emails_extra?: string[];
+          telefones_extra?: string[];
+        };
+        erro?: string;
+      };
+
+      if (!resposta.ok || !dados.empresa) {
+        setErroMaps(dados.erro ?? "Falha na consulta.");
+        return;
+      }
+
+      aplicarContatoInstitucional(empresaDetalhe.id, dados.empresa);
+    } finally {
+      setBuscandoMaps(false);
     }
   };
 
@@ -550,8 +630,12 @@ export default function PaginaListas() {
         e.segmento_icp,
         e.score,
         e.score_motivo,
-        e.telefone,
-        e.email,
+        [e.telefone, ...(e.telefones_extra ?? [])]
+          .filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i)
+          .join("; "),
+        [e.email, ...(e.emails_extra ?? [])]
+          .filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i)
+          .join("; "),
         e.linkedin ||
           gerarLinkBuscaEmpresa(e.nome_fantasia, e.razao_social),
         e.decisor_nome,
@@ -624,7 +708,11 @@ export default function PaginaListas() {
         e.campeao_linkedin ||
         e.aprovador_email ||
         e.aprovador_telefone ||
-        e.aprovador_linkedin
+        e.aprovador_linkedin ||
+        e.email ||
+        (e.emails_extra?.length ?? 0) > 0 ||
+        e.telefone ||
+        (e.telefones_extra?.length ?? 0) > 0
     );
   }
 
@@ -1247,47 +1335,66 @@ export default function PaginaListas() {
                     🏢 Contato institucional da empresa
                   </p>
 
-                  <button
-                    onClick={() => void buscarNaReceita()}
-                    disabled={buscandoReceita}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
-                  >
-                    {buscandoReceita
-                      ? "Buscando..."
-                      : "🔍 Buscar na Receita"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => void buscarNaReceita()}
+                      disabled={buscandoReceita}
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                    >
+                      {buscandoReceita
+                        ? "Buscando..."
+                        : "🔍 Receita Federal"}
+                    </button>
+
+                    <button
+                      onClick={() => void buscarNoMaps()}
+                      disabled={buscandoMaps}
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                    >
+                      {buscandoMaps ? "Buscando..." : "🗺️ Google Maps"}
+                    </button>
+                  </div>
                 </div>
 
                 {erroReceita && (
                   <p className="text-xs text-red-400 mb-2">{erroReceita}</p>
                 )}
+                {erroMaps && (
+                  <p className="text-xs text-red-400 mb-2">{erroMaps}</p>
+                )}
 
                 <div className="space-y-1 text-xs">
-                  {empresaContato.email ? (
-                    <a
-                      href={`mailto:${empresaContato.email}`}
-                      className="block text-pipe-lime hover:underline break-all"
-                    >
-                      ✉️ {empresaContato.email}
-                    </a>
+                  {empresaContato.emails.length > 0 ? (
+                    empresaContato.emails.map((mail) => (
+                      <a
+                        key={mail}
+                        href={`mailto:${mail}`}
+                        className="block text-pipe-lime hover:underline break-all"
+                      >
+                        ✉️ {mail}
+                      </a>
+                    ))
                   ) : (
                     <p className="text-pipe-muted">✉️ —</p>
                   )}
 
-                  {empresaContato.telefone ? (
-                    <a
-                      href={`tel:${empresaContato.telefone.replace(/[^\d+]/g, "")}`}
-                      className="block text-white hover:text-pipe-lime"
-                    >
-                      📞 {empresaContato.telefone}
-                    </a>
+                  {empresaContato.telefones.length > 0 ? (
+                    empresaContato.telefones.map((tel) => (
+                      <a
+                        key={tel}
+                        href={`tel:${tel.replace(/[^\d+]/g, "")}`}
+                        className="block text-white hover:text-pipe-lime"
+                      >
+                        📞 {tel}
+                      </a>
+                    ))
                   ) : (
                     <p className="text-pipe-muted">📞 —</p>
                   )}
 
                   <p className="text-[11px] text-pipe-muted italic pt-1">
-                    E-mail e telefone que a empresa declara oficialmente à
-                    Receita Federal. Preenche só o que estiver vazio.
+                    Fontes se somam (Receita Federal + Google Maps): quanto mais
+                    consultas, mais completo o dossiê. Nada é sobrescrito.
                   </p>
                 </div>
               </section>
