@@ -86,6 +86,7 @@ type EmpresaDaLista = {
   origem: string | null;
   email_assunto: string | null;
   email_corpo: string | null;
+  informacoes_adicionais: string | null;
 };
 
 export default function PaginaListas() {
@@ -101,6 +102,14 @@ export default function PaginaListas() {
     null
   );
   const [modalAbordagemAberto, setModalAbordagemAberto] = useState(false);
+  const [edicaoLead, setEdicaoLead] = useState({
+    nome: "",
+    email: "",
+    linkedin: "",
+    infos: "",
+  });
+  const [salvandoLead, setSalvandoLead] = useState(false);
+  const [leadSalvo, setLeadSalvo] = useState(false);
   const [listaIcpResumo, setListaIcpResumo] = useState("");
   const [listaAtualId, setListaAtualId] = useState<string | null>(null);
   const [perfilVendedor, setPerfilVendedor] = useState("");
@@ -119,6 +128,55 @@ export default function PaginaListas() {
     setPerfilVendedor(
       lista?.icp_resumo || perfil?.produtos_servicos || ""
     );
+    setEdicaoLead({
+      nome: empresa.campeao_nome ?? "",
+      email: empresa.campeao_email ?? "",
+      linkedin: empresa.campeao_linkedin ?? "",
+      infos: empresa.informacoes_adicionais ?? "",
+    });
+    setLeadSalvo(false);
+  };
+
+  const salvarDadosLead = async () => {
+    if (!empresaDetalhe || salvandoLead) return;
+
+    setSalvandoLead(true);
+
+    try {
+      const supabase = criarClienteSupabase();
+
+      const alteracoes = {
+        campeao_nome: edicaoLead.nome.trim() || null,
+        campeao_email: edicaoLead.email.trim() || null,
+        campeao_linkedin: edicaoLead.linkedin.trim() || null,
+        informacoes_adicionais: edicaoLead.infos.trim() || null,
+      };
+
+      if (supabase) {
+        await supabase
+          .from("companies")
+          .update(alteracoes)
+          .eq("id", empresaDetalhe.id);
+      }
+
+      const atualizada: EmpresaDaLista = { ...empresaDetalhe, ...alteracoes };
+      setEmpresaDetalhe(atualizada);
+      setLeadSalvo(true);
+
+      setEmpresasPorLista((atual) => {
+        const novo: Record<string, EmpresaDaLista[]> = {};
+
+        Object.entries(atual).forEach(([listaId, emps]) => {
+          novo[listaId] = emps.map((e) =>
+            e.id === atualizada.id ? atualizada : e
+          );
+        });
+
+        return novo;
+      });
+    } finally {
+      setSalvandoLead(false);
+    }
   };
 
   const salvarPerfilVendedor = async () => {
@@ -264,6 +322,7 @@ export default function PaginaListas() {
         "Influenciador Telefone",
         "Influenciador Email",
         "Confirmado",
+        "Informacoes Adicionais",
       ],
       empresas.map((e) => [
         e.razao_social,
@@ -294,6 +353,7 @@ export default function PaginaListas() {
         e.campeao_telefone,
         e.campeao_email,
         e.confirmado ? "Sim" : "Nao",
+        e.informacoes_adicionais,
       ])
     );
   };
@@ -887,6 +947,74 @@ export default function PaginaListas() {
                   Escolha o produto, o objetivo e o canal — cada abordagem fica
                   salva no histórico deste lead.
                 </p>
+              </section>
+
+              <section className="border-t border-pipe-border pt-4">
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                    👤 Contato do lead (editável)
+                  </p>
+
+                  <button
+                    onClick={salvarDadosLead}
+                    disabled={salvandoLead}
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                  >
+                    {salvandoLead
+                      ? "Salvando..."
+                      : leadSalvo
+                        ? "✅ Salvo!"
+                        : "💾 Salvar dados do lead"}
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-pipe-muted mb-3">
+                  Preencha à mão ou busque o e-mail pelo{" "}
+                  <Link href="/buscador" className="text-pipe-blue hover:underline">
+                    Buscador de Contatos
+                  </Link>{" "}
+                  e atribua ao lead — aparece aqui automaticamente.
+                </p>
+
+                <div className="space-y-2">
+                  <input
+                    value={edicaoLead.nome}
+                    onChange={(e) =>
+                      setEdicaoLead((v) => ({ ...v, nome: e.target.value }))
+                    }
+                    placeholder="Nome do contato"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  />
+
+                  <input
+                    type="email"
+                    value={edicaoLead.email}
+                    onChange={(e) =>
+                      setEdicaoLead((v) => ({ ...v, email: e.target.value }))
+                    }
+                    placeholder="E-mail do contato"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  />
+
+                  <input
+                    value={edicaoLead.linkedin}
+                    onChange={(e) =>
+                      setEdicaoLead((v) => ({ ...v, linkedin: e.target.value }))
+                    }
+                    placeholder="LinkedIn do contato (https://linkedin.com/in/...)"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  />
+
+                  <textarea
+                    value={edicaoLead.infos}
+                    onChange={(e) =>
+                      setEdicaoLead((v) => ({ ...v, infos: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Informações adicionais (contexto, objeções, histórico, anotações...)"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
+                  />
+                </div>
               </section>
             </div>
           </aside>
