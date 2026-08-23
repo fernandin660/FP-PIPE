@@ -16,6 +16,7 @@ import ModalPerfil, {
   type AnexoPerfil,
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
+import ModalAbordagem from "../../components/ModalAbordagem";
 
 function montarPerfilVendedor(perfil: PerfilVendedor | null): string {
   if (!perfil?.nome_empresa && !perfil?.produtos_servicos) return "";
@@ -96,8 +97,10 @@ export default function PaginaListas() {
   >({});
   const [carregando, setCarregando] = useState(true);
   const [aberta, setAberta] = useState<string | null>(null);
-  const [empresaDetalhe, setEmpresaDetalhe] =
-    useState<EmpresaDaLista | null>(null);
+  const [empresaDetalhe, setEmpresaDetalhe] = useState<EmpresaDaLista | null>(
+    null
+  );
+  const [modalAbordagemAberto, setModalAbordagemAberto] = useState(false);
   const [rascunhoAssunto, setRascunhoAssunto] = useState("");
   const [rascunhoCorpo, setRascunhoCorpo] = useState("");
   const [salvandoEmail, setSalvandoEmail] = useState(false);
@@ -459,6 +462,25 @@ export default function PaginaListas() {
         perfil={perfil}
         aoFechar={() => setModalPerfilAberto(false)}
         aoSalvar={setPerfil}
+      />
+
+      <ModalAbordagem
+        aberto={modalAbordagemAberto}
+        empresa={
+          empresaDetalhe
+            ? {
+                id: empresaDetalhe.id,
+                razao_social: empresaDetalhe.razao_social,
+                nome_fantasia: empresaDetalhe.nome_fantasia,
+                municipio: empresaDetalhe.municipio,
+                uf: empresaDetalhe.uf,
+                endereco: empresaDetalhe.endereco,
+                segmento_icp: empresaDetalhe.segmento_icp,
+                porte: empresaDetalhe.porte,
+              }
+            : null
+        }
+        aoFechar={() => setModalAbordagemAberto(false)}
       />
 
       <main className="min-h-screen bg-pipe-dark px-6 py-12 lg:pl-72">
@@ -981,15 +1003,22 @@ export default function PaginaListas() {
                   </div>
                 )}
 
+                <button
+                  onClick={() => setModalAbordagemAberto(true)}
+                  className="w-full mb-2 bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
+                >
+                  🤖 Gerar abordagem com IA
+                </button>
+
                 {!rascunhoAssunto && !rascunhoCorpo && (
                   <button
                     onClick={gerarEmail}
                     disabled={gerandoEmail}
-                    className="w-full mb-2 border border-pipe-blue/40 text-pipe-blue text-xs font-semibold py-2 rounded-lg hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                    className="w-full mb-2 border border-pipe-border text-gray-300 text-xs font-semibold py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition"
                   >
                     {gerandoEmail
                       ? "✍️ Nossa equipe está escrevendo o e-mail..."
-                      : "✨ Gerar e-mail com IA"}
+                      : "✨ Gerar e-mail simples (antigo)"}
                   </button>
                 )}
 
