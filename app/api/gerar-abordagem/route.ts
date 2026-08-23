@@ -18,7 +18,6 @@ type Empresa = {
   segmento_icp: string | null;
   porte: string | null;
   capital_social: number | null;
-  funcionarios_estimado: number | null;
   decisor_nome: string | null;
 };
 
@@ -136,7 +135,7 @@ export async function POST(requisicao: Request) {
   const { data: empresa } = await supabase
     .from("companies")
     .select(
-      "razao_social, nome_fantasia, municipio, uf, endereco, segmento_icp, porte, capital_social, funcionarios_estimado, decisor_nome"
+      "razao_social, nome_fantasia, municipio, uf, endereco, segmento_icp, porte, capital_social, decisor_nome"
     )
     .eq("id", companyId)
     .single();
@@ -227,7 +226,6 @@ EMPRESA-ALVO:
 - Segmento/atividade: ${dadosEmpresa.segmento_icp || ""}
 - Localização: ${localizacao}
 ${dadosEmpresa.porte ? `- Porte: ${dadosEmpresa.porte}` : ""}
-${typeof dadosEmpresa.funcionarios_estimado === "number" && dadosEmpresa.funcionarios_estimado > 0 ? `- Funcionários estimados: ${dadosEmpresa.funcionarios_estimado}` : ""}
 ${typeof dadosEmpresa.capital_social === "number" ? `- Capital social: R$ ${dadosEmpresa.capital_social}` : ""}
 ${dadosEmpresa.decisor_nome ? `- Sócio/decisor identificado: ${dadosEmpresa.decisor_nome}` : ""}
 
