@@ -478,7 +478,7 @@ export default function Inicio() {
               <li>✓ Primeiro e-mail personalizado pronto</li>
               <li>✓ Modelos de abordagem que aprendem</li>
               <li>✓ Exportação CSV pro CRM</li>
-              <li className="text-pipe-muted">— Sem e-mail do decisor</li>
+              <li className="text-pipe-muted">— Sem busca de e-mail do decisor</li>
             </ul>
 
             <Link
@@ -512,8 +512,8 @@ export default function Inicio() {
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Até <span className="text-white font-semibold">2.000 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">400 e-mails verificados/mês</span> do decisor</li>
+              <li>✓ Até <span className="text-white font-semibold">1.500 empresas/mês</span> em listas</li>
+              <li>✓ <span className="text-white font-semibold">400 buscas de e-mail verificado/mês</span></li>
               <li>✓ Telefone institucional (Receita + Maps)</li>
               <li>✓ Dossiê multi-contato por lead</li>
               <li>✓ E-mail personalizado + modelos de IA</li>
@@ -546,8 +546,8 @@ export default function Inicio() {
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Até <span className="text-white font-semibold">5.000 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">1.000 e-mails verificados/mês</span> do decisor</li>
+              <li>✓ Até <span className="text-white font-semibold">3.000 empresas/mês</span> em listas</li>
+              <li>✓ <span className="text-white font-semibold">1.000 buscas de e-mail verificado/mês</span></li>
               <li>✓ Melhor custo por lead: R$ 0,39</li>
               <li>✓ Telefone institucional (Receita + Maps)</li>
               <li>✓ Prioridade na fila das buscas</li>
