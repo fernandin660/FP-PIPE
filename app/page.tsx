@@ -473,11 +473,12 @@ export default function Inicio() {
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Listas priorizadas por score de IA</li>
+              <li>✓ Até <span className="text-white font-semibold">500 empresas/mês</span> em listas</li>
+              <li>✓ Score de IA priorizando seu ICP</li>
               <li>✓ Primeiro e-mail personalizado pronto</li>
               <li>✓ Modelos de abordagem que aprendem</li>
               <li>✓ Exportação CSV pro CRM</li>
-              <li className="text-pipe-muted">— Sem busca de contato individual</li>
+              <li className="text-pipe-muted">— Sem e-mail do decisor</li>
             </ul>
 
             <Link
@@ -511,11 +512,11 @@ export default function Inicio() {
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Tudo do Silver</li>
-              <li>✓ <span className="text-white font-semibold">400 buscas de contato/mês</span></li>
-              <li>✓ E-mail verificado do decisor (LinkedIn)</li>
-              <li>✓ Telefone da Receita + Google Maps</li>
+              <li>✓ Até <span className="text-white font-semibold">2.000 empresas/mês</span> em listas</li>
+              <li>✓ <span className="text-white font-semibold">400 e-mails verificados/mês</span> do decisor</li>
+              <li>✓ Telefone institucional (Receita + Maps)</li>
               <li>✓ Dossiê multi-contato por lead</li>
+              <li>✓ E-mail personalizado + modelos de IA</li>
             </ul>
 
             <Link
@@ -545,11 +546,11 @@ export default function Inicio() {
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Tudo do Gold</li>
-              <li>✓ <span className="text-white font-semibold">1.000 buscas de contato/mês</span></li>
+              <li>✓ Até <span className="text-white font-semibold">5.000 empresas/mês</span> em listas</li>
+              <li>✓ <span className="text-white font-semibold">1.000 e-mails verificados/mês</span> do decisor</li>
               <li>✓ Melhor custo por lead: R$ 0,39</li>
+              <li>✓ Telefone institucional (Receita + Maps)</li>
               <li>✓ Prioridade na fila das buscas</li>
-              <li>✓ Suporte direto com o fundador</li>
             </ul>
 
             <Link
@@ -561,8 +562,11 @@ export default function Inicio() {
           </div>
         </div>
 
-        <p className="text-pipe-muted/60 text-xs text-center mt-6">
-          Todos os planos começam com teste grátis de 5 créditos · cancele quando
+        <p className="text-pipe-muted/60 text-xs text-center mt-6 max-w-2xl mx-auto">
+          E-mail verificado = e-mail profissional do decisor, confirmado na
+          busca. Telefones exibidos são os institucionais da empresa (Receita
+          Federal e Google Maps) — nunca o número pessoal do contato. · Todos
+          os planos começam com teste grátis de 5 créditos · cancele quando
           quiser · preços de lançamento
         </p>
       </section>

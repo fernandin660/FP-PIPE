@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const mensagens = [
   "👋 Fale com um consultor",
   "💬 Tire suas dúvidas na hora",
-  "⭐ Plano Fundador · vagas limitadas",
+  "⭐ Plano Platinum · R$ 0,39 por lead pronto",
 ];
 
 const WHATSAPP = "https://wa.me/5516997700593?text=" +
