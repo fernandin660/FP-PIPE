@@ -90,7 +90,7 @@ function AtribuirLead({
             : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
         }`}
       >
-        {concluido ? `📎 ${concluido}` : "📎 Atribuir"}
+        {concluido ? `📎 ${concluido}` : "📎 Adicionar a lead existente"}
       </button>
 
       {aberto && (
@@ -123,6 +123,126 @@ function AtribuirLead({
               </p>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
+  const [aberto, setAberto] = useState(false);
+  const [cidade, setCidade] = useState("");
+  const [uf, setUf] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [feito, setFeito] = useState<string | null>(null);
+  const [erro, setErro] = useState("");
+
+  const cadastrar = async () => {
+    if (enviando) return;
+
+    setEnviando(true);
+    setErro("");
+
+    try {
+      const resposta = await fetch("/api/cadastrar-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: contato.nome,
+          cargo: contato.cargo,
+          empresa: contato.empresa,
+          email: contato.email,
+          linkedinUrl: contato.linkedin_url ?? "",
+          cidade,
+          uf,
+        }),
+      });
+
+      const dados = (await resposta.json()) as {
+        ok?: boolean;
+        comCnpj?: boolean;
+        razaoSocial?: string;
+        erro?: string;
+      };
+
+      if (!resposta.ok || !dados.ok) {
+        setErro(dados.erro ?? "Falha ao cadastrar.");
+        return;
+      }
+
+      setFeito(
+        `${dados.razaoSocial || contato.empresa || "Lead"}${
+          dados.comCnpj ? " (com CNPJ + contatos)" : ""
+        }`
+      );
+      setAberto(false);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (feito) {
+    return (
+      <div className="relative">
+        <a
+          href="/listas"
+          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime inline-block"
+          title="Lead criado — abrir Minhas listas"
+        >
+          🏢 {feito} ↗
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAberto((valor) => !valor)}
+        title="Criar um lead novo no banco com esta empresa e este contato"
+        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+      >
+        🏢 Cadastrar como lead
+      </button>
+
+      {aberto && (
+        <div className="absolute right-0 bottom-full mb-2 z-30 w-72 bg-pipe-card border border-pipe-border rounded-xl p-3 shadow-2xl space-y-2">
+          <p className="text-[11px] text-pipe-muted leading-relaxed">
+            Criamos o lead{" "}
+            <span className="text-white font-semibold">
+              {contato.empresa || "sem empresa"}
+            </span>{" "}
+            com {contato.nome ?? "este contato"}. Opcional: ajude a achar o
+            CNPJ certo.
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              value={cidade}
+              onChange={(e) => setCidade(e.target.value)}
+              placeholder="Cidade (opcional)"
+              className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            />
+
+            <input
+              value={uf}
+              onChange={(e) => setUf(e.target.value.toUpperCase().slice(0, 2))}
+              placeholder="UF"
+              className="w-16 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue uppercase"
+            />
+          </div>
+
+          {erro && <p className="text-[11px] text-red-400">{erro}</p>}
+
+          <button
+            onClick={() => void cadastrar()}
+            disabled={enviando}
+            className="w-full text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+          >
+            {enviando
+              ? "Buscando CNPJ e criando lead..."
+              : "✅ Confirmar cadastro"}
+          </button>
         </div>
       )}
     </div>
@@ -498,7 +618,8 @@ export default function PaginaBuscador() {
                 </a>
 
                 {resultado.id && (
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex justify-end gap-2 flex-wrap">
+                    <CadastrarComoLead contato={resultado} />
                     <AtribuirLead
                       contatoId={resultado.id}
                       empresas={empresas}
