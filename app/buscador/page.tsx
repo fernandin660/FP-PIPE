@@ -158,6 +158,7 @@ export default function PaginaBuscador() {
     canal: string;
   } | null>(null);
   const [copiadoAbordagem, setCopiadoAbordagem] = useState(false);
+  const [veioDoCache, setVeioDoCache] = useState(false);
 
   const carregarHistorico = useCallback(
     async (idUsuario: string) => {
@@ -245,6 +246,7 @@ export default function PaginaBuscador() {
     setCopiado(false);
     setAbordagemContato(null);
     setErroAbordagem("");
+    setVeioDoCache(false);
 
     try {
       const resposta = await fetch("/api/buscar-contato", {
@@ -255,6 +257,7 @@ export default function PaginaBuscador() {
 
       const dados = (await resposta.json()) as {
         encontrado?: boolean;
+        doCache?: boolean;
         contato?: ContatoEncontrado;
         saldoContatos?: number;
         mensagem?: string;
@@ -270,6 +273,7 @@ export default function PaginaBuscador() {
       if (dados.encontrado && dados.contato) {
         setResultado(dados.contato);
         setSaldoContatos(dados.saldoContatos ?? null);
+        setVeioDoCache(Boolean(dados.doCache));
         setUrlLinkedin("");
 
         const supabase = criarClienteSupabase();
@@ -460,6 +464,12 @@ export default function PaginaBuscador() {
 
             {resultado && (
               <div className="mt-6 border border-pipe-blue/40 bg-pipe-blue/5 rounded-xl p-5">
+                {veioDoCache && (
+                  <p className="mb-3 text-[11px] font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-3 py-1.5 inline-block">
+                    ⚡ Já tínhamos esse e-mail — busca instantânea e sem custo
+                  </p>
+                )}
+
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <p className="text-xl font-bold text-white">

@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
 const REGEX_LINKEDIN =
   /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9_%-]+\/?$/i;
+
+function normalizarLinkedin(url: string): string {
+  return url.trim().toLowerCase().replace(/\/+$/, "");
+}
 
 type CorpoBusca = {
   linkedinUrl?: unknown;
@@ -119,13 +124,47 @@ export async function POST(requisicao: Request) {
     return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
   }
 
-  const linkedinUrl = String(corpo.linkedinUrl ?? "").trim();
+  const linkedinNormalizado = normalizarLinkedin(
+    String(corpo.linkedinUrl ?? "").trim()
+  );
 
-  if (!REGEX_LINKEDIN.test(linkedinUrl)) {
+  if (!REGEX_LINKEDIN.test(linkedinNormalizado)) {
     return NextResponse.json(
       { erro: "Cole uma URL válida de perfil do LinkedIn." },
       { status: 400 }
     );
+  }
+
+  // Cache global: perfil já buscado antes = resposta grátis e instantânea.
+  const admin = criarClienteSupabaseAdmin();
+
+  if (admin) {
+    const { data: cacheHit } = await admin
+      .from("emails_cache")
+      .select("email, nome, cargo, empresa")
+      .eq("linkedin_url", linkedinNormalizado)
+      .maybeSingle();
+
+    if (cacheHit?.email) {
+      const { data: saldoLinha } = await supabase
+        .from("creditos_contatos")
+        .select("saldo")
+        .eq("usuario_id", user.id)
+        .maybeSingle();
+
+      return NextResponse.json({
+        encontrado: true,
+        doCache: true,
+        contato: {
+          nome: cacheHit.nome,
+          cargo: cacheHit.cargo,
+          empresa: cacheHit.empresa,
+          email: cacheHit.email,
+          linkedin_url: linkedinNormalizado,
+        },
+        saldoContatos: saldoLinha?.saldo ?? null,
+      });
+    }
   }
 
   // Créditos de contato: primeira busca cria a linha com saldo de boas-vindas.
@@ -168,7 +207,7 @@ export async function POST(requisicao: Request) {
         Authorization: `Bearer ${CHAVE_ANYMAIL}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ linkedin_url: linkedinUrl }),
+      body: JSON.stringify({ linkedin_url: linkedinNormalizado }),
     }
   );
 
@@ -212,13 +251,27 @@ export async function POST(requisicao: Request) {
     .eq("usuario_id", user.id);
 
   const contato = {
-    linkedin_url: linkedinUrl,
+    linkedin_url: linkedinNormalizado,
     nome: dados.person_full_name || dados.full_name || null,
     cargo: dados.person_job_title || dados.job_title || null,
     empresa:
       dados.person_company_name || dados.company_name || dados.company || null,
     email: emailVerificado,
   };
+
+  // Guarda no cache global para futuras buscas do mesmo perfil.
+  if (admin) {
+    await admin.from("emails_cache").upsert(
+      {
+        linkedin_url: linkedinNormalizado,
+        email: contato.email,
+        nome: contato.nome,
+        cargo: contato.cargo,
+        empresa: contato.empresa,
+      },
+      { onConflict: "linkedin_url" }
+    );
+  }
 
   const { data: salvo } = await supabase
     .from("contatos")
@@ -228,6 +281,7 @@ export async function POST(requisicao: Request) {
 
   return NextResponse.json({
     encontrado: true,
+    doCache: false,
     contato: salvo ?? contato,
     saldoContatos: novoSaldo,
   });
