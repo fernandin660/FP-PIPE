@@ -321,6 +321,62 @@ export default function PaginaListas() {
     setContatosLead((data as ContatoPessoa[]) ?? []);
   };
 
+  const [conflitoContato, setConflitoContato] = useState<{
+    campo: string;
+    valor: string;
+    companyId: string;
+    nomeLead: string;
+  } | null>(null);
+
+  const gravarContatoFormulario = async () => {
+    if (!empresaDetalhe) return;
+
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const emailsLista = formContato.emails
+      .split(/[,;\n]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const telefonesLista = formContato.telefones
+      .split(/[,;\n]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    const { data: criado, error } = await supabase
+      .from("contatos")
+      .insert({
+        usuario_id: user.id,
+        company_id: empresaDetalhe.id,
+        nome: formContato.nome.trim() || null,
+        cargo: formContato.cargo.trim() || null,
+        email: emailsLista[0] ?? null,
+        emails: emailsLista,
+        telefones: telefonesLista,
+        linkedin_url: formContato.linkedin.trim() || null,
+        origem: "manual",
+      })
+      .select()
+      .single();
+
+    if (!error && criado) {
+      setContatosLead((atual) => [criado as ContatoPessoa, ...atual]);
+      setFormContato({
+        aberto: false,
+        nome: "",
+        cargo: "",
+        emails: "",
+        telefones: "",
+        linkedin: "",
+      });
+    }
+  };
+
   const adicionarContatoManual = async () => {
     if (!empresaDetalhe || salvandoContato) return;
 
@@ -346,39 +402,97 @@ export default function PaginaListas() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: criado, error } = await supabase
+      // Este contato (e-mail/telefone) já está preso a OUTRO lead do usuário?
+      const { data: outros } = await supabase
         .from("contatos")
-        .insert({
-          usuario_id: user.id,
-          company_id: empresaDetalhe.id,
-          nome: formContato.nome.trim() || null,
-          cargo: formContato.cargo.trim() || null,
-          email: emailsLista[0] ?? null,
-          emails: emailsLista,
-          telefones: telefonesLista,
-          linkedin_url: formContato.linkedin.trim() || null,
-          origem: "manual",
-        })
-        .select()
-        .single();
+        .select("company_id, emails, telefones")
+        .eq("usuario_id", user.id)
+        .not("company_id", "is", null)
+        .neq("company_id", empresaDetalhe.id)
+        .limit(2000);
 
-      if (!error && criado) {
-        setContatosLead((atual) => [
-          criado as ContatoPessoa,
-          ...atual,
-        ]);
-        setFormContato({
-          aberto: false,
-          nome: "",
-          cargo: "",
-          emails: "",
-          telefones: "",
-          linkedin: "",
+      const digitos = (v: string) => v.replace(/\D/g, "");
+
+      let bateuEmail = false;
+      let bateuFone = false;
+      let companyIdConflito: string | null = null;
+
+      for (const c of outros ?? []) {
+        if (!c?.company_id) continue;
+
+        const emailBate = emailsLista.some((e) =>
+          (c.emails ?? []).some(
+            (x: string) => x.trim().toLowerCase() === e.toLowerCase()
+          )
+        );
+
+        const foneBate = telefonesLista.some((t) => {
+          const alvo = digitos(t);
+          return (
+            alvo.length >= 8 &&
+            (c.telefones ?? []).some((x: string) => digitos(x) === alvo)
+          );
         });
+
+        if (emailBate || foneBate) {
+          bateuEmail = emailBate;
+          bateuFone = foneBate;
+          companyIdConflito = c.company_id;
+          break;
+        }
       }
+
+      if (companyIdConflito) {
+        const { data: leadExistente } = await supabase
+          .from("companies")
+          .select("nome_fantasia, razao_social")
+          .eq("id", companyIdConflito)
+          .single();
+
+        setConflitoContato({
+          campo: bateuFone ? "Telefone" : "E-mail",
+          valor: bateuFone
+            ? telefonesLista[0] ?? ""
+            : emailsLista[0] ?? "",
+          companyId: companyIdConflito,
+          nomeLead:
+            leadExistente?.nome_fantasia ||
+            leadExistente?.razao_social ||
+            "outro lead",
+        });
+        return;
+      }
+
+      await gravarContatoFormulario();
     } finally {
       setSalvandoContato(false);
     }
+  };
+
+  const duplicarContatoConflito = async () => {
+    setConflitoContato(null);
+    await gravarContatoFormulario();
+  };
+
+  const irParaLeadConflito = () => {
+    if (!conflitoContato) return;
+
+    const entrada = Object.entries(empresasPorLista).find(([, emps]) =>
+      emps.some((e) => e.id === conflitoContato.companyId)
+    );
+
+    if (entrada) {
+      const listaDestino = listas.find((l) => l.id === entrada[0]);
+      const empresaDestino = entrada[1].find(
+        (e) => e.id === conflitoContato.companyId
+      );
+
+      if (listaDestino && empresaDestino) {
+        abrirDetalhe(empresaDestino, listaDestino);
+      }
+    }
+
+    setConflitoContato(null);
   };
 
   const removerContatoLead = async (id: string) => {
@@ -1715,6 +1829,52 @@ export default function PaginaListas() {
               </section>
             </div>
           </aside>
+        </div>
+      )}
+
+      {conflitoContato && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg text-white">
+              ⚠️ {conflitoContato.campo} já atribuído a outro lead
+            </h3>
+
+            <p className="text-sm text-pipe-muted leading-relaxed">
+              O {conflitoContato.campo.toLowerCase()}{" "}
+              <span className="text-white font-semibold break-all">
+                {conflitoContato.valor}
+              </span>{" "}
+              já está no lead{" "}
+              <span className="text-white font-semibold">
+                {conflitoContato.nomeLead}
+              </span>
+              . Deseja duplicar neste lead ou ir para o existente?
+            </p>
+
+            <div className="flex justify-end gap-2 flex-wrap">
+              <button
+                onClick={() => setConflitoContato(null)}
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={() => void duplicarContatoConflito()}
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-200 hover:bg-pipe-dark transition"
+              >
+                📄 Duplicar aqui
+              </button>
+
+              <button
+                onClick={irParaLeadConflito}
+                title={`Abrir o lead ${conflitoContato.nomeLead}`}
+                className="text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
+              >
+                → Ir para o lead: {conflitoContato.nomeLead}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
