@@ -723,53 +723,63 @@ export default function PaginaListas() {
 
                   {aberta === lista.id && (
                     <div className="mt-4 pt-4 border-t border-pipe-border">
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        {(
-                          [
-                            ["todos", `Todos (${empresas.length})`],
-                            [
-                              "com",
-                              `✅ Com contato (${
-                                empresas.filter(temContato).length
-                              })`,
-                            ],
-                            [
-                              "sem",
-                              `⚪ Sem contato (${
-                                empresas.length - empresas.filter(temContato).length
-                              })`,
-                            ],
-                          ] as const
-                        ).map(([valor, rotulo]) => (
-                          <button
-                            key={valor}
-                            onClick={() => setFiltroContato(valor)}
-                            className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
-                              filtroContato === valor
-                                ? "bg-pipe-blue text-white"
-                                : "bg-pipe-dark text-pipe-muted hover:text-white border border-pipe-border"
-                            }`}
-                          >
-                            {rotulo}
-                          </button>
-                        ))}
-                      </div>
+                      {(() => {
+                        const nComContato = empresas.filter(temContato).length;
+                        // Só expõe a camada de contato depois do primeiro
+                        // contato conquistado — lista virgem não deve parecer ruim.
+                        const filtroAtivo =
+                          nComContato > 0 ? filtroContato : "todos";
 
-                      <div className="divide-y divide-pipe-border">
-                      {empresas
-                        .filter((e) =>
-                          filtroContato === "com"
-                            ? temContato(e)
-                            : filtroContato === "sem"
-                              ? !temContato(e)
-                              : true
-                        )
-                        .slice()
-                        .sort(
-                          (a, b) =>
-                            Number(temContato(b)) - Number(temContato(a)) ||
-                            (b.score ?? -1) - (a.score ?? -1)
-                        )
+                        return (
+                          <>
+                            {nComContato > 0 && (
+                              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                {(
+                                  [
+                                    ["todos", `Todos (${empresas.length})`],
+                                    [
+                                      "com",
+                                      `✅ Com contato (${nComContato})`,
+                                    ],
+                                    [
+                                      "sem",
+                                      `⚪ Sem contato (${
+                                        empresas.length - nComContato
+                                      })`,
+                                    ],
+                                  ] as const
+                                ).map(([valor, rotulo]) => (
+                                  <button
+                                    key={valor}
+                                    onClick={() => setFiltroContato(valor)}
+                                    className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
+                                      filtroAtivo === valor
+                                        ? "bg-pipe-blue text-white"
+                                        : "bg-pipe-dark text-pipe-muted hover:text-white border border-pipe-border"
+                                    }`}
+                                  >
+                                    {rotulo}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="divide-y divide-pipe-border">
+                              {empresas
+                                .filter((e) =>
+                                  filtroAtivo === "com"
+                                    ? temContato(e)
+                                    : filtroAtivo === "sem"
+                                      ? !temContato(e)
+                                      : true
+                                )
+                                .slice()
+                                .sort(
+                                  (a, b) =>
+                                    Number(temContato(b)) -
+                                      Number(temContato(a)) ||
+                                    (b.score ?? -1) - (a.score ?? -1)
+                                )
                         .map((empresa) => (
                           <div
                             key={empresa.id}
@@ -823,7 +833,10 @@ export default function PaginaListas() {
                             </div>
                           </div>
                         ))}
-                      </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
