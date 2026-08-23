@@ -1391,11 +1391,6 @@ export default function PaginaListas() {
                   ) : (
                     <p className="text-pipe-muted">📞 —</p>
                   )}
-
-                  <p className="text-[11px] text-pipe-muted italic pt-1">
-                    Fontes se somam (Receita Federal + Google Maps): quanto mais
-                    consultas, mais completo o dossiê. Nada é sobrescrito.
-                  </p>
                 </div>
               </section>
 
