@@ -466,7 +466,7 @@ export default function PaginaBuscador() {
               <div className="mt-6 border border-pipe-blue/40 bg-pipe-blue/5 rounded-xl p-5">
                 {veioDoCache && (
                   <p className="mb-3 text-[11px] font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-3 py-1.5 inline-block">
-                    ⚡ Já tínhamos esse e-mail — busca instantânea e sem custo
+                    ⚡ Resposta instantânea
                   </p>
                 )}
 
