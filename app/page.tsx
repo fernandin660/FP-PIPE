@@ -104,7 +104,7 @@ export default function Inicio() {
       <div className="bg-pipe-lime text-black text-center text-sm font-bold py-2.5 px-4">
         🔥{" "}
         <span className="uppercase tracking-wide">
-          Preço Fundador a partir de R$ 117/mês — travado pra sempre
+          Planos a partir de R$ 117/mês no anual — travado por 12 meses
         </span>{" "}
         · vagas limitadas{" "}
         <Link href="/planos" className="underline underline-offset-2 ml-1">
@@ -133,6 +133,12 @@ export default function Inicio() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-pipe-muted hover:text-white transition hidden sm:block"
+            >
+              Entrar
+            </Link>
             <Link
               href="/planos"
               className="text-sm font-semibold text-white border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue transition hidden sm:block"
@@ -172,20 +178,27 @@ export default function Inicio() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
           <Link
-            href="/planos"
+            href="/prospeccao"
             className="relative overflow-hidden anim-shine anim-cta-pulse bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
           >
-            Ver planos →
+            Criar minha conta grátis →
           </Link>
           <Link
-            href="/prospeccao"
+            href="/planos"
             className="border border-pipe-border text-white font-semibold text-lg rounded-xl px-8 py-4 hover:border-pipe-blue hover:bg-pipe-card transition"
           >
-            Testar grátis com 5 créditos
+            Ver planos
           </Link>
         </div>
 
-        <p className="text-pipe-muted/60 text-xs mt-4">
+        <p className="text-sm text-pipe-muted mt-5">
+          Já tem conta?{" "}
+          <Link href="/login" className="text-white font-semibold underline underline-offset-4 hover:text-pipe-lime transition">
+            Entrar
+          </Link>
+        </p>
+
+        <p className="text-pipe-muted/60 text-xs mt-2">
           Sem cartão · sem fidelidade · resultado na primeira sessão
         </p>
 
@@ -296,7 +309,7 @@ export default function Inicio() {
           {[
             ["70M+", "de empresas"],
             ["3 fontes", "de caça ao contato"],
-            ["R$ 0,29", "por lead com e-mail pronto"],
+            ["R$ 0,39", "por lead com e-mail pronto"],
             ["4 canais", "de abordagem gerados por IA"],
           ].map(([valor, rotulo]) => (
             <div
@@ -428,48 +441,130 @@ export default function Inicio() {
         </div>
       </section>
 
-      {/* BLOCO FUNDADOR — ESCASSEZ */}
+      {/* PLANOS */}
 
-      <section className="max-w-4xl mx-auto px-6 py-14">
-        <div className="anim-glow relative bg-pipe-card border-2 rounded-2xl p-8 md:p-10 text-center overflow-hidden">
-          <span className="absolute top-0 right-0 text-xs font-bold uppercase tracking-wide bg-pipe-lime text-black rounded-bl-xl px-4 py-1.5">
-            vagas limitadas
-          </span>
+      <section className="max-w-6xl mx-auto px-6 py-14">
+        <h2 className="font-display text-3xl md:text-4xl text-white text-center">
+          Escolha seu plano
+        </h2>
 
-          <h2 className="font-display text-3xl md:text-4xl text-white">
-            Plano Fundador:{" "}
-            <span className="text-pipe-lime">R$ 117/mês</span> no anual.
-          </h2>
+        <p className="text-pipe-muted text-center mt-3 max-w-xl mx-auto">
+          Comece grátis com 5 créditos. Depois, escolha o plano —{" "}
+          <span className="text-white font-semibold">
+            anual sai ~20% mais barato
+          </span>{" "}
+          e trava o preço por 12 meses.
+        </p>
 
-          <p className="text-pipe-muted mt-3 max-w-xl mx-auto">
-            Os primeiros assinantes travam este preço mesmo quando a tabela
-            subir. 10 listas por mês, 500 leads com e-mail pronto —{" "}
-            <span className="text-white font-semibold">
-              R$ 0,29 por lead
-            </span>
-            .
-          </p>
+        <div className="grid md:grid-cols-3 gap-5 mt-10 items-stretch">
+          {/* SILVER */}
+          <div className="bg-pipe-card border border-pipe-border rounded-2xl p-7 flex flex-col">
+            <p className="text-sm font-bold text-gray-300">
+              🥈 SILVER
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <p className="mt-4 text-white">
+              <span className="font-display text-4xl font-bold">R$ 117</span>
+              <span className="text-pipe-muted text-sm"> /mês no anual</span>
+            </p>
+
+            <p className="text-pipe-muted text-xs mt-1">
+              ou R$ 147 mês a mês · sem fidelidade
+            </p>
+
+            <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
+              <li>✓ Listas priorizadas por score de IA</li>
+              <li>✓ Primeiro e-mail personalizado pronto</li>
+              <li>✓ Modelos de abordagem que aprendem</li>
+              <li>✓ Exportação CSV pro CRM</li>
+              <li className="text-pipe-muted">— Sem busca de contato individual</li>
+            </ul>
+
             <Link
               href="/planos"
-              className="relative overflow-hidden anim-shine bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
+              className="mt-7 text-center text-sm font-semibold border border-pipe-border text-white rounded-lg px-5 py-3 hover:border-pipe-blue transition"
             >
-              Garantir meu preço fundador →
-            </Link>
-            <Link
-              href="/prospeccao"
-              className="border border-pipe-border text-white font-semibold text-lg rounded-xl px-8 py-4 hover:border-pipe-blue transition"
-            >
-              Antes quero testar grátis
+              Assinar Silver
             </Link>
           </div>
 
-          <p className="text-pipe-muted/60 text-xs mt-5">
-            ✓ Sem fidelidade &nbsp;·&nbsp; ✓ Mensal: R$ 147 &nbsp;·&nbsp;
-            ✓ Cancele quando quiser
-          </p>
+          {/* GOLD */}
+          <div className="relative bg-pipe-card border-2 border-pipe-lime rounded-2xl p-7 flex flex-col md:-translate-y-3 anim-glow overflow-hidden">
+            <span className="absolute top-0 right-0 text-[10px] font-bold uppercase tracking-wide bg-pipe-lime text-black rounded-bl-xl px-3 py-1">
+              mais popular
+            </span>
+
+            <p className="text-sm font-bold text-pipe-lime">
+              🥇 GOLD
+            </p>
+
+            <p className="mt-4 text-white">
+              <span className="font-display text-4xl font-bold">R$ 227</span>
+              <span className="text-pipe-muted text-sm"> /mês no anual</span>
+              <span className="ml-2 text-xs font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-full px-2 py-0.5">
+                −24%
+              </span>
+            </p>
+
+            <p className="text-pipe-muted text-xs mt-1">
+              ou R$ 297 mês a mês · sem fidelidade
+            </p>
+
+            <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
+              <li>✓ Tudo do Silver</li>
+              <li>✓ <span className="text-white font-semibold">400 buscas de contato/mês</span></li>
+              <li>✓ E-mail verificado do decisor (LinkedIn)</li>
+              <li>✓ Telefone da Receita + Google Maps</li>
+              <li>✓ Dossiê multi-contato por lead</li>
+            </ul>
+
+            <Link
+              href="/planos"
+              className="relative overflow-hidden anim-shine mt-7 text-center text-sm font-bold bg-pipe-lime text-black rounded-lg px-5 py-3 hover:brightness-110 transition"
+            >
+              Assinar Gold →
+            </Link>
+          </div>
+
+          {/* PLATINUM */}
+          <div className="bg-pipe-card border border-pipe-border rounded-2xl p-7 flex flex-col">
+            <p className="text-sm font-bold text-gray-300">
+              💎 PLATINUM
+            </p>
+
+            <p className="mt-4 text-white">
+              <span className="font-display text-4xl font-bold">R$ 387</span>
+              <span className="text-pipe-muted text-sm"> /mês no anual</span>
+              <span className="ml-2 text-xs font-bold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-2 py-0.5">
+                −22%
+              </span>
+            </p>
+
+            <p className="text-pipe-muted text-xs mt-1">
+              ou R$ 497 mês a mês · sem fidelidade
+            </p>
+
+            <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
+              <li>✓ Tudo do Gold</li>
+              <li>✓ <span className="text-white font-semibold">1.000 buscas de contato/mês</span></li>
+              <li>✓ Melhor custo por lead: R$ 0,39</li>
+              <li>✓ Prioridade na fila das buscas</li>
+              <li>✓ Suporte direto com o fundador</li>
+            </ul>
+
+            <Link
+              href="/planos"
+              className="mt-7 text-center text-sm font-semibold border border-pipe-border text-white rounded-lg px-5 py-3 hover:border-pipe-blue transition"
+            >
+              Assinar Platinum
+            </Link>
+          </div>
         </div>
+
+        <p className="text-pipe-muted/60 text-xs text-center mt-6">
+          Todos os planos começam com teste grátis de 5 créditos · cancele quando
+          quiser · preços de lançamento
+        </p>
       </section>
 
       {/* COMPARATIVO */}
@@ -508,10 +603,10 @@ export default function Inicio() {
               </tr>
               <tr className="bg-pipe-blue/5">
                 <td className="py-3 font-semibold text-pipe-blue">
-                  FP Pipe · plano Fundador
+                  FP Pipe · plano Platinum
                 </td>
                 <td className="py-3 font-semibold text-white">
-                  R$ 0,29 por lead
+                  R$ 0,39 por lead
                 </td>
                 <td className="py-3 font-semibold text-pipe-lime">
                   ✓ Personalizado por empresa
@@ -526,7 +621,7 @@ export default function Inicio() {
           <p className="text-pipe-muted/70 text-xs mt-6">
             Faixas de preço baseadas em valores públicos de plataformas do
             segmento, verificados em ago/2026. Custo por lead do plano
-            Fundador: R$ 147 ÷ até 500 leads mensais.
+            Platinum: R$ 387 ÷ até 1.000 contatos mensais.
           </p>
         </div>
       </section>
@@ -559,6 +654,13 @@ export default function Inicio() {
             Ver planos
           </Link>
         </div>
+
+        <p className="text-sm text-pipe-muted mt-5">
+          Já tem conta?{" "}
+          <Link href="/login" className="text-white font-semibold underline underline-offset-4 hover:text-pipe-lime transition">
+            Entrar
+          </Link>
+        </p>
       </section>
 
       {/* FOOTER */}
