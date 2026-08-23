@@ -36,9 +36,11 @@ function normalizar(texto: string): string {
 function AtribuirLead({
   contatoId,
   empresas,
+  aoVincular,
 }: {
   contatoId: string;
   empresas: EmpresaResumida[];
+  aoVincular?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
@@ -74,6 +76,7 @@ function AtribuirLead({
         setConcluido(empresa.nome_fantasia || empresa.razao_social || "lead");
         setAberto(false);
         setBusca("");
+        aoVincular?.();
       }
     } finally {
       setEnviando(false);
@@ -356,14 +359,23 @@ export default function PaginaBuscador() {
   const [veioDoCache, setVeioDoCache] = useState(false);
 
   const carregarHistorico = useCallback(
-    async (idUsuario: string) => {
+    async (idUsuario?: string) => {
       const supabase = criarClienteSupabase();
       if (!supabase) return;
 
+      let usuarioId = idUsuario;
+
+      if (!usuarioId) {
+        const { data } = await supabase.auth.getUser();
+        usuarioId = data.user?.id;
+      }
+
+      if (!usuarioId) return;
+
       const { data: contatos } = await supabase
         .from("contatos")
-        .select("id, linkedin_url, nome, cargo, empresa, email")
-        .eq("usuario_id", idUsuario)
+        .select("id, company_id, linkedin_url, nome, cargo, empresa, email")
+        .eq("usuario_id", usuarioId)
         .order("criado_em", { ascending: false })
         .limit(30);
 
@@ -708,6 +720,7 @@ export default function PaginaBuscador() {
                         <AtribuirLead
                           contatoId={resultado.id ?? ""}
                           empresas={empresas}
+                          aoVincular={() => void carregarHistorico()}
                         />
                       </>
                     )}
@@ -830,11 +843,21 @@ export default function PaginaBuscador() {
                         {contato.email}
                       </span>
 
-                      {contato.id && (
-                        <AtribuirLead
-                          contatoId={contato.id}
-                          empresas={empresas}
-                        />
+                      {contato.company_id ? (
+                        <span
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime"
+                          title="Este contato já está salvo em um dos seus leads"
+                        >
+                          ✅ Vinculado
+                        </span>
+                      ) : (
+                        contato.id && (
+                          <AtribuirLead
+                            contatoId={contato.id}
+                            empresas={empresas}
+                            aoVincular={() => void carregarHistorico()}
+                          />
+                        )
                       )}
 
                       <button
