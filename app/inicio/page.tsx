@@ -16,9 +16,9 @@ const passos = [
   },
   {
     numero: "3",
-    titulo: "Receba a lista pronta pra agir",
+    titulo: "Ache o decisor e ataque",
     descricao:
-      "Empresas reais e ativas, priorizadas por score — e o primeiro e-mail de cada uma já escrito.",
+      "A lista vem priorizada por score — e cada lead recebe e-mail institucional da Receita, telefone do Google Maps e o e-mail VERIFICADO do decisor direto do LinkedIn.",
   },
 ];
 
@@ -31,11 +31,23 @@ const diferenciais = [
     destaque: true,
   },
   {
-    icone: "📎",
-    titulo: "Nossa equipe lê seu portfólio",
+    icone: "🔎",
+    titulo: "E-mail verificado do decisor em 1 clique",
     texto:
-      "Anexe catálogo, apresentação ou print do site. O conteúdo vira contexto das prospecções — cada e-mail sai com a SUA oferta, não com texto genérico.",
+      "Cole o perfil do LinkedIn de qualquer tomador e receba o e-mail validado com nome, cargo e empresa. Perfil repetido? Resposta instantânea, sem custo. Isso é munição de verdade.",
     destaque: true,
+  },
+  {
+    icone: "🤖",
+    titulo: "Sales Copilot multicanal",
+    texto:
+      "Escolha produto, objetivo e canal (e-mail, LinkedIn, WhatsApp ou ligação): a IA entrega o MELHOR ARGUMENTO e o texto pronto, usando o cargo real do seu alvo.",
+  },
+  {
+    icone: "🏢",
+    titulo: "3 fontes de contato por lead",
+    texto:
+      "Receita Federal + Google Maps + Anymail Finder, somadas no mesmo dossiê. Fonte nova não apaga a antiga: quanto mais consultas, mais completo o lead.",
   },
   {
     icone: "🧠",
@@ -50,16 +62,22 @@ const diferenciais = [
       "Cada empresa recebe uma nota de aderência explicada. Você gasta energia só com quem realmente combina com o que você vende.",
   },
   {
-    icone: "🗂️",
-    titulo: "Listas persistentes com ficha completa",
+    icone: "👥",
+    titulo: "Dossiê completo de influenciadores",
     texto:
-      "Suas listas ficam salvas. Clique em qualquer lead e veja CNPJ, endereço, contatos da empresa, aprovador sugerido e o e-mail pronto.",
+      "Vários contatos por lead, cada um com múltiplos e-mails e telefones — vindos do buscador, do LinkedIn ou cadastrados à mão. Exporta em CSV pronto pro CRM.",
+  },
+  {
+    icone: "⭐",
+    titulo: "Modelos que aprendem com você",
+    texto:
+      "Abordagem que converteu virou modelo? Salve e reutilize em qualquer lead. Seu playbook comercial se constrói sozinho.",
   },
   {
     icone: "🔒",
     titulo: "Comece grátis, pague pelo valor",
     texto:
-      "Crie a conta e ganhe 5 créditos para testar de verdade. Sem cartão de crédito. Só desbloqueie mais quando ver o resultado.",
+      "Crie a conta e ganhe créditos para testar de verdade: gerar listas, buscar contatos e gerar abordagens. Sem cartão de crédito.",
   },
 ];
 
@@ -140,16 +158,16 @@ export default function Inicio() {
         </span>
 
         <h1 className="font-display text-5xl md:text-6xl leading-tight text-white mt-7 max-w-4xl mx-auto">
-          Comece a prospectar com{" "}
-          <span className="text-pipe-lime">listas completas</span> para seu
-          negócio — e o primeiro e-mail{" "}
-          <span className="text-pipe-lime">já escrito</span>.
+          Listas certas, e-mail escrito,{" "}
+          <span className="text-pipe-lime">decisor encontrado</span> — tudo
+          antes do seu café.
         </h1>
 
         <p className="text-pipe-muted text-lg mt-6 max-w-2xl mx-auto">
-          Empresas certas em todo o Brasil, priorizadas por
-          score de aderência — e cada lead com assunto + mensagem prontos,
-          conectando a SUA oferta à dor DELES.
+          Empresas priorizadas por score de aderência, o primeiro e-mail já
+          personalizado e o <span className="text-white font-semibold">e-mail
+          verificado do decisor</span> direto do LinkedIn. Prospecção B2B sem
+          trabalho manual.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
@@ -235,16 +253,23 @@ export default function Inicio() {
           </div>
 
           <div
-            className="anim-float absolute left-40 bottom-0 w-64 bg-pipe-card border border-pipe-border rounded-xl p-4 shadow-2xl text-left"
+            className="anim-float absolute left-40 bottom-0 w-72 bg-pipe-card border border-pipe-lime/30 rounded-xl p-4 shadow-2xl text-left"
             style={{ ["--rot" as string]: "-1deg", ["--delay" as string]: "1.6s" }}
           >
-            <p className="text-xs text-pipe-muted">📎 Portfólio anexado</p>
-            <p className="text-sm text-white font-medium mt-1 truncate">
-              apresentacao-comercial.pdf
+            <p className="text-xs text-pipe-muted">
+              🔎 linkedin.com/in/lucascamposa
             </p>
-            <span className="inline-block mt-2 text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
-              ✓ lido pela IA
-            </span>
+            <p className="text-sm text-white font-medium mt-1 truncate">
+              lucas.campos@frigol.com.br
+            </p>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
+                ✓ e-mail verificado
+              </span>
+              <span className="text-[10px] font-bold uppercase text-black bg-pipe-blue rounded-full px-2 py-0.5 animate-pulse">
+                ⚡ instantâneo
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -270,9 +295,9 @@ export default function Inicio() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
             ["70M+", "de empresas"],
-            ["< 1 min", "para gerar seu ICP"],
+            ["3 fontes", "de caça ao contato"],
             ["R$ 0,29", "por lead com e-mail pronto"],
-            ["5 grátis", "créditos ao criar conta"],
+            ["4 canais", "de abordagem gerados por IA"],
           ].map(([valor, rotulo]) => (
             <div
               key={rotulo}
@@ -374,7 +399,7 @@ export default function Inicio() {
 
         {/* DEMAIS DIFERENCIAIS */}
 
-        <div className="relative grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+        <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
           {diferenciais.slice(2).map((item) => (
             <div
               key={item.titulo}
@@ -461,6 +486,7 @@ export default function Inicio() {
                 <th className="pb-3 font-medium">Tipo de plataforma</th>
                 <th className="pb-3 font-medium">Custo por lead</th>
                 <th className="pb-3 font-medium">E-mail escrito?</th>
+                <th className="pb-3 font-medium">Contato verificado?</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-pipe-border">
@@ -470,12 +496,14 @@ export default function Inicio() {
                 </td>
                 <td className="py-3">R$ 3–6 por contato desbloqueado</td>
                 <td className="py-3 text-pipe-muted">Não</td>
+                <td className="py-3 text-pipe-muted">Não</td>
               </tr>
               <tr>
                 <td className="py-3 text-pipe-muted">
                   Plataformas com score IA
                 </td>
                 <td className="py-3">~R$ 1 por lead</td>
+                <td className="py-3 text-pipe-muted">Não</td>
                 <td className="py-3 text-pipe-muted">Não</td>
               </tr>
               <tr className="bg-pipe-blue/5">
@@ -487,6 +515,9 @@ export default function Inicio() {
                 </td>
                 <td className="py-3 font-semibold text-pipe-lime">
                   ✓ Personalizado por empresa
+                </td>
+                <td className="py-3 font-semibold text-pipe-lime">
+                  ✓ Receita + Maps + LinkedIn
                 </td>
               </tr>
             </tbody>
@@ -510,7 +541,8 @@ export default function Inicio() {
 
         <p className="text-pipe-muted mt-4 max-w-xl mx-auto text-lg">
           Cada dia sem prospecção é um cliente que seu concorrente atendeu
-          primeiro.
+          primeiro. Aqui, sua lista, o e-mail e o contato do decisor saem no
+          mesmo dia.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-9">
