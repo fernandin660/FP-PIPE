@@ -12,6 +12,25 @@ function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
 }
 
+// Reutiliza a linha existente do mesmo perfil para não duplicar contatos
+// e preservar a atribuição anterior ao lead.
+async function localizarContatoExistente(
+  supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
+  usuarioId: string,
+  linkedinNormalizado: string
+) {
+  const { data } = await supabase
+    .from("contatos")
+    .select("id, company_id")
+    .eq("usuario_id", usuarioId)
+    .eq("linkedin_url", linkedinNormalizado)
+    .order("criado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
 type CorpoBusca = {
   linkedinUrl?: unknown;
 };
@@ -187,19 +206,52 @@ export async function POST(requisicao: Request) {
         email: cacheHit.email,
       };
 
-      await supabase
-        .from("contatos")
-        .insert({
-          ...contatoCache,
-          usuario_id: user.id,
-          emails: [contatoCache.email],
-          telefones: [],
-        });
+      const existenteCache = await localizarContatoExistente(
+        supabase,
+        user.id,
+        linkedinNormalizado
+      );
+
+      let salvoCache = null;
+
+      if (existenteCache) {
+        const { data } = await supabase
+          .from("contatos")
+          .update({
+            email: contatoCache.email,
+            nome: contatoCache.nome,
+            cargo: contatoCache.cargo,
+            empresa: contatoCache.empresa,
+          })
+          .eq("id", existenteCache.id)
+          .select()
+          .single();
+
+        salvoCache = data;
+      } else {
+        const { data } = await supabase
+          .from("contatos")
+          .insert({
+            ...contatoCache,
+            usuario_id: user.id,
+            emails: [contatoCache.email],
+            telefones: [],
+          })
+          .select()
+          .single();
+
+        salvoCache = data;
+      }
 
       return NextResponse.json({
         encontrado: true,
         doCache: true,
-        contato: contatoCache,
+        contato:
+          salvoCache ?? {
+            ...contatoCache,
+            id: existenteCache?.id,
+            company_id: existenteCache?.company_id ?? null,
+          },
         saldoContatos: novoSaldoCache,
       });
     }
@@ -311,21 +363,52 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const { data: salvo } = await supabase
-    .from("contatos")
-    .insert({
-      ...contato,
-      usuario_id: user.id,
-      emails: [contato.email],
-      telefones: [],
-    })
-    .select()
-    .single();
+  const existente = await localizarContatoExistente(
+    supabase,
+    user.id,
+    linkedinNormalizado
+  );
+
+  let salvo = null;
+
+  if (existente) {
+    const { data } = await supabase
+      .from("contatos")
+      .update({
+        email: contato.email,
+        nome: contato.nome,
+        cargo: contato.cargo,
+        empresa: contato.empresa,
+      })
+      .eq("id", existente.id)
+      .select()
+      .single();
+
+    salvo = data;
+  } else {
+    const { data } = await supabase
+      .from("contatos")
+      .insert({
+        ...contato,
+        usuario_id: user.id,
+        emails: [contato.email],
+        telefones: [],
+      })
+      .select()
+      .single();
+
+    salvo = data;
+  }
 
   return NextResponse.json({
     encontrado: true,
     doCache: false,
-    contato: salvo ?? contato,
+    contato:
+      salvo ?? {
+        ...contato,
+        id: existente?.id,
+        company_id: existente?.company_id ?? null,
+      },
     saldoContatos: novoSaldo,
   });
 }

@@ -12,6 +12,7 @@ import ModalPerfil, {
 
 type ContatoEncontrado = {
   id?: string;
+  company_id?: string | null;
   linkedin_url?: string | null;
   nome: string | null;
   cargo: string | null;
@@ -131,8 +132,6 @@ function AtribuirLead({
 
 function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
   const [aberto, setAberto] = useState(false);
-  const [cidade, setCidade] = useState("");
-  const [uf, setUf] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
   const [erro, setErro] = useState("");
@@ -189,8 +188,6 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
           empresa: contato.empresa,
           email: contato.email,
           linkedinUrl: contato.linkedin_url ?? "",
-          cidade,
-          uf,
           listaId:
             modoLista === "existente" ? listaEscolhida : undefined,
           novaListaNome:
@@ -251,29 +248,13 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
       {aberto && (
         <div className="absolute right-0 bottom-full mb-2 z-30 w-72 bg-pipe-card border border-pipe-border rounded-xl p-3 shadow-2xl space-y-2">
           <p className="text-[11px] text-pipe-muted leading-relaxed">
-            Criamos o lead{" "}
+            Vamos procurar{" "}
             <span className="text-white font-semibold">
-              {contato.empresa || "sem empresa"}
+              {contato.empresa || "a empresa"}
             </span>{" "}
-            com {contato.nome ?? "este contato"}. Opcional: ajude a achar o
-            CNPJ certo.
+            na Receita Federal pelo nome. Se não achar, salvamos o lead com os
+            dados do LinkedIn mesmo.
           </p>
-
-          <div className="flex gap-2">
-            <input
-              value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-              placeholder="Cidade (opcional)"
-              className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
-            />
-
-            <input
-              value={uf}
-              onChange={(e) => setUf(e.target.value.toUpperCase().slice(0, 2))}
-              placeholder="UF"
-              className="w-16 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue uppercase"
-            />
-          </div>
 
           <div className="flex items-center gap-3 text-[11px] font-semibold pt-1">
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -711,13 +692,25 @@ export default function PaginaBuscador() {
                   ✉️ {resultado.email}
                 </a>
 
-                {resultado.id && (
-                  <div className="mt-3 flex justify-end gap-2 flex-wrap">
-                    <CadastrarComoLead contato={resultado} />
-                    <AtribuirLead
-                      contatoId={resultado.id}
-                      empresas={empresas}
-                    />
+                {(resultado.company_id || resultado.id) && (
+                  <div className="mt-3 flex justify-end gap-2 flex-wrap items-center">
+                    {resultado.company_id ? (
+                      <span
+                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime"
+                        title="Este contato já está salvo em um dos seus leads"
+                      >
+                        ✅ Já vinculado a um lead
+                      </span>
+                    ) : (
+                      <>
+                        <CadastrarComoLead contato={resultado} />
+
+                        <AtribuirLead
+                          contatoId={resultado.id ?? ""}
+                          empresas={empresas}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
 
