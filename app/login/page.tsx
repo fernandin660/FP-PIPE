@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -15,6 +15,15 @@ export default function PaginaLogin() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [proximoDestino, setProximoDestino] = useState("");
+
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    // Só aceita caminhos internos para evitar open redirect.
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      setProximoDestino(next);
+    }
+  }, []);
 
   // Garante sessão limpa: evita o navegador continuar logado no usuário
   // anterior quando alguém entra ou cria conta com outro e-mail.
@@ -38,9 +47,13 @@ export default function PaginaLogin() {
 
     await limparSessaoAnterior();
 
+    const redirectToGoogle = proximoDestino
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(proximoDestino)}`
+      : `${window.location.origin}/auth/callback`;
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: redirectToGoogle },
     });
   }
 
@@ -59,6 +72,8 @@ export default function PaginaLogin() {
 
     await limparSessaoAnterior();
 
+    const destinoFinal = proximoDestino || "/prospeccao";
+
     if (modo === "entrar") {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -72,7 +87,7 @@ export default function PaginaLogin() {
         return;
       }
 
-      router.push("/prospeccao");
+      router.push(destinoFinal);
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -91,7 +106,7 @@ export default function PaginaLogin() {
       }
 
       if (data.session) {
-        router.push("/prospeccao");
+        router.push(destinoFinal);
       } else {
         setMensagem(
           "Conta criada! Confira seu e-mail para confirmar o cadastro."

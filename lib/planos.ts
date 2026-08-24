@@ -56,3 +56,51 @@ export function precoDoPlano(plano: PlanoChave, ciclo: Ciclo): number {
 export function duracaoDias(ciclo: Ciclo): number {
   return ciclo === "anual" ? 365 : 30;
 }
+
+// ------------------------------------------------------------
+// Portao de acesso: le a assinatura do usuario e devolve o que
+// ele pode usar. Assinatura ausente = teste. Expirada = bloqueia.
+// ------------------------------------------------------------
+
+type ClienteServidor = NonNullable<
+  Awaited<ReturnType<typeof import("./supabase/server").criarClienteSupabaseServidor>>
+>;
+
+export interface AcessoUsuario {
+  usuarioId: string;
+  plano: PlanoChave;
+  def: DefinicaoPlano;
+  expirada: boolean;
+}
+
+export async function avaliarAcesso(
+  supabase: ClienteServidor,
+  usuarioId: string
+): Promise<AcessoUsuario> {
+  const { data } = await supabase
+    .from("assinaturas")
+    .select("plano, status, renova_em")
+    .eq("usuario_id", usuarioId)
+    .maybeSingle();
+
+  const chavePlano = ((data?.plano as PlanoChave) || "teste") as PlanoChave;
+  const def = DEFINICAO_PLANOS[chavePlano] ?? DEFINICAO_PLANOS.teste;
+
+  const statusValido = !data || data.status === "ativa";
+  const dentroDaValidade =
+    !data?.renova_em ||
+    new Date(data.renova_em).getTime() > Date.now() ||
+    chavePlano === "teste";
+
+  return {
+    usuarioId,
+    plano: chavePlano,
+    def,
+    expirada: !statusValido || !dentroDaValidade,
+  };
+}
+
+export function mesAtual(): string {
+  const agora = new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
+}

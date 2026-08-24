@@ -5,6 +5,9 @@ import {
   formatarCnpj,
 } from "@/lib/conhecimento-cnae";
 
+import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { avaliarAcesso, mesAtual } from "../../../lib/planos";
+
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
 const LIMITE_POR_RECORTE = 20;
@@ -119,6 +122,57 @@ async function pesquisarRecorte(
 
 export async function POST(request: Request) {
   try {
+    const supabase = await criarClienteSupabaseServidor();
+    if (!supabase) {
+      return NextResponse.json(
+        { erro: "Autenticação não configurada." },
+        { status: 503 }
+      );
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { erro: "Faça login para gerar listas.", motivo: "sem_login" },
+        { status: 401 }
+      );
+    }
+
+    const acesso = await avaliarAcesso(supabase, user.id);
+    if (acesso.expirada) {
+      return NextResponse.json(
+        {
+          erro:
+            "Seu plano expirou. Assine ou renove em /planos para continuar gerando listas.",
+          motivo: "plano_expirado",
+        },
+        { status: 403 }
+      );
+    }
+
+    const mes = mesAtual();
+    const { data: uso } = await supabase
+      .from("uso_mensal")
+      .select("empresas_geradas")
+      .eq("usuario_id", user.id)
+      .eq("mes", mes)
+      .maybeSingle();
+
+    const empresasUsadas = uso?.empresas_geradas ?? 0;
+    const restante = acesso.def.empresasMes - empresasUsadas;
+
+    if (restante <= 0) {
+      return NextResponse.json(
+        {
+          erro: `Você já usou as ${acesso.def.empresasMes} empresas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos.`,
+          motivo: "limite_empresas",
+        },
+        { status: 403 }
+      );
+    }
+
     const dados = await request.json();
     const segmentos: string[] = Array.isArray(dados.segmentos)
       ? dados.segmentos.filter(
@@ -214,13 +268,30 @@ export async function POST(request: Request) {
       if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
     }
 
+    const empresasFinais = Array.from(mapaEmpresas.values()).slice(
+      0,
+      Math.min(LIMITE_TOTAL_EMPRESAS, restante)
+    );
+
+    if (empresasFinais.length > 0) {
+      const totalAcumulado = empresasUsadas + empresasFinais.length;
+      await supabase.from("uso_mensal").upsert(
+        {
+          usuario_id: user.id,
+          mes,
+          empresas_geradas: totalAcumulado,
+          atualizado_em: new Date().toISOString(),
+        },
+        { onConflict: "usuario_id,mes" }
+      );
+    }
+
     return NextResponse.json({
-      empresas: Array.from(mapaEmpresas.values()).slice(
-        0,
-        LIMITE_TOTAL_EMPRESAS
-      ),
-      totalUnicos: Math.min(mapaEmpresas.size, LIMITE_TOTAL_EMPRESAS),
+      empresas: empresasFinais,
+      totalUnicos: empresasFinais.length,
       recortesPesquisados: chamadas,
+      plano: acesso.plano,
+      cotaRestante: Math.max(0, restante - empresasFinais.length),
     });
   } catch {
     return NextResponse.json(

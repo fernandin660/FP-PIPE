@@ -149,7 +149,7 @@ export default function Planos() {
       });
 
       if (resposta.status === 401) {
-        router.push("/login");
+        router.push("/login?next=/planos");
         return;
       }
 

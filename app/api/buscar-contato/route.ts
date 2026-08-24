@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { registrarUso } from "../../../lib/avisos";
+import { avaliarAcesso } from "../../../lib/planos";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
@@ -135,6 +136,28 @@ export async function POST(requisicao: Request) {
 
   if (!user) {
     return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+  }
+
+  const acesso = await avaliarAcesso(supabase, user.id);
+  if (acesso.expirada) {
+    return NextResponse.json(
+      {
+        erro:
+          "Seu plano expirou. Assine ou renove em /planos para usar o Buscador.",
+        motivo: "plano_expirado",
+      },
+      { status: 403 }
+    );
+  }
+  if (!acesso.def.temBuscador) {
+    return NextResponse.json(
+      {
+        erro:
+          "O plano Silver não inclui o Buscador de contatos. Faça upgrade para Gold ou Platinum em /planos.",
+        motivo: "sem_buscador",
+      },
+      { status: 403 }
+    );
   }
 
   let corpo: CorpoBusca;
