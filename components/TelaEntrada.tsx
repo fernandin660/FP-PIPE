@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
+import { validarSenhaForca } from "../lib/senhas";
 
 export default function TelaEntrada() {
   const router = useRouter();
 
-  const [modo, setModo] = useState<"entrar" | "criar">("criar");
+  const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("criar");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -89,7 +90,29 @@ export default function TelaEntrada() {
       }
 
       router.push(destinoFinal);
+    } else if (modo === "recuperar") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/redefinir`,
+      });
+
+      setCarregando(false);
+
+      if (error) {
+        setErro("Não conseguimos enviar o e-mail agora. Tente novamente.");
+        return;
+      }
+
+      setMensagem(
+        "Enviamos um link de redefinição para o seu e-mail. Confira a caixa de entrada (e o spam)."
+      );
     } else {
+      const motivo = validarSenhaForca(senha);
+      if (motivo) {
+        setCarregando(false);
+        setErro(motivo);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -255,6 +278,12 @@ export default function TelaEntrada() {
             </button>
           </div>
 
+          {modo === "recuperar" && (
+            <p className="text-sm text-pipe-blue font-semibold mt-6">
+              🔑 Recuperar acesso
+            </p>
+          )}
+
           <form onSubmit={submeter} className="space-y-4 mt-6">
             <input
               type="email"
@@ -265,15 +294,23 @@ export default function TelaEntrada() {
               className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
             />
 
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Sua senha (mínimo 6 caracteres)"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
-            />
+            {modo !== "recuperar" && (
+              <input
+                type="password"
+                required
+                autoComplete={
+                  modo === "entrar" ? "current-password" : "new-password"
+                }
+                placeholder={
+                  modo === "entrar"
+                    ? "Sua senha"
+                    : "Crie uma senha (8+ caracteres, com letra e número)"
+                }
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+              />
+            )}
 
             {erro && <p className="text-red-400 text-sm">{erro}</p>}
 
@@ -290,9 +327,37 @@ export default function TelaEntrada() {
                 ? "Aguarde..."
                 : modo === "entrar"
                   ? "Entrar no sistema →"
-                  : "Criar conta grátis →"}
+                  : modo === "recuperar"
+                    ? "Enviar link de redefinição →"
+                    : "Criar conta grátis →"}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            {modo === "entrar" ? (
+              <button
+                onClick={() => {
+                  setModo("recuperar");
+                  setErro("");
+                  setMensagem("");
+                }}
+                className="text-xs text-pipe-muted hover:text-pipe-blue transition"
+              >
+                Esqueceu a senha?
+              </button>
+            ) : modo === "recuperar" ? (
+              <button
+                onClick={() => {
+                  setModo("entrar");
+                  setErro("");
+                  setMensagem("");
+                }}
+                className="text-xs text-pipe-muted hover:text-white transition"
+              >
+                ← Voltar para o login
+              </button>
+            ) : null}
+          </div>
 
           <div className="flex items-center gap-3 my-6">
             <span className="flex-1 h-px bg-pipe-border" />

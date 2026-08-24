@@ -664,6 +664,12 @@ export default function Inicio() {
             <Link href="/login" className="hover:text-white transition">
               Entrar
             </Link>
+            <Link href="/termos" className="hover:text-white transition">
+              Termos
+            </Link>
+            <Link href="/privacidade" className="hover:text-white transition">
+              Privacidade
+            </Link>
           </div>
         </div>
       </footer>
