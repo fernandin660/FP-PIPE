@@ -334,18 +334,7 @@ export default function TelaEntrada() {
           </form>
 
           <div className="mt-4 text-center">
-            {modo === "entrar" ? (
-              <button
-                onClick={() => {
-                  setModo("recuperar");
-                  setErro("");
-                  setMensagem("");
-                }}
-                className="text-xs text-pipe-muted hover:text-pipe-blue transition"
-              >
-                Esqueceu a senha?
-              </button>
-            ) : modo === "recuperar" ? (
+            {modo === "recuperar" ? (
               <button
                 onClick={() => {
                   setModo("entrar");
@@ -356,7 +345,18 @@ export default function TelaEntrada() {
               >
                 ← Voltar para o login
               </button>
-            ) : null}
+            ) : (
+              <button
+                onClick={() => {
+                  setModo("recuperar");
+                  setErro("");
+                  setMensagem("");
+                }}
+                className="text-xs text-pipe-muted hover:text-pipe-blue transition"
+              >
+                Esqueceu a senha?
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3 my-6">
