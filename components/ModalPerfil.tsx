@@ -13,6 +13,8 @@ export type AnexoPerfil = {
 
 export type PerfilVendedor = {
   nome_empresa?: string | null;
+  nome_usuario?: string | null;
+  tempo_empresa?: string | null;
   area_atuacao?: string | null;
   departamento_uso?: string | null;
   produtos_servicos?: string | null;
@@ -52,6 +54,12 @@ export default function ModalPerfil({
 }: Props) {
   const [nomeEmpresa, setNomeEmpresa] = useState(
     perfil?.nome_empresa ?? ""
+  );
+  const [nomeUsuario, setNomeUsuario] = useState(
+    perfil?.nome_usuario ?? ""
+  );
+  const [tempoEmpresa, setTempoEmpresa] = useState(
+    perfil?.tempo_empresa ?? ""
   );
   const [areaAtuacao, setAreaAtuacao] = useState(
     perfil?.area_atuacao ?? ""
@@ -297,6 +305,8 @@ export default function ModalPerfil({
       const registro: PerfilVendedor & { usuario_id: string } = {
         usuario_id: user.id,
         nome_empresa: nomeEmpresa.trim(),
+        nome_usuario: nomeUsuario.trim() || null,
+        tempo_empresa: tempoEmpresa.trim() || null,
         area_atuacao: areaAtuacao.trim(),
         departamento_uso: departamentoUso.trim() || null,
         produtos_servicos: produtosServicos.trim(),
@@ -387,6 +397,21 @@ export default function ModalPerfil({
             onChange={(e) => setNomeEmpresa(e.target.value)}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
           />
+
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              placeholder="Seu nome (ex.: Fernando)"
+              value={nomeUsuario}
+              onChange={(e) => setNomeUsuario(e.target.value)}
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            />
+            <input
+              placeholder="Tempo de empresa (ex.: 8 anos)"
+              value={tempoEmpresa}
+              onChange={(e) => setTempoEmpresa(e.target.value)}
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            />
+          </div>
 
           <input
             placeholder="Área de atuação (ex.: Cibersegurança)"

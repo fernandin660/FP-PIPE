@@ -188,11 +188,22 @@ export async function POST(requisicao: Request) {
     );
   }
 
+  // Departamento que o vendedor usa o produto: define qual contato
+  // do lead faz sentido para ele (TI p/ tecnologia, financeiro p/ contabilidade...).
+  const { data: perfilDepto } = await supabase
+    .from("perfil")
+    .select("departamento_uso")
+    .eq("usuario_id", user.id)
+    .maybeSingle();
+  const deptoAtual =
+    (perfilDepto?.departamento_uso as string | null)?.trim() || "";
+
   if (admin) {
     const { data: cacheHit } = await admin
       .from("emails_cache")
       .select("email, nome, cargo, empresa")
       .eq("linkedin_url", linkedinNormalizado)
+      .eq("departamento_uso", deptoAtual)
       .maybeSingle();
 
     if (cacheHit?.email) {
@@ -381,7 +392,8 @@ export async function POST(requisicao: Request) {
     email: emailVerificado,
   };
 
-  // Guarda no cache global para futuras buscas do mesmo perfil.
+  // Guarda no cache global para futuras buscas do mesmo perfil,
+  // amarrado ao departamento de uso do vendedor que buscou.
   if (admin) {
     await admin.from("emails_cache").upsert(
       {
@@ -390,6 +402,7 @@ export async function POST(requisicao: Request) {
         nome: contato.nome,
         cargo: contato.cargo,
         empresa: contato.empresa,
+        departamento_uso: deptoAtual,
       },
       { onConflict: "linkedin_url" }
     );

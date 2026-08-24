@@ -24,6 +24,8 @@ type Empresa = {
 
 type Perfil = {
   nome_empresa: string | null;
+  nome_usuario: string | null;
+  tempo_empresa: string | null;
   area_atuacao: string | null;
   produtos_servicos: string | null;
   nichos: string[] | null;
@@ -180,7 +182,9 @@ export async function POST(requisicao: Request) {
 
   const { data: perfil } = await supabase
     .from("perfil")
-    .select("nome_empresa, area_atuacao, produtos_servicos, nichos")
+    .select(
+      "nome_empresa, nome_usuario, tempo_empresa, area_atuacao, produtos_servicos, nichos"
+    )
     .eq("usuario_id", user.id)
     .maybeSingle();
 
@@ -287,7 +291,24 @@ ${portifolioTexto ? `\nCONTEXTO DO PORTFÓLIO:\n${portifolioTexto}` : ""}`
 
   const objetivoLegivel = ROTULO_OBJETIVO[objetivoChave] ?? objetivoChave;
 
+  const nomeVendedor = dadosPerfil?.nome_usuario?.trim() || null;
+  const tempoMercado = dadosPerfil?.tempo_empresa?.trim() || null;
+  const areaVendedor = dadosPerfil?.area_atuacao?.trim() || null;
+
+  const apresentacaoVendedor = [
+    nomeVendedor
+      ? `O vendedor se chama ${nomeVendedor} e representa a empresa ${
+          dadosPerfil?.nome_empresa || "representante comercial"
+        }.`
+      : "",
+    areaVendedor ? `A empresa atua no mercado de ${areaVendedor}.` : "",
+    tempoMercado ? `Está há mais de ${tempoMercado} nesse mercado.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const prompt = `QUEM VENDE: ${dadosPerfil?.nome_empresa || "nosso representante comercial"}.
+${apresentacaoVendedor ? `${apresentacaoVendedor}\n` : ""}
 ${instrucaoProduto}
 
 ${blocoAlvo}
@@ -298,11 +319,16 @@ Adapte o CTA e o foco ao objetivo (ex.: follow-up retoma contexto; diagnóstico 
 ${instrucoesDeCanal(canal)}
 ${instrucoesSaudacao(canal, nomeParaSaudacao, contextoEmpresaAlvo)}
 
+REGRAS DE ESTRUTURA:
+1. Logo após a saudação, o PRIMEIRO PARÁGRAFO deve apresentar o remetente no formato natural: "Sou o ${nomeVendedor ?? "[nome]"}, da ${dadosPerfil?.nome_empresa || "[empresa]"}${areaVendedor ? `, que atua no mercado de ${areaVendedor}` : ""}${tempoMercado ? ` há mais de ${tempoMercado}` : ""}." — adapte para soar humano, não engessado.
+2. Antes da chamada final, inclua UMA frase consultiva neste espírito: "Inicialmente gostaria de conversar com você para entender seu cenário atual de [segmento/área da empresa-alvo] e ver como podemos ajudar." Use o segmento real do alvo no colchete.
+
 REGRAS DE ARGUMENTAÇÃO:
 1. Primeiro identifique o MELHOR ARGUMENTO: UMA conexão específica entre o produto oferecido e a operação real desta empresa (ex.: transportadora refrigerada -> rastreabilidade e continuidade da cadeia fria).
 2. Proibido clichês vagos sem ligação direta ("eficiência operacional", "otimizar processos").
 3. Não transforme o segmento da empresa-alvo em oferta (alvo frigorífico + vendemos cibersegurança = proteja os sistemas DO frigorífico, nunca "segurança alimentar").
-4. Português comercial brasileiro, humano, específico.
+4. Quando houver decisor/pessoa-alvo com nome conhecido, refira-se a ela PELO NOME ao longo do texto, não só na saudação.
+5. Português comercial brasileiro, humano, específico.
 
 RESPONDA APENAS COM ESTE JSON:
 {"argumento":"o melhor argumento em 1 frase","assunto":"assunto curto ou string vazia para canais sem assunto","conteudo":"a abordagem completa pronta para copiar"}`;

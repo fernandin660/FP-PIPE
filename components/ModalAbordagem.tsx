@@ -80,6 +80,12 @@ export default function ModalAbordagem({
   useEffect(() => {
     if (!aberto || !empresa) return;
 
+    // Empresa trocou: zera qualquer resultado anterior.
+    setResultado(null);
+    setEditando(false);
+    setCopiado(false);
+    setMensagemErro("");
+
     async function carregar() {
       const supabase = criarClienteSupabase();
       if (!supabase || !empresa) return;

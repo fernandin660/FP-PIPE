@@ -460,24 +460,24 @@ export default function Home() {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
 
-    const comScore = empresasEncontradas.filter(
-      (e) => typeof e.score === "number" && e.score !== null
+    // Só entra na lista o lead que o usuário marcou (e revelou).
+    const selecionadasComScore = empresasEncontradas.filter(
+      (e) =>
+        empresasSelecionadas.has(e.cnpj) &&
+        typeof e.score === "number" &&
+        e.score !== null
     );
 
-    if (comScore.length === 0) {
-      alert("Gere e pontue a lista antes de salvar.");
+    if (selecionadasComScore.length === 0) {
+      alert(
+        "Selecione pelo menos um lead com score para salvar. Marque os leads desbloqueados que quer levar."
+      );
       return;
     }
 
     setSalvandoLista(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("Sessão expirada.");
-
       const nomeLista = `${
         segmentosSelecionados[0] ?? "Leads"
       } · ${
@@ -488,46 +488,38 @@ export default function Home() {
             : "Brasil"
       } · ${new Date().toLocaleDateString("pt-BR")}`;
 
-      const { data: listaCriada, error: erroLista } = await supabase
-        .from("listas")
-        .insert({
-          usuario_id: user.id,
+      const resposta = await fetch("/api/listas/salvar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           nome: nomeLista,
           segmentos: segmentosSelecionados,
-          icp_resumo: icpGerado?.resumo_icp ?? "",
+          icpResumo: icpGerado?.resumo_icp ?? "",
           localizacao:
             tipoLocalizacao === "Cidade específica"
               ? cidade
               : tipoLocalizacao === "Estado específico"
                 ? `Estado de ${estadoSelecionado}`
                 : "Brasil",
-        })
-        .select("id")
-        .single();
+          cnpjs: selecionadasComScore.map((e) => e.cnpj),
+        }),
+      });
 
-      if (erroLista) throw erroLista;
+      const dadosResposta = await resposta.json();
 
-      if (listaCriada?.id) {
-        const { data: linhasEmpresas } = await supabase
-          .from("companies")
-          .select("id")
-          .eq("usuario_id", user.id)
-          .in(
-            "cnpj",
-            comScore.map((e) => e.cnpj)
-          );
-
-        if (linhasEmpresas && linhasEmpresas.length > 0) {
-          await supabase.from("lista_empresas").insert(
-            linhasEmpresas.map((linha) => ({
-              lista_id: listaCriada.id,
-              company_id: linha.id,
-            }))
-          );
-        }
+      if (!resposta.ok) {
+        throw new Error(dadosResposta?.erro || "Erro ao salvar");
       }
 
       setListaJaSalva(true);
+
+      const ganho = dadosResposta?.creditosIaGanhos ?? 0;
+      alert(
+        `✅ Lista salva com ${dadosResposta?.leadsSalvos ?? selecionadasComScore.length} leads!` +
+          (ganho > 0
+            ? `\n🎁 Você ganhou ${ganho} Créditos de IA para gerar abordagens.`
+            : "")
+      );
     } catch (erroSalvarLista) {
       console.error("Erro ao salvar lista:", erroSalvarLista);
       alert("Não conseguimos salvar a lista agora. Tente novamente.");
@@ -1035,9 +1027,8 @@ export default function Home() {
       }> = dados.empresas ?? [];
 
       setEmpresasEncontradas(empresas);
-      setEmpresasSelecionadas(
-        new Set(empresas.map((e) => e.cnpj))
-      );
+      // Leads começam DESMARCADOS: crédito é gasto ao revelar cada um.
+      setEmpresasSelecionadas(new Set<string>());
 
       try {
         const supabase = criarClienteSupabase();
