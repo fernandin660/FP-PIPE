@@ -124,7 +124,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const arquivo = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    // Anti-SSRF: só http(s) público, nunca rede interna/metadata.
+    let alvo: URL;
+    try {
+      alvo = new URL(url);
+    } catch {
+      return NextResponse.json({ erro: "Anexo inválido." }, { status: 400 });
+    }
+    const host = alvo.hostname.toLowerCase();
+    const hostBloqueado =
+      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(
+        host
+      ) ||
+      host === "::1" ||
+      host.endsWith(".internal") ||
+      host.endsWith(".local") ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (alvo.protocol !== "https:" && alvo.protocol !== "http:") {
+      return NextResponse.json({ erro: "URL não permitida." }, { status: 400 });
+    }
+    if (hostBloqueado) {
+      return NextResponse.json({ erro: "URL não permitida." }, { status: 400 });
+    }
+
+    const arquivo = await fetch(alvo.toString(), {
+      signal: AbortSignal.timeout(30000),
+      redirect: "follow",
+    });
 
     if (!arquivo.ok) {
       return NextResponse.json(
