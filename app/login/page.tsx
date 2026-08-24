@@ -16,12 +16,27 @@ export default function PaginaLogin() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
+  // Garante sessão limpa: evita o navegador continuar logado no usuário
+  // anterior quando alguém entra ou cria conta com outro e-mail.
+  async function limparSessaoAnterior() {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Sem sessão ativa: segue o jogo.
+    }
+  }
+
   async function entrarComGoogle() {
     const supabase = criarClienteSupabase();
     if (!supabase) {
       setErro("Autenticação não configurada.");
       return;
     }
+
+    await limparSessaoAnterior();
 
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -41,6 +56,8 @@ export default function PaginaLogin() {
     setCarregando(true);
     setErro("");
     setMensagem("");
+
+    await limparSessaoAnterior();
 
     if (modo === "entrar") {
       const { error } = await supabase.auth.signInWithPassword({
