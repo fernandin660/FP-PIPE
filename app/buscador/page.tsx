@@ -404,7 +404,7 @@ export default function PaginaBuscador() {
       const { data: dadosPerfil } = await supabase
         .from("perfil")
         .select(
-          "nome_empresa, area_atuacao, produtos_servicos, site, foto_url, anexos, nichos"
+          "nome_empresa, area_atuacao, departamento_uso, produtos_servicos, site, foto_url, anexos, nichos"
         )
         .eq("usuario_id", user.id)
         .maybeSingle();

@@ -166,6 +166,7 @@ export async function POST(request: Request) {
       nomeEmpresa,
       produto,
       areaAtuacao,
+      departamentoUso = "",
       produtosServicos,
       siteEmpresa,
       nichosSelecionados = [],
@@ -202,6 +203,8 @@ Nome da nossa empresa: ${nomeEmpresa || "Não informado"}
 
 Área de atuação: ${areaAtuacao || produto || "Não informado"}
 
+Departamento que USA o nosso produto e influencia a compra: ${departamentoUso || "Não informado — inferir pela natureza do produto"}
+
 Nichos:
 ${nichosSelecionados.join(", ") || "Não informado"}
 
@@ -230,9 +233,9 @@ REGRAS IMPORTANTES:
 
 1. tipos_de_empresa: liste DE 8 A 10 tipos CONCRETOS e diferentes entre si, escolhidos preferencialmente da BASE DE CONHECIMENTO acima (combine as categorias e exemplos listados nela). Se a base não cobrir o segmento, use seu próprio conhecimento. NUNCA use categorias genéricas como "grandes empresas" ou o nome do segmento sozinho.
 
-2. decisores: cargos com poder de DECISÃO final de compra, baseados SEMPRE no campo "O que sua empresa vende" (produtos e serviços informados), ajustados ao porte. REGRA DE OURO: se o que o usuário vende envolve tecnologia, software, cibersegurança, infraestrutura, cloud, dados ou automação, os decisores são SEMPRE cargos da área de TI/Segurança da Informação (ex.: Diretor de Tecnologia da Informação, Gerente de TI, Gerente de Segurança da Informação), INDEPENDENTE do segmento-alvo. Somente quando o produto for específico da operação física do segmento, use cargos dessa operação. Para definir cada cargo, pergunte-se: "quem aprova e assina a compra DESTE produto dentro de uma empresa DESTE segmento e PORTE?" Em empresa pequena o decisor é o dono ou sócio.
+2. decisores: cargos com poder de DECISÃO final de compra, baseados SEMPRE no campo "O que sua empresa vende" (produtos e serviços informados), ajustados ao porte. REGRA DE OURO DO DEPARTAMENTO: se o campo "Departamento que USA o produto" estiver informado, os decisores são SEMPRE cargos SENIORES DESSE DEPARTAMENTO (quem o lidera e quem aprova o orçamento dele) — INDEPENDENTE da área de atuação da nossa empresa. Ex.: produto de software usado pelo Comercial/Vendas -> decisores são Gerente Comercial, Diretor de Vendas, Head de Growth; NUNCA Gerente de TI só porque é software. Só vá para TI/Outro departamento se o próprio campo indicar, ou se o produto for infraestrutura técnica consumida por TI. Quando o departamento NÃO for informado, pergunte-se: "dentro da empresa cliente, QUEM usa este produto no dia a dia e quem aprova a compra para esse uso?" Em empresa pequena o decisor é o dono ou sócio.
 
-3. influenciadores: cargos que PESAM na decisão mas não decidem sozinhos — quem pesquisa, testa e recomenda a compra, também derivados do campo "O que sua empresa vende". Sob a MESMA REGRA DE OURO: produto de tecnologia/cibersegurança/cloud -> Analista ou Coordenador de TI, Analista de Segurança da Informação; senão, cargos funcionais ligados à operação do segmento.
+3. influenciadores: cargos que PESAM na decisão mas não decidem sozinhos — quem pesquisa, testa e recomenda a compra. Sob a MESMA REGRA DE OURO DO DEPARTAMENTO: cargos OPERACIONAIS/INTERMEDIÁRIOS do departamento de uso do produto (ex.: produto comercial -> SDR, BDR, Analista de Vendas, Coordenação Comercial). Nunca pule para outro departamento sem justificativa clara no produto.
 
 4. principais_dores: dores CONCRETAS e específicas que o nosso produto/serviço resolve para essas empresas.
 
@@ -256,7 +259,7 @@ Regras: se o nome da nossa empresa estiver informado acima, use o nome real no l
 
 7. NÃO gere roteiro de ligação — o produto trabalha com e-mail personalizado por empresa.
 
-LEMBRETE CRÍTICO: antes de montar as listas decisores e influenciadores, releia O QUE O USUÁRIO VENDE (produtos e serviços informados) e aplique a REGRA DE OURO da regra 2. Os cargos devem refletir QUEM COMPRA ESSE PRODUTO dentro das empresas-alvo — NUNCA simplesmente os cargos típicos do dia a dia do segmento. Use a BASE DE CONHECIMENTO apenas para entender tipos e portes de empresa do segmento, nunca para copiar cargos dela. Cargos devem existir de fato no porte informado (numa empresa pequena não existe "Diretor de TI" — existe o dono ou o gerente que acumula a função). Nunca use cargos genéricos como "Gerente de Marketing".
+LEMBRETE CRÍTICO: antes de montar as listas decisores e influenciadores, releia O QUE O USUÁRIO VENDE (produtos e serviços informados) e aplique a REGRA DE OURO DO DEPARTAMENTO da regra 2 — quando o departamento de uso estiver informado, ele MANDA MAIS que a área de atuação ou o segmento. Os cargos devem refletir QUEM COMPRA E USA ESSE PRODUTO dentro das empresas-alvo — NUNCA simplesmente os cargos típicos do dia a dia do segmento. Use a BASE DE CONHECIMENTO apenas para entender tipos e portes de empresa do segmento, nunca para copiar cargos dela. Cargos devem existir de fato no porte informado (numa empresa pequena não existe "Diretor de TI" — existe o dono ou o gerente que acumula a função). Nunca use cargos genéricos como "Gerente de Marketing".
 
 Responda em português do Brasil.
 

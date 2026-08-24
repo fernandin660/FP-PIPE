@@ -27,6 +27,10 @@ function montarPerfilVendedor(perfil: PerfilVendedor | null): string {
 
   if (perfil.area_atuacao) partes.push(`Área: ${perfil.area_atuacao}.`);
 
+  if (perfil.departamento_uso) {
+    partes.push(`Departamento-alvo: ${perfil.departamento_uso}.`);
+  }
+
   if (perfil.site) partes.push(`Site: ${perfil.site}.`);
 
   if (perfil.nichos && perfil.nichos.length > 0) {
@@ -609,7 +613,7 @@ export default function PaginaListas() {
       const { data: dadosPerfil } = await supabase
         .from("perfil")
         .select(
-          "nome_empresa, area_atuacao, produtos_servicos, site, foto_url, anexos, nichos"
+            "nome_empresa, area_atuacao, departamento_uso, produtos_servicos, site, foto_url, anexos, nichos"
         )
         .eq("usuario_id", user.id)
         .maybeSingle();

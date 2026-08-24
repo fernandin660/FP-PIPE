@@ -194,7 +194,7 @@ export default function Home() {
       const { data } = await supabase
         .from("perfil")
         .select(
-          "nome_empresa, area_atuacao, produtos_servicos, site, foto_url, anexos, nichos"
+          "nome_empresa, area_atuacao, departamento_uso, produtos_servicos, site, foto_url, anexos, nichos"
         )
         .eq("usuario_id", usuarioId)
         .maybeSingle();
@@ -925,6 +925,12 @@ export default function Home() {
 
     if (perfil?.area_atuacao) partes.push(`Área: ${perfil.area_atuacao}`);
 
+    if (perfil?.departamento_uso) {
+      partes.push(
+        `Departamento que usa o produto / influencia a compra: ${perfil.departamento_uso}`
+      );
+    }
+
     if (perfil?.produtos_servicos) {
       partes.push(perfil.produtos_servicos);
     }
@@ -954,6 +960,10 @@ export default function Home() {
     if (perfil.nome_empresa) partes.push(`Empresa: ${perfil.nome_empresa}.`);
 
     if (perfil.area_atuacao) partes.push(`Área: ${perfil.area_atuacao}.`);
+
+    if (perfil.departamento_uso) {
+      partes.push(`Departamento-alvo: ${perfil.departamento_uso}.`);
+    }
 
     if (perfil.site) partes.push(`Site: ${perfil.site}.`);
 
@@ -1412,6 +1422,7 @@ export default function Home() {
           nomeEmpresa: perfil?.nome_empresa || "",
           produto: perfil?.area_atuacao || "",
           areaAtuacao: perfil?.area_atuacao || "",
+          departamentoUso: perfil?.departamento_uso || "",
           produtosServicos: montarResumoOferta(),
           siteEmpresa: perfil?.site || "",
           nichosSelecionados: [],

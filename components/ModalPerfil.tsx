@@ -14,12 +14,26 @@ export type AnexoPerfil = {
 export type PerfilVendedor = {
   nome_empresa?: string | null;
   area_atuacao?: string | null;
+  departamento_uso?: string | null;
   produtos_servicos?: string | null;
   site?: string | null;
   foto_url?: string | null;
   anexos?: AnexoPerfil[] | null;
   nichos?: string[] | null;
 };
+
+export const DEPARTAMENTOS = [
+  "Comercial / Vendas",
+  "Marketing",
+  "Financeiro / Contabilidade",
+  "RH / Pessoas",
+  "TI / Tecnologia",
+  "Operações / Produção",
+  "Logística / Supply Chain",
+  "Jurídico",
+  "Compras / Suprimentos",
+  "Diretoria / Presidência",
+];
 
 type Props = {
   aberto: boolean;
@@ -41,6 +55,9 @@ export default function ModalPerfil({
   );
   const [areaAtuacao, setAreaAtuacao] = useState(
     perfil?.area_atuacao ?? ""
+  );
+  const [departamentoUso, setDepartamentoUso] = useState(
+    perfil?.departamento_uso ?? ""
   );
   const [produtosServicos, setProdutosServicos] = useState(
     perfil?.produtos_servicos ?? ""
@@ -281,6 +298,7 @@ export default function ModalPerfil({
         usuario_id: user.id,
         nome_empresa: nomeEmpresa.trim(),
         area_atuacao: areaAtuacao.trim(),
+        departamento_uso: departamentoUso.trim() || null,
         produtos_servicos: produtosServicos.trim(),
         site: site.trim(),
         foto_url: fotoUrl,
@@ -377,6 +395,31 @@ export default function ModalPerfil({
             onBlur={talvezBuscarSugestoes}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
           />
+
+          <div>
+            <select
+              value={departamentoUso}
+              onChange={(e) => setDepartamentoUso(e.target.value)}
+              className={`w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none text-white ${
+                departamentoUso ? "" : "text-pipe-muted/60"
+              }`}
+            >
+              <option value="">
+                Qual departamento usa seu produto? (opcional)
+              </option>
+              {DEPARTAMENTOS.map((departamento) => (
+                <option key={departamento} value={departamento}>
+                  {departamento}
+                </option>
+              ))}
+            </select>
+
+            <p className="text-pipe-muted/70 text-[11px] mt-1">
+              💡 Ex.: um CRM é usado pelo Comercial — os alvos viram gerentes
+              comerciais, SDRs e vendedores, não a TI. Isso deixa o ICP muito
+              mais preciso.
+            </p>
+          </div>
 
           <input
             type="url"
