@@ -48,7 +48,7 @@ export async function POST(requisicao: Request) {
 
   let consulta = supabase
     .from("companies")
-    .select("id, nome_fantasia, razao_social, linkedin");
+    .select("id, nome_fantasia, razao_social, municipio, uf, linkedin");
 
   const companyId =
     typeof dados.companyId === "string" ? dados.companyId.trim() : "";
@@ -83,9 +83,10 @@ export async function POST(requisicao: Request) {
     });
   }
 
-  const chave = process.env.SERPER_API_KEY;
+  const chaveSerper = process.env.SERPER_API_KEY;
+  const chaveOpenai = process.env.OPENAI_API_KEY;
 
-  if (!chave) {
+  if (!chaveSerper && !chaveOpenai) {
     return NextResponse.json(
       { erro: "Integração de busca ainda não configurada." },
       { status: 503 }
@@ -131,30 +132,81 @@ export async function POST(requisicao: Request) {
   let itens: ItemBusca[] = [];
 
   try {
-    const respostaBusca = await fetch("https://google.serper.dev/search", {
-      method: "POST",
-      headers: {
-        "X-API-KEY": chave,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        q: `${termo} site:linkedin.com/company`,
-        num: 10,
-      }),
-      cache: "no-store",
-    });
+    if (chaveSerper) {
+      // Caminho preferencial: Serper (busca do Google via API).
+      // Nome entre aspas + cidade/UF reduzem confusão com nomes parecidos.
+      const contexto = [empresa.municipio, empresa.uf]
+        .filter(Boolean)
+        .join(" ");
 
-    if (!respostaBusca.ok) {
-      return NextResponse.json(
-        { erro: "Falha na busca. Tente novamente." },
-        { status: 502 }
-      );
+      const respostaBusca = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": chaveSerper,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          q: `"${termo}" linkedin site:linkedin.com/company${
+            contexto ? ` ${contexto}` : ""
+          }`,
+          num: 10,
+        }),
+        cache: "no-store",
+      });
+
+      if (!respostaBusca.ok) {
+        return NextResponse.json(
+          { erro: "Falha na busca. Tente novamente." },
+          { status: 502 }
+        );
+      }
+
+      const dadosBusca = (await respostaBusca.json()) as {
+        organic?: ItemBusca[];
+      };
+      itens = dadosBusca.organic ?? [];
+    } else {
+      // Fallback: OpenAI com busca na web (sem cadastro extra).
+      const respostaIA = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${chaveOpenai}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini-search-preview",
+          input: `Qual é a página oficial da empresa "${termo}" no LinkedIn (endereço começando com linkedin.com/company/)? Procure no Google. Responda APENAS com a URL completa encontrada, ou NONE se não encontrar.`,
+          tools: [{ type: "web_search_preview" }],
+        }),
+        cache: "no-store",
+      });
+
+      if (!respostaIA.ok) {
+        return NextResponse.json(
+          { erro: "Falha na busca. Tente novamente." },
+          { status: 502 }
+        );
+      }
+
+      const dadosIA = (await respostaIA.json()) as {
+        output?: Array<{
+          content?: Array<{ type?: string; text?: string }>;
+        }>;
+      };
+
+      const texto = (dadosIA.output ?? [])
+        .flatMap((parte) => parte.content ?? [])
+        .map((bloco) => bloco.text ?? "")
+        .join(" ");
+
+      itens = Array.from(
+        new Set(
+          texto.match(
+            /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/company\/[A-Za-z0-9_\-%.]+/gi
+          ) ?? []
+        )
+      ).map((link) => ({ link }));
     }
-
-    const dadosBusca = (await respostaBusca.json()) as {
-      organic?: ItemBusca[];
-    };
-    itens = dadosBusca.organic ?? [];
   } catch {
     return NextResponse.json(
       { erro: "Falha na busca. Tente novamente." },
@@ -162,18 +214,29 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const tokens = termo
-    .toLowerCase()
+  // Comparação sem acento/caixa: "Logística" casa com "logistica".
+  const normalizarTexto = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const tokens = normalizarTexto(termo)
     .split(/\s+/)
     .filter((t) => t.length >= 3);
 
-  const candidatos = itens
-    .map((item) =>
-      item.link ? normalizarLinkedin(item.link) : null
-    )
-    .filter((link): link is NonNullable<typeof link> => Boolean(link))
-    .map((link) => {
-      const alvo = `${link} ${itens.find((i) => i.link && normalizarLinkedin(i.link) === link)?.title ?? ""}`.toLowerCase();
+  const tituloPorLink = new Map<string, string>();
+  for (const item of itens) {
+    if (!item.link) continue;
+    const link = normalizarLinkedin(item.link);
+    if (link && !tituloPorLink.has(link)) {
+      tituloPorLink.set(link, item.title ?? "");
+    }
+  }
+
+  const candidatos = Array.from(tituloPorLink.entries())
+    .map(([link, titulo]) => {
+      const alvo = normalizarTexto(`${link} ${titulo}`);
       const pontos = tokens.reduce(
         (total, t) => total + (alvo.includes(t) ? 1 : 0),
         0
@@ -184,11 +247,16 @@ export async function POST(requisicao: Request) {
 
   const melhor = candidatos[0];
 
-  if (!melhor) {
+  // Só aceita se a maioria dos tokens do nome bater — evita
+  // salvar um "Atacadão Centro Sul" no lugar de "Centro Sul Logística".
+  const minimo = Math.max(1, Math.ceil(tokens.length / 2));
+
+  if (!melhor || melhor.pontos < minimo) {
     return NextResponse.json({
       linkedin: null,
       cobrado: false,
-      mensagem: "Nenhum LinkedIn da empresa encontrado no Google.",
+      mensagem:
+        "Não encontrei uma página do LinkedIn que batesse com confiança. Vale conferir na mão.",
     });
   }
 
