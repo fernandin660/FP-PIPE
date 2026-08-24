@@ -98,7 +98,12 @@ export default function Sidebar({
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-        {item("/", "Nova prospecção", "🎯", pathname === "/")}
+        {item(
+          "/prospeccao",
+          "Nova prospecção",
+          "🎯",
+          pathname === "/prospeccao"
+        )}
         {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
         {item(
           "/buscador",
@@ -109,7 +114,19 @@ export default function Sidebar({
         {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
       </nav>
 
-      <div className="px-4 pb-5">
+      <div className="px-4 pb-5 space-y-1">
+        <Link
+          href="/creditos"
+          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+            pathname === "/creditos"
+              ? "bg-pipe-lime/10 text-pipe-lime border border-pipe-lime/30"
+              : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+          }`}
+        >
+          <span>💳</span>
+          Gerenciar meus créditos
+        </Link>
+
         <button
           onClick={sair}
           className="w-full text-left text-xs font-semibold text-pipe-muted hover:text-red-400 transition px-4 py-2"

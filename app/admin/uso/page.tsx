@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type ApiUso = {
   api: string;
@@ -23,11 +24,16 @@ const NOMES_APIS: Record<string, string> = {
 };
 
 export default function PaginaAdminUso() {
+  const router = useRouter();
   const [carregando, setCarregando] = useState(true);
   const [restrito, setRestrito] = useState(false);
   const [mes, setMes] = useState("");
   const [apis, setApis] = useState<ApiUso[]>([]);
   const [moedas, setMoedas] = useState<Moeda[]>([]);
+
+  useEffect(() => {
+    if (restrito) router.replace("/prospeccao");
+  }, [restrito, router]);
 
   useEffect(() => {
     (async () => {
@@ -57,20 +63,7 @@ export default function PaginaAdminUso() {
   if (restrito) {
     return (
       <main className="min-h-screen bg-pipe-bg text-gray-200 flex items-center justify-center px-6">
-        <div className="text-center">
-          <p className="font-display text-2xl text-white mb-3">
-            Área do dono 🔒
-          </p>
-          <p className="text-pipe-muted text-sm mb-6">
-            Faça login com a conta de administrador para ver os números.
-          </p>
-          <Link
-            href="/login"
-            className="text-sm font-semibold bg-pipe-lime text-black rounded-lg px-5 py-2.5"
-          >
-            Ir para o login
-          </Link>
-        </div>
+        <p className="text-pipe-muted text-sm">Redirecionando...</p>
       </main>
     );
   }
