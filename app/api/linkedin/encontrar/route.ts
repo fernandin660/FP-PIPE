@@ -83,10 +83,9 @@ export async function POST(requisicao: Request) {
     });
   }
 
-  const chave = process.env.GOOGLE_CSE_KEY;
-  const cx = process.env.GOOGLE_CSE_CX;
+  const chave = process.env.SERPER_API_KEY;
 
-  if (!chave || !cx) {
+  if (!chave) {
     return NextResponse.json(
       { erro: "Integração de busca ainda não configurada." },
       { status: 503 }
@@ -104,7 +103,7 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  // Saldo antes de gastar com o Google.
+  // Saldo antes de gastar com a busca.
   const { data: creditos } = await supabase
     .from("creditos_contatos")
     .select("saldo")
@@ -129,37 +128,36 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const parametros = new URLSearchParams({
-    key: chave,
-    cx,
-    q: `${termo} linkedin`,
-    siteSearch: "linkedin.com",
-    siteSearchFilter: "i",
-    num: "5",
-  });
-
   let itens: ItemBusca[] = [];
 
   try {
-    const respostaGoogle = await fetch(
-      `https://www.googleapis.com/customsearch/v1?${parametros.toString()}`,
-      { cache: "no-store" }
-    );
+    const respostaBusca = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": chave,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        q: `${termo} site:linkedin.com/company`,
+        num: 10,
+      }),
+      cache: "no-store",
+    });
 
-    if (!respostaGoogle.ok) {
+    if (!respostaBusca.ok) {
       return NextResponse.json(
-        { erro: "Falha na busca do Google. Tente novamente." },
+        { erro: "Falha na busca. Tente novamente." },
         { status: 502 }
       );
     }
 
-    const dadosGoogle = (await respostaGoogle.json()) as {
-      items?: ItemBusca[];
+    const dadosBusca = (await respostaBusca.json()) as {
+      organic?: ItemBusca[];
     };
-    itens = dadosGoogle.items ?? [];
+    itens = dadosBusca.organic ?? [];
   } catch {
     return NextResponse.json(
-      { erro: "Falha na busca do Google. Tente novamente." },
+      { erro: "Falha na busca. Tente novamente." },
       { status: 502 }
     );
   }
