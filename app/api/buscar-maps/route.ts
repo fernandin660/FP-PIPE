@@ -70,6 +70,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Já temos contato institucional salvo? Não queima a franquia do Google à toa.
+  const extrasTelefone = (empresa.telefones_extra ?? []) as string[];
+  const extrasEmail = (empresa.emails_extra ?? []) as string[];
+
+  if (extrasTelefone.length > 0 || extrasEmail.length > 0) {
+    return NextResponse.json({
+      doCache: true,
+      fonte: "cache",
+      empresa: {
+        email: null,
+        telefone: (empresa.telefone ?? "").trim() || null,
+        emails_extra: extrasEmail,
+        telefones_extra: extrasTelefone,
+      },
+    });
+  }
+
   const termo = [
     empresa.nome_fantasia || empresa.razao_social,
     empresa.municipio,
