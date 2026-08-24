@@ -1314,6 +1314,13 @@ export default function PaginaListas() {
                     "Sem nome"}
                 </h2>
 
+                {empresaDetalhe.nome_fantasia &&
+                empresaDetalhe.razao_social ? (
+                  <p className="text-xs text-pipe-muted mt-0.5 truncate">
+                    {empresaDetalhe.razao_social}
+                  </p>
+                ) : null}
+
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {typeof empresaDetalhe.score === "number" ? (
                     <span
@@ -1359,6 +1366,17 @@ export default function PaginaListas() {
                       {formatarCnpj(empresaDetalhe.cnpj)}
                     </dd>
                   </div>
+
+                  {empresaDetalhe.razao_social ? (
+                    <div className="flex gap-2">
+                      <dt className="text-pipe-muted w-32 shrink-0">
+                        Razão social
+                      </dt>
+                      <dd className="text-gray-200">
+                        {empresaDetalhe.razao_social}
+                      </dd>
+                    </div>
+                  ) : null}
 
                   {empresaDetalhe.nome_fantasia ? (
                     <div className="flex gap-2">
