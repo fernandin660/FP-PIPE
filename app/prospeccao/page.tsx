@@ -223,10 +223,7 @@ export default function Home() {
         .maybeSingle();
 
       if (!data) {
-        await supabase
-          .from("creditos")
-          .insert({ usuario_id: usuarioId, saldo: 5 });
-        setSaldoCreditos(5);
+        setSaldoCreditos(0);
         return;
       }
 
@@ -331,30 +328,11 @@ export default function Home() {
       return;
     }
 
+    // Débito real acontece no servidor (moeda de listas).
+    // Aqui é apenas o efeito visual de desbloqueio da sessão.
     const novoSaldo = (saldoCreditos ?? 0) - 1;
     setSaldoCreditos(novoSaldo);
     setEmpresasDesbloqueadas((atual) => new Set(atual).add(cnpj));
-
-    const supabase = criarClienteSupabase();
-    if (supabase) {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          await supabase
-            .from("creditos")
-            .update({
-              saldo: novoSaldo,
-              atualizado_em: new Date().toISOString(),
-            })
-            .eq("usuario_id", user.id);
-        }
-      } catch (erroDebito) {
-        console.error("Erro ao debitar crédito:", erroDebito);
-      }
-    }
   };
 
   async function sairDaConta() {
@@ -686,26 +664,6 @@ export default function Home() {
       alvos.forEach((a) => novo.add(a.cnpj));
       return novo;
     });
-
-    try {
-      const supabase = criarClienteSupabase();
-      if (supabase) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from("creditos")
-            .update({
-              saldo: novoSaldo,
-              atualizado_em: new Date().toISOString(),
-            })
-            .eq("usuario_id", user.id);
-        }
-      }
-    } catch (erroLote) {
-      console.error("Erro ao debitar créditos em lote:", erroLote);
-    }
   };
 
   const empresaEmEdicao = empresasEncontradas.find(
