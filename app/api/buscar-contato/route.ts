@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
@@ -14,8 +14,8 @@ function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
 }
 
-// Reutiliza a linha existente do mesmo perfil para não duplicar contatos
-// e preservar a atribuição anterior ao lead.
+// Reutiliza a linha existente do mesmo perfil para nÃ£o duplicar contatos
+// e preservar a atribuiÃ§Ã£o anterior ao lead.
 async function localizarContatoExistente(
   supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
   usuarioId: string,
@@ -46,7 +46,7 @@ export async function PUT(requisicao: Request) {
   const supabase = await criarClienteSupabaseServidor();
   if (!supabase) {
     return NextResponse.json(
-      { erro: "Autenticação não configurada." },
+      { erro: "AutenticaÃ§Ã£o nÃ£o configurada." },
       { status: 503 }
     );
   }
@@ -56,14 +56,14 @@ export async function PUT(requisicao: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+    return NextResponse.json({ erro: "FaÃ§a login novamente." }, { status: 401 });
   }
 
   let corpo: CorpoAtribuicao;
   try {
     corpo = (await requisicao.json()) as CorpoAtribuicao;
   } catch {
-    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
+    return NextResponse.json({ erro: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
   }
 
   const contatoId = String(corpo.contatoId ?? "");
@@ -88,7 +88,7 @@ export async function PUT(requisicao: Request) {
 
   if (!contato || !empresa) {
     return NextResponse.json(
-      { erro: "Contato ou lead não encontrado." },
+      { erro: "Contato ou lead nÃ£o encontrado." },
       { status: 404 }
     );
   }
@@ -98,7 +98,7 @@ export async function PUT(requisicao: Request) {
     .update({ company_id: companyId })
     .eq("id", contatoId);
 
-  // Preenche o campeão do lead só se ele ainda não tiver um.
+  // Preenche o campeÃ£o do lead sÃ³ se ele ainda nÃ£o tiver um.
   if (!empresa.campeao_email) {
     await supabase
       .from("companies")
@@ -117,7 +117,7 @@ export async function PUT(requisicao: Request) {
 export async function POST(requisicao: Request) {
   if (!CHAVE_ANYMAIL) {
     return NextResponse.json(
-      { erro: "Integração de contatos ainda não configurada." },
+      { erro: "IntegraÃ§Ã£o de contatos ainda nÃ£o configurada." },
       { status: 503 }
     );
   }
@@ -125,7 +125,7 @@ export async function POST(requisicao: Request) {
   const supabase = await criarClienteSupabaseServidor();
   if (!supabase) {
     return NextResponse.json(
-      { erro: "Autenticação não configurada." },
+      { erro: "AutenticaÃ§Ã£o nÃ£o configurada." },
       { status: 503 }
     );
   }
@@ -135,7 +135,7 @@ export async function POST(requisicao: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+    return NextResponse.json({ erro: "FaÃ§a login novamente." }, { status: 401 });
   }
 
   const acesso = await avaliarAcesso(supabase, user.id);
@@ -153,7 +153,7 @@ export async function POST(requisicao: Request) {
     return NextResponse.json(
       {
         erro:
-          "O plano Silver não inclui o Buscador de contatos. Faça upgrade para Gold ou Platinum em /planos.",
+          "O plano Silver nÃ£o inclui o Buscador de contatos. FaÃ§a upgrade para Gold ou Platinum em /planos.",
         motivo: "sem_buscador",
       },
       { status: 403 }
@@ -164,7 +164,7 @@ export async function POST(requisicao: Request) {
   try {
     corpo = (await requisicao.json()) as CorpoBusca;
   } catch {
-    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
+    return NextResponse.json({ erro: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
   }
 
   const linkedinNormalizado = normalizarLinkedin(
@@ -173,14 +173,20 @@ export async function POST(requisicao: Request) {
 
   if (!REGEX_LINKEDIN.test(linkedinNormalizado)) {
     return NextResponse.json(
-      { erro: "Cole uma URL válida de perfil do LinkedIn." },
+      { erro: "Cole uma URL vÃ¡lida de perfil do LinkedIn." },
       { status: 400 }
     );
   }
 
-  // Cache global: perfil já buscado antes = não gasta crédito do provedor,
-  // mas o usuário paga normalmente pela informação.
+  // Cache global: perfil jÃ¡ buscado antes = nÃ£o gasta crÃ©dito do provedor,
+  // mas o usuÃ¡rio paga normalmente pela informaÃ§Ã£o.
   const admin = criarClienteSupabaseAdmin();
+  if (!admin) {
+    return NextResponse.json(
+      { erro: "Serviço de créditos indisponível." },
+      { status: 503 }
+    );
+  }
 
   if (admin) {
     const { data: cacheHit } = await admin
@@ -210,14 +216,14 @@ export async function POST(requisicao: Request) {
 
       if ((saldoCache ?? 0) <= 0) {
         return NextResponse.json(
-          { erro: "Você está sem créditos de contato." },
+          { erro: "VocÃª estÃ¡ sem crÃ©ditos de contato." },
           { status: 402 }
         );
       }
 
       const novoSaldoCache = Math.max(0, (saldoCache ?? 0) - 1);
 
-      await supabase
+      await admin
         .from("creditos_contatos")
         .update({ saldo: novoSaldoCache })
         .eq("usuario_id", user.id);
@@ -281,7 +287,7 @@ export async function POST(requisicao: Request) {
     }
   }
 
-  // Créditos de contato: primeira busca cria a linha com saldo de boas-vindas.
+  // CrÃ©ditos de contato: primeira busca cria a linha com saldo de boas-vindas.
   const { data: creditosAtuais } = await supabase
     .from("creditos_contatos")
     .select("saldo")
@@ -291,7 +297,7 @@ export async function POST(requisicao: Request) {
   let saldo = creditosAtuais?.saldo;
 
   if (saldo === null || saldo === undefined) {
-    const { data: criada, error: erroCriar } = await supabase
+    const { data: criada, error: erroCriar } = await admin
       .from("creditos_contatos")
       .insert({ usuario_id: user.id, saldo: 5 })
       .select("saldo")
@@ -299,7 +305,7 @@ export async function POST(requisicao: Request) {
 
     if (erroCriar || !criada) {
       return NextResponse.json(
-        { erro: "Não foi possível preparar seus créditos." },
+        { erro: "NÃ£o foi possÃ­vel preparar seus crÃ©ditos." },
         { status: 500 }
       );
     }
@@ -308,7 +314,7 @@ export async function POST(requisicao: Request) {
 
   if ((saldo ?? 0) <= 0) {
     return NextResponse.json(
-      { erro: "Você está sem créditos de contato." },
+      { erro: "VocÃª estÃ¡ sem crÃ©ditos de contato." },
       { status: 402 }
     );
   }
@@ -343,7 +349,7 @@ export async function POST(requisicao: Request) {
 
   if (!respostaAnymail.ok) {
     return NextResponse.json(
-      { erro: "O provedor não conseguiu processar essa busca agora." },
+      { erro: "O provedor nÃ£o conseguiu processar essa busca agora." },
       { status: 502 }
     );
   }
@@ -354,14 +360,14 @@ export async function POST(requisicao: Request) {
     return NextResponse.json({
       encontrado: false,
       mensagem:
-        "Nenhum e-mail verificado encontrado para esse perfil (você não foi cobrado).",
+        "Nenhum e-mail verificado encontrado para esse perfil (vocÃª nÃ£o foi cobrado).",
     });
   }
 
   const cobrado = typeof dados.credits_charged === "number" ? dados.credits_charged : 1;
   const novoSaldo = Math.max(0, (saldo ?? 0) - cobrado);
 
-  await supabase
+  await admin
     .from("creditos_contatos")
     .update({ saldo: novoSaldo })
     .eq("usuario_id", user.id);
@@ -438,3 +444,4 @@ export async function POST(requisicao: Request) {
     saldoContatos: novoSaldo,
   });
 }
+

@@ -150,5 +150,28 @@ export async function POST(req: Request) {
     }
   }
 
+  // Moeda de listas: recarrega o saldo mensal do plano a cada ciclo pago.
+  if (definicao.listasMes > 0) {
+    const { data: listaAtual } = await admin
+      .from("creditos")
+      .select("saldo")
+      .eq("usuario_id", usuarioId)
+      .maybeSingle();
+
+    if (listaAtual) {
+      await admin
+        .from("creditos")
+        .update({
+          saldo: listaAtual.saldo + definicao.listasMes,
+          atualizado_em: agora.toISOString(),
+        })
+        .eq("usuario_id", usuarioId);
+    } else {
+      await admin
+        .from("creditos")
+        .insert({ usuario_id: usuarioId, saldo: definicao.listasMes });
+    }
+  }
+
   return NextResponse.json({ ok: true, plano, ciclo });
 }

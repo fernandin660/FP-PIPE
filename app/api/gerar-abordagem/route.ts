@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { chamarOpenaiJson } from "../../../lib/providers/openai";
 
 export const runtime = "nodejs";
@@ -184,6 +185,14 @@ export async function POST(requisicao: Request) {
     .maybeSingle();
 
   // Créditos de IA: primeira geração cria saldo de boas-vindas.
+  const admin = criarClienteSupabaseAdmin();
+  if (!admin) {
+    return NextResponse.json(
+      { erro: "Serviço de créditos indisponível." },
+      { status: 503 }
+    );
+  }
+
   const { data: creditosAtuais } = await supabase
     .from("creditos_ia")
     .select("saldo")
@@ -193,7 +202,7 @@ export async function POST(requisicao: Request) {
   let saldo = creditosAtuais?.saldo;
 
   if (saldo === null || saldo === undefined) {
-    const { data: criada, error: erroCriar } = await supabase
+    const { data: criada, error: erroCriar } = await admin
       .from("creditos_ia")
       .insert({
         usuario_id: user.id,
@@ -317,7 +326,7 @@ RESPONDA APENAS COM ESTE JSON:
   // Só debita crédito e salva quando a geração deu certo.
   const novoSaldo = Math.max(0, (saldo ?? 0) - CUSTO_ABORDAGEM);
 
-  await supabase
+  await admin
     .from("creditos_ia")
     .update({ saldo: novoSaldo, atualizado_em: new Date().toISOString() })
     .eq("usuario_id", user.id);

@@ -6,6 +6,7 @@ export interface DefinicaoPlano {
   precoMensal: number;
   precoAnualPorMes: number;
   empresasMes: number;
+  listasMes: number;
   temBuscador: boolean;
   buscasMes: number | null;
 }
@@ -16,6 +17,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     precoMensal: 0,
     precoAnualPorMes: 0,
     empresasMes: 50,
+    listasMes: 2,
     temBuscador: true,
     buscasMes: 5,
   },
@@ -24,6 +26,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     precoMensal: 147,
     precoAnualPorMes: 117,
     empresasMes: 500,
+    listasMes: 15,
     temBuscador: false,
     buscasMes: null,
   },
@@ -32,6 +35,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     precoMensal: 297,
     precoAnualPorMes: 227,
     empresasMes: 1500,
+    listasMes: 40,
     temBuscador: true,
     buscasMes: 400,
   },
@@ -40,6 +44,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     precoMensal: 497,
     precoAnualPorMes: 387,
     empresasMes: 3000,
+    listasMes: 90,
     temBuscador: true,
     buscasMes: 1000,
   },

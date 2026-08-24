@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
 
@@ -45,6 +46,7 @@ const MOEDAS_INICIAIS: Moeda[] = [
 ];
 
 export default function PaginaCreditos() {
+  const router = useRouter();
   const [carregando, setCarregando] = useState(true);
   const [moedas, setMoedas] = useState<Moeda[]>(MOEDAS_INICIAIS);
 
@@ -52,6 +54,12 @@ export default function PaginaCreditos() {
     (async () => {
       const supabase = criarClienteSupabase();
       if (!supabase) return;
+
+      const { data: sessao } = await supabase.auth.getUser();
+      if (!sessao?.user) {
+        router.replace("/login?next=/creditos");
+        return;
+      }
 
       const resultados = await Promise.all(
         MOEDAS_INICIAIS.map(async (moeda) => {

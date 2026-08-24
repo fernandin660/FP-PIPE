@@ -6,6 +6,7 @@ import {
 } from "@/lib/conhecimento-cnae";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { avaliarAcesso, mesAtual } from "../../../lib/planos";
 
 const URL_CASADOSDADOS =
@@ -153,6 +154,35 @@ export async function POST(request: Request) {
     }
 
     const mes = mesAtual();
+    const admin = criarClienteSupabaseAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { erro: "Serviço de créditos indisponível." },
+        { status: 503 }
+      );
+    }
+
+    // Moeda de listas: cada geração consome 1 crédito de lista.
+    let saldoListas = 0;
+    if (acesso.def.listasMes > 0) {
+      const { data: creditosLista } = await admin
+        .from("creditos")
+        .select("saldo")
+        .eq("usuario_id", user.id)
+        .maybeSingle();
+      saldoListas = creditosLista?.saldo ?? 0;
+
+      if (saldoListas <= 0) {
+        return NextResponse.json(
+          {
+            erro: `Você usou suas ${acesso.def.listasMes} listas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos para gerar mais.`,
+            motivo: "limite_listas",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const { data: uso } = await supabase
       .from("uso_mensal")
       .select("empresas_geradas")
@@ -275,7 +305,9 @@ export async function POST(request: Request) {
 
     if (empresasFinais.length > 0) {
       const totalAcumulado = empresasUsadas + empresasFinais.length;
-      await supabase.from("uso_mensal").upsert(
+      // Escritas de cobrança sempre com cliente admin: o usuário não
+      // pode manipular seu próprio consumo via RLS.
+      await admin.from("uso_mensal").upsert(
         {
           usuario_id: user.id,
           mes,
@@ -284,6 +316,13 @@ export async function POST(request: Request) {
         },
         { onConflict: "usuario_id,mes" }
       );
+
+      if (acesso.def.listasMes > 0) {
+        await admin
+          .from("creditos")
+          .update({ saldo: Math.max(0, saldoListas - 1) })
+          .eq("usuario_id", user.id);
+      }
     }
 
     return NextResponse.json({
