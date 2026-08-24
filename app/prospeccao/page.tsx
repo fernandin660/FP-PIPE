@@ -66,6 +66,44 @@ const estadosBrasil = [
 
 const CONTATOS_BLOQUEADOS = true;
 
+// Países das Américas disponíveis na busca internacional (OpenStreetMap).
+const paisesAmericas = [
+  { sigla: "US", nome: "Estados Unidos" },
+  { sigla: "CA", nome: "Canadá" },
+  { sigla: "MX", nome: "México" },
+  { sigla: "AR", nome: "Argentina" },
+  { sigla: "CL", nome: "Chile" },
+  { sigla: "CO", nome: "Colômbia" },
+  { sigla: "PE", nome: "Peru" },
+  { sigla: "UY", nome: "Uruguai" },
+  { sigla: "PY", nome: "Paraguai" },
+  { sigla: "BO", nome: "Bolívia" },
+  { sigla: "EC", nome: "Equador" },
+  { sigla: "VE", nome: "Venezuela" },
+  { sigla: "GY", nome: "Guiana" },
+  { sigla: "SR", nome: "Suriname" },
+  { sigla: "GT", nome: "Guatemala" },
+  { sigla: "CR", nome: "Costa Rica" },
+  { sigla: "PA", nome: "Panamá" },
+  { sigla: "DO", nome: "República Dominicana" },
+  { sigla: "CU", nome: "Cuba" },
+  { sigla: "HN", nome: "Honduras" },
+  { sigla: "NI", nome: "Nicarágua" },
+  { sigla: "SV", nome: "El Salvador" },
+  { sigla: "JM", nome: "Jamaica" },
+  { sigla: "TT", nome: "Trinidad e Tobago" },
+  { sigla: "PR", nome: "Porto Rico" },
+  { sigla: "BZ", nome: "Belize" },
+  { sigla: "HT", nome: "Haiti" },
+  { sigla: "BS", nome: "Bahamas" },
+];
+
+function nomePais(sigla: string): string {
+  return (
+    paisesAmericas.find((p) => p.sigla === sigla)?.nome ?? sigla.toUpperCase()
+  );
+}
+
 function formatarTelefone(telefone: string): string {
   const digitos = telefone.replace(/\D/g, "");
   if (digitos.length === 11)
@@ -410,6 +448,7 @@ export default function Home() {
       cargoPrioritario?: string | null;
       emailProspeccao?: { assunto: string; mensagem: string } | null;
       linkedin?: string | null;
+      site?: string | null;
       origem?: string;
       aprovadorLinkedin?: string | null;
       aprovadorTelefone?: string | null;
@@ -430,6 +469,16 @@ export default function Home() {
   const [empresasSelecionadas, setEmpresasSelecionadas] = useState<
     Set<string>
   >(new Set());
+
+  const [modoBusca, setModoBusca] = useState<"brasil" | "internacional">(
+    "brasil"
+  );
+  const [paisIntl, setPaisIntl] = useState("US");
+  const [cidadeIntl, setCidadeIntl] = useState("");
+  const [segmentoIntl, setSegmentoIntl] = useState("");
+  const [buscandoEmailSite, setBuscandoEmailSite] = useState<string | null>(
+    null
+  );
 
   const alternarEmpresa = (cnpj: string) => {
     setEmpresasSelecionadas((atual) => {
@@ -1007,6 +1056,11 @@ export default function Home() {
       return;
     }
 
+    if (modoBusca === "internacional") {
+      await buscarInternacional();
+      return;
+    }
+
     if (segmentosSelecionados.length === 0) return;
 
     setBuscandoEmpresas(true);
@@ -1091,6 +1145,134 @@ export default function Home() {
     }
   };
 
+  // =========================
+  // BUSCA INTERNACIONAL (OpenStreetMap)
+  // =========================
+
+  const buscarInternacional = async () => {
+    if (!cidadeIntl.trim() || !segmentoIntl.trim()) return;
+
+    setBuscandoEmpresas(true);
+    setErroEmpresas("");
+    setEmpresasEncontradas([]);
+    setPontuadas(false);
+
+    try {
+      const resposta = await fetch("/api/buscar-internacional", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pais: paisIntl,
+          cidade: cidadeIntl,
+          segmento: segmentoIntl,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(
+          dados.erro || "Erro ao buscar empresas internacionais"
+        );
+      }
+
+      const empresas: Array<{
+        cnpj: string;
+        cnpjFormatado: string;
+        razaoSocial: string;
+        nomeFantasia: string;
+        situacao: string;
+        segmentoIcp: string;
+        uf: string;
+        municipio: string;
+      }> = dados.empresas ?? [];
+
+      if (empresas.length === 0) {
+        throw new Error(
+          `Não encontramos empresas de "${segmentoIntl}" em ${dados.cidadeResolvida || cidadeIntl}. Tente outro segmento ou cidade.`
+        );
+      }
+
+      setEmpresasEncontradas(empresas);
+      setEmpresasSelecionadas(new Set<string>());
+
+      try {
+        const supabase = criarClienteSupabase();
+
+        if (supabase && empresas.length > 0) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
+          if (user) {
+            await supabase.from("companies").upsert(
+              empresas.map((e) => ({
+                usuario_id: user.id,
+                cnpj: e.cnpj,
+                razao_social: e.razaoSocial,
+                nome_fantasia: e.nomeFantasia,
+                situacao_cadastral: e.situacao,
+                segmento_icp: e.segmentoIcp,
+                uf: e.uf,
+                municipio: e.municipio,
+              })),
+              { onConflict: "usuario_id,cnpj" }
+            );
+          }
+        }
+      } catch (erroSalvamento) {
+        console.error(
+          "Não foi possível salvar as empresas:",
+          erroSalvamento
+        );
+      }
+
+      await pontuarEmpresas(empresas);
+    } catch (erro) {
+      setErroEmpresas(
+        erro instanceof Error
+          ? erro.message
+          : "Não conseguimos buscar as empresas agora."
+      );
+    } finally {
+      setBuscandoEmpresas(false);
+    }
+  };
+
+  const procurarEmailNoSite = async (empresa: {
+    cnpj: string;
+    site?: string | null;
+  }) => {
+    if (!empresa.site || buscandoEmailSite) return;
+
+    setBuscandoEmailSite(empresa.cnpj);
+    try {
+      const resposta = await fetch("/api/email-do-site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: empresa.cnpj, site: empresa.site }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(dados.erro || "Não achamos e-mail no site.");
+      }
+
+      setEmpresasEncontradas((atual) =>
+        atual.map((e) =>
+          e.cnpj === empresa.cnpj ? { ...e, email: dados.email } : e
+        )
+      );
+    } catch (erro) {
+      setErroEmpresas(
+        erro instanceof Error ? erro.message : "Falha ao analisar o site."
+      );
+    } finally {
+      setBuscandoEmailSite(null);
+    }
+  };
+
   const [cargosEscolhidos, setCargosEscolhidos] = useState<string[]>([]);
   const [buscaCargo, setBuscaCargo] = useState("");
 
@@ -1147,7 +1329,9 @@ export default function Home() {
         ? `Localização: estado de ${estadoSelecionado}`
         : tipoLocalizacao === "Cidade específica"
           ? `Localização: ${cidade}`
-          : "Localização: Brasil inteiro",
+          : modoBusca === "internacional"
+            ? `Localização: ${cidadeIntl || "América"} (${nomePais(paisIntl)}) — prospecção internacional`
+            : "Localização: Brasil inteiro",
     ].filter(Boolean);
 
     try {
@@ -1894,8 +2078,42 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* MODO DE BUSCA */}
+
+              <div className="mb-8">
+                <h2 className="font-bold text-xl mb-2 text-white">
+                  Onde está o seu mercado?
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(
+                    [
+                      { chave: "brasil", rotulo: "🇧🇷 Brasil" },
+                      {
+                        chave: "internacional",
+                        rotulo: "🌎 Internacional (Américas)",
+                      },
+                    ] as const
+                  ).map((modo) => (
+                    <button
+                      key={modo.chave}
+                      onClick={() => setModoBusca(modo.chave)}
+                      className={`border rounded-lg p-4 text-left transition ${
+                        modoBusca === modo.chave
+                          ? "bg-pipe-blue text-black border-pipe-blue font-medium"
+                          : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
+                      }`}
+                    >
+                      {modoBusca === modo.chave ? "✓ " : ""}
+                      {modo.rotulo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* LOCALIZAÇÃO */}
 
+              {modoBusca === "brasil" && (
               <div className="mb-8">
                 <h2 className="font-bold text-xl mb-2 text-white">
                   Onde você quer prospectar?
@@ -1989,9 +2207,69 @@ export default function Home() {
                   </div>
                 )}
               </div>
+              )}
+
+              {/* INTERNACIONAL — PAÍS, CIDADE E SEGMENTO */}
+
+              {modoBusca === "internacional" && (
+                <div className="mb-8 space-y-4">
+                  <p className="text-pipe-muted text-sm">
+                    Buscamos empresas públicas no mapa (OpenStreetMap) de
+                    qualquer país das Américas: nome, segmento, endereço,
+                    telefone* e site. *Conforme disponibilidade dos dados.
+                  </p>
+
+                  <div>
+                    <label className="block font-medium mb-2 text-white">
+                      País
+                    </label>
+
+                    <select
+                      value={paisIntl}
+                      onChange={(e) => setPaisIntl(e.target.value)}
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none"
+                    >
+                      {paisesAmericas.map((pais) => (
+                        <option key={pais.sigla} value={pais.sigla}>
+                          {pais.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-medium mb-2 text-white">
+                      Cidade
+                    </label>
+
+                    <input
+                      type="text"
+                      value={cidadeIntl}
+                      onChange={(e) => setCidadeIntl(e.target.value)}
+                      placeholder="Ex.: Buenos Aires, Cidade do México, Miami..."
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-medium mb-2 text-white">
+                      Segmento ou tipo de negócio
+                    </label>
+
+                    <input
+                      type="text"
+                      value={segmentoIntl}
+                      onChange={(e) => setSegmentoIntl(e.target.value)}
+                      placeholder="Ex.: transportadora, clínica, restaurante, escritório de advocacia..."
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* SEGMENTOS */}
 
+              {modoBusca === "brasil" && (
               <div className="mb-8">
                 <h2 className="font-bold text-xl mb-2 text-white">
                   Existe algum segmento específico?
@@ -2023,6 +2301,7 @@ export default function Home() {
                   })}
                 </div>
               </div>
+              )}
 
               {/* BOTÕES */}
 
@@ -2702,6 +2981,27 @@ export default function Home() {
                                 )}
                               </div>
                             )}
+                            {liberado &&
+                              empresa.origem === "osm" &&
+                              empresa.site &&
+                              !empresa.email && (
+                                <div className="mt-1.5">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void procurarEmailNoSite(empresa);
+                                    }}
+                                    disabled={
+                                      buscandoEmailSite === empresa.cnpj
+                                    }
+                                    className="text-xs border border-pipe-border text-gray-300 px-2 py-1 rounded hover:border-pipe-blue hover:text-white transition disabled:opacity-50"
+                                  >
+                                    {buscandoEmailSite === empresa.cnpj
+                                      ? "Analisando o site..."
+                                      : "📧 Procurar e-mail no site"}
+                                  </button>
+                                </div>
+                              )}
                             {(empresa.decisorNome ||
                               empresa.decisorCargo) && (
                               <div className="mt-1.5 flex items-center gap-2 flex-wrap">

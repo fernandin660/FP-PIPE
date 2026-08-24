@@ -1,4 +1,11 @@
-export type PlanoChave = "teste" | "silver" | "gold" | "platinum";
+export type PlanoChave =
+  | "teste"
+  | "silver"
+  | "gold"
+  | "platinum"
+  | "silver_intl"
+  | "gold_intl"
+  | "platinum_intl";
 export type Ciclo = "mensal" | "anual";
 
 export interface DefinicaoPlano {
@@ -9,6 +16,7 @@ export interface DefinicaoPlano {
   listasMes: number;
   temBuscador: boolean;
   buscasMes: number | null;
+  internacional: boolean;
 }
 
 export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
@@ -20,6 +28,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     listasMes: 2,
     temBuscador: true,
     buscasMes: 5,
+    internacional: false,
   },
   silver: {
     nome: "Silver",
@@ -29,6 +38,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     listasMes: 15,
     temBuscador: false,
     buscasMes: null,
+    internacional: false,
   },
   gold: {
     nome: "Gold",
@@ -38,6 +48,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     listasMes: 40,
     temBuscador: true,
     buscasMes: 400,
+    internacional: false,
   },
   platinum: {
     nome: "Platinum",
@@ -47,6 +58,37 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     listasMes: 90,
     temBuscador: true,
     buscasMes: 1000,
+    internacional: false,
+  },
+  silver_intl: {
+    nome: "Silver Internacional",
+    precoMensal: 197,
+    precoAnualPorMes: 157,
+    empresasMes: 250,
+    listasMes: 15,
+    temBuscador: false,
+    buscasMes: null,
+    internacional: true,
+  },
+  gold_intl: {
+    nome: "Gold Internacional",
+    precoMensal: 397,
+    precoAnualPorMes: 317,
+    empresasMes: 400,
+    listasMes: 40,
+    temBuscador: true,
+    buscasMes: 400,
+    internacional: true,
+  },
+  platinum_intl: {
+    nome: "Platinum Internacional",
+    precoMensal: 697,
+    precoAnualPorMes: 557,
+    empresasMes: 1000,
+    listasMes: 90,
+    temBuscador: true,
+    buscasMes: 1000,
+    internacional: true,
   },
 };
 

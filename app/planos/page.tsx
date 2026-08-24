@@ -6,7 +6,13 @@ import Link from "next/link";
 import AvatarConsultor from "../../components/AvatarConsultor";
 
 type Ciclo = "mensal" | "anual";
-type PlanoChave = "silver" | "gold" | "platinum";
+type PlanoChave =
+  | "silver"
+  | "gold"
+  | "platinum"
+  | "silver_intl"
+  | "gold_intl"
+  | "platinum_intl";
 
 const planos: Array<{
   chave: PlanoChave;
@@ -17,6 +23,7 @@ const planos: Array<{
   descricao: string;
   destaques?: boolean;
   selo?: string;
+  grupo?: "nacional" | "internacional";
   itens: string[];
   cta: string;
 }> = [
@@ -71,6 +78,59 @@ const planos: Array<{
     ],
     cta: "Assinar o Platinum →",
   },
+  {
+    chave: "silver_intl",
+    icone: "🌎",
+    nome: "Silver Internacional",
+    precoMensal: 197,
+    precoAnual: 157,
+    descricao:
+      "Prospecção em toda a América com a inteligência do Silver.",
+    grupo: "internacional",
+    itens: [
+      "Tudo do Silver, mais:",
+      "Empresas em qualquer país das Américas",
+      "Nome, segmento, endereço e telefone*",
+      "Site da empresa para abordagem direta",
+      "Listas persistentes + exportação CSV",
+    ],
+    cta: "Assinar o Silver Internacional →",
+  },
+  {
+    chave: "gold_intl",
+    icone: "🌍",
+    nome: "Gold Internacional",
+    precoMensal: 397,
+    precoAnual: 317,
+    descricao:
+      "E-mails verificados e abordagens de IA em toda a América.",
+    grupo: "internacional",
+    itens: [
+      "Tudo do Gold, mais:",
+      "400 empresas por mês em qualquer país da América",
+      "🔎 400 buscas de e-mail verificado por mês",
+      "✍️ Primeiro e-mail escrito pela IA para cada lead",
+      "Contato extra raspado do site da empresa*",
+    ],
+    cta: "Assinar o Gold Internacional →",
+  },
+  {
+    chave: "platinum_intl",
+    icone: "🌐",
+    nome: "Platinum Internacional",
+    precoMensal: 697,
+    precoAnual: 557,
+    descricao: "Volume alto nas Américas inteiras, todos os dias.",
+    grupo: "internacional",
+    itens: [
+      "Tudo do Platinum, mais:",
+      "1.000 empresas/mês em toda a América",
+      "🔎 1.000 buscas de e-mail verificado por mês",
+      "Prioridade na geração de listas",
+      "Suporte prioritário via WhatsApp",
+    ],
+    cta: "Assinar o Platinum Internacional →",
+  },
 ];
 
 const faq = [
@@ -100,6 +160,82 @@ const faq = [
       "Não. No mensal você não renova quando quiser parar. No anual vale a pena justamente pelo desconto, mas não há multa nem letra miúda.",
   },
 ];
+
+function CartaoPlano({
+  plano,
+  ciclo,
+  carregando,
+  aoAssinar,
+}: {
+  plano: (typeof planos)[number];
+  ciclo: Ciclo;
+  carregando: PlanoChave | null;
+  aoAssinar: (chave: PlanoChave) => void;
+}) {
+  const preco = ciclo === "mensal" ? plano.precoMensal : plano.precoAnual;
+
+  return (
+    <div
+      className={`relative flex flex-col rounded-2xl p-7 border ${
+        plano.destaques
+          ? "bg-pipe-card border-pipe-lime/50 shadow-[0_0_32px_rgba(127,255,0,0.08)] md:-mt-3 md:mb-[-12px]"
+          : "bg-pipe-card border-pipe-border"
+      }`}
+    >
+      {plano.selo && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold tracking-wide uppercase bg-pipe-lime text-black rounded-full px-4 py-1">
+          {plano.selo}
+        </span>
+      )}
+
+      <h2 className="font-display text-xl text-white">
+        {plano.icone} {plano.nome}
+      </h2>
+      <p className="text-pipe-muted text-sm mt-1 min-h-[40px]">
+        {plano.descricao}
+      </p>
+
+      <div className="flex items-end gap-1 mt-5">
+        <span className="font-display text-4xl text-white">R$ {preco}</span>
+        <span className="text-pipe-muted text-sm mb-1">/mês</span>
+      </div>
+
+      {ciclo === "anual" && (
+        <p className="text-pipe-muted/70 text-xs mt-1">
+          R$ {(plano.precoAnual * 12).toLocaleString("pt-BR")} cobrados uma vez
+          ao ano
+        </p>
+      )}
+
+      <ul className="mt-6 space-y-2.5 text-sm flex-1">
+        {plano.itens.map((item) => (
+          <li key={item} className="flex items-start gap-2">
+            <span className="text-pipe-lime mt-0.5">✓</span>
+            <span className="text-gray-300">{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => aoAssinar(plano.chave)}
+        disabled={carregando !== null}
+        className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
+          plano.destaques
+            ? "bg-pipe-lime text-black hover:opacity-90"
+            : "border border-pipe-border text-white hover:border-pipe-blue"
+        }`}
+      >
+        {carregando === plano.chave ? "Abrindo pagamento..." : plano.cta}
+      </button>
+
+      <p className="text-pipe-muted/60 text-[11px] text-center mt-2">
+        {ciclo === "mensal"
+          ? "Somente cartão de crédito"
+          : "Cartão de crédito ou Pix"}
+      </p>
+    </div>
+  );
+}
 
 export default function Planos() {
   const router = useRouter();
@@ -277,80 +413,51 @@ export default function Planos() {
 
       {/* CARDS */}
 
-      <section className="max-w-6xl mx-auto px-6 pb-16 grid md:grid-cols-3 gap-6 items-stretch">
-        {planos.map((plano) => {
-          const preco =
-            ciclo === "mensal" ? plano.precoMensal : plano.precoAnual;
-
-          return (
-            <div
+      <section className="max-w-6xl mx-auto px-6 pb-10 grid md:grid-cols-3 gap-6 items-stretch">
+        {planos
+          .filter((p) => p.grupo !== "internacional")
+          .map((plano) => (
+            <CartaoPlano
               key={plano.chave}
-              className={`relative flex flex-col rounded-2xl p-7 border ${
-                plano.destaques
-                  ? "bg-pipe-card border-pipe-lime/50 shadow-[0_0_32px_rgba(127,255,0,0.08)] md:-mt-3 md:mb-[-12px]"
-                  : "bg-pipe-card border-pipe-border"
-              }`}
-            >
-              {plano.selo && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold tracking-wide uppercase bg-pipe-lime text-black rounded-full px-4 py-1">
-                  {plano.selo}
-                </span>
-              )}
-
-              <h2 className="font-display text-xl text-white">
-                {plano.icone} {plano.nome}
-              </h2>
-              <p className="text-pipe-muted text-sm mt-1 min-h-[40px]">
-                {plano.descricao}
-              </p>
-
-              <div className="flex items-end gap-1 mt-5">
-                <span className="font-display text-4xl text-white">
-                  R$ {preco}
-                </span>
-                <span className="text-pipe-muted text-sm mb-1">/mês</span>
-              </div>
-
-              {ciclo === "anual" && (
-                <p className="text-pipe-muted/70 text-xs mt-1">
-                  R${" "}
-                  {(plano.precoAnual * 12).toLocaleString("pt-BR")} cobrados
-                  uma vez ao ano
-                </p>
-              )}
-
-              <ul className="mt-6 space-y-2.5 text-sm flex-1">
-                {plano.itens.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <span className="text-pipe-lime mt-0.5">✓</span>
-                    <span className="text-gray-300">{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => assinar(plano.chave)}
-                disabled={carregandoPlano !== null}
-                className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
-                  plano.destaques
-                    ? "bg-pipe-lime text-black hover:opacity-90"
-                    : "border border-pipe-border text-white hover:border-pipe-blue"
-                }`}
-              >
-                {carregandoPlano === plano.chave
-                  ? "Abrindo pagamento..."
-                  : plano.cta}
-              </button>
-
-              <p className="text-pipe-muted/60 text-[11px] text-center mt-2">
-                {ciclo === "mensal"
-                  ? "Somente cartão de crédito"
-                  : "Cartão de crédito ou Pix"}
-              </p>
-            </div>
-          );
-        })}
+              plano={plano}
+              ciclo={ciclo}
+              carregando={carregandoPlano}
+              aoAssinar={assinar}
+            />
+          ))}
       </section>
+
+      {/* INTERNACIONAL */}
+
+      <div className="max-w-6xl mx-auto px-6 pb-5 text-center">
+        <h2 className="font-display text-3xl text-white">🌎 Internacional</h2>
+        <p className="text-pipe-muted text-sm mt-2 max-w-2xl mx-auto">
+          Os mesmos planos, com busca de empresas em{" "}
+          <span className="text-white font-semibold">toda a América</span> —
+          Norte, Central e Sul. Nome, segmento, endereço, telefone* e site da
+          empresa.
+        </p>
+      </div>
+
+      <section className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6 items-stretch">
+        {planos
+          .filter((p) => p.grupo === "internacional")
+          .map((plano) => (
+            <CartaoPlano
+              key={plano.chave}
+              plano={plano}
+              ciclo={ciclo}
+              carregando={carregandoPlano}
+              aoAssinar={assinar}
+            />
+          ))}
+      </section>
+
+      <p className="max-w-4xl mx-auto px-6 pb-10 pt-4 text-center text-pipe-muted/60 text-[11px]">
+        *Telefone e site conforme disponibilidade nos dados públicos do
+        OpenStreetMap. E-mail de contato extraído do site da empresa quando
+        disponível.
+      </p>
 
       {/* COMPARATIVO RÁPIDO */}
 

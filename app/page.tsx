@@ -550,6 +550,31 @@ export default function Inicio() {
           </div>
         </div>
 
+        {/* INTERNACIONAL — STRIP */}
+
+        <Link
+          href="/planos"
+          className="group block mt-5 bg-pipe-card border border-pipe-blue/40 hover:border-pipe-blue rounded-2xl p-6 transition"
+        >
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <p className="font-display text-xl text-white whitespace-nowrap">
+              🌎 Internacional
+            </p>
+            <p className="text-sm text-pipe-muted flex-1">
+              Prospecção em{" "}
+              <span className="text-white font-semibold">toda a América</span>{" "}
+              — Norte, Central e Sul. A partir de{" "}
+              <span className="text-white font-semibold">
+                R$ 157/mês no anual
+              </span>
+              .
+            </p>
+            <span className="text-sm font-semibold text-pipe-blue group-hover:underline whitespace-nowrap">
+              Ver planos internacionais →
+            </span>
+          </div>
+        </Link>
+
         <p className="text-pipe-muted/60 text-xs text-center mt-6">
           Todos os planos começam com teste grátis de 5 créditos · cancele
           quando quiser · preços de lançamento
