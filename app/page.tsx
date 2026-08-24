@@ -24,60 +24,48 @@ const passos = [
 
 const diferenciais = [
   {
-    icone: "✉️",
-    titulo: "E-mail pronto para cada lead",
+    icone: "✍️",
+    titulo: "Venda com a abordagem certa",
     texto:
-      "Assunto + mensagem citando o nome da empresa e a dor do segmento dela. Editável na ficha do lead. Nenhum concorrente brasileiro entrega isso.",
+      "Escolha o produto, objetivo e canal. A plataforma analisa o lead e ajuda você a criar uma abordagem personalizada para abrir conversas e gerar reuniões.",
     destaque: true,
-  },
-  {
-    icone: "🔎",
-    titulo: "E-mail verificado do decisor em 1 clique",
-    texto:
-      "Cole o perfil do LinkedIn de qualquer tomador e receba o e-mail validado com nome, cargo e empresa. Perfil repetido? Resposta instantânea, sem custo. Isso é munição de verdade.",
-    destaque: true,
-  },
-  {
-    icone: "🤖",
-    titulo: "Sales Copilot multicanal",
-    texto:
-      "Escolha produto, objetivo e canal (e-mail, LinkedIn, WhatsApp ou ligação): a IA entrega o MELHOR ARGUMENTO e o texto pronto, usando o cargo real do seu alvo.",
   },
   {
     icone: "🏢",
-    titulo: "3 fontes de contato por lead",
+    titulo: "Encontre mais informações sobre cada lead",
     texto:
-      "Receita Federal + Google Maps + Anymail Finder, somadas no mesmo dossiê. Fonte nova não apaga a antiga: quanto mais consultas, mais completo o lead.",
+      "Reunimos dados de diferentes fontes em um só lugar. Quanto mais informações sobre a empresa, mais preparado você fica para fazer uma abordagem relevante.",
+    destaque: true,
   },
   {
     icone: "🧠",
-    titulo: "ICP desenhado em minutos",
+    titulo: "Descubra quem realmente vale a pena abordar",
     texto:
-      "Responda 4 perguntas simples e receba o perfil completo do cliente ideal: tipos de empresa, decisores, influenciadores e dores.",
+      "Responda algumas perguntas sobre o que você vende e encontre empresas que realmente fazem sentido para o seu negócio — incluindo decisores, influenciadores e possíveis dores.",
   },
   {
     icone: "🏆",
-    titulo: "Score 0–100 com justificativa",
+    titulo: "Priorize os leads com maior potencial",
     texto:
-      "Cada empresa recebe uma nota de aderência explicada. Você gasta energia só com quem realmente combina com o que você vende.",
+      "Cada empresa recebe uma nota de 0 a 100 com uma justificativa clara. Assim, seu time sabe por onde começar e evita perder tempo com leads sem perfil.",
   },
   {
     icone: "👥",
-    titulo: "Dossiê completo de influenciadores",
+    titulo: "Encontre as pessoas certas para abrir portas",
     texto:
-      "Vários contatos por lead, cada um com múltiplos e-mails e telefones — vindos do buscador, do LinkedIn ou cadastrados à mão. Exporta em CSV pronto pro CRM.",
+      "Vá além do nome da empresa. Encontre diferentes contatos envolvidos na decisão e tenha mais de um caminho para iniciar uma conversa.",
   },
   {
     icone: "⭐",
-    titulo: "Modelos que aprendem com você",
+    titulo: "Transforme o que funciona em processo",
     texto:
-      "Abordagem que converteu virou modelo? Salve e reutilize em qualquer lead. Seu playbook comercial se constrói sozinho.",
+      "Uma abordagem que gerou reunião não precisa ficar perdida. Salve, reutilize e crie um playbook comercial que evolui junto com o seu time.",
   },
   {
     icone: "🔒",
-    titulo: "Comece grátis, pague pelo valor",
+    titulo: "Teste antes. Pague quando enxergar valor.",
     texto:
-      "Crie a conta e ganhe créditos para testar de verdade: gerar listas, buscar contatos e gerar abordagens. Sem cartão de crédito.",
+      "Crie sua conta e experimente a plataforma na prática: encontre empresas, analise leads e gere abordagens. Sem cartão de crédito para começar.",
   },
 ];
 
