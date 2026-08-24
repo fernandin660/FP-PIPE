@@ -248,6 +248,9 @@ export default function Home() {
       if (data.user) {
         carregarSaldo(data.user.id);
         carregarPerfil(data.user.id);
+        // Quem já está logado vai direto para o assistente,
+        // sem passar pela apresentação de marketing.
+        setTela("app");
       }
       setCarregandoAuth(false);
     });
