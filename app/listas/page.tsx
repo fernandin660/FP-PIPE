@@ -125,11 +125,24 @@ export default function PaginaListas() {
   const [edicaoLead, setEdicaoLead] = useState({
     nome: "",
     email: "",
+    telefone: "",
     linkedin: "",
     infos: "",
   });
   const [salvandoLead, setSalvandoLead] = useState(false);
   const [leadSalvo, setLeadSalvo] = useState(false);
+  const [edicaoEmpresa, setEdicaoEmpresa] = useState({
+    aberto: false,
+    nomeFantasia: "",
+    endereco: "",
+    cidade: "",
+    uf: "",
+    telefone: "",
+    email: "",
+    linkedin: "",
+  });
+  const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
+  const [empresaSalva, setEmpresaSalva] = useState(false);
   const [contatosLead, setContatosLead] = useState<ContatoPessoa[]>([]);
   const [formContato, setFormContato] = useState({
     aberto: false,
@@ -169,10 +182,22 @@ export default function PaginaListas() {
     setEdicaoLead({
       nome: empresa.campeao_nome ?? "",
       email: empresa.campeao_email ?? "",
+      telefone: empresa.campeao_telefone ?? "",
       linkedin: empresa.campeao_linkedin ?? "",
       infos: empresa.informacoes_adicionais ?? "",
     });
     setLeadSalvo(false);
+    setEdicaoEmpresa({
+      aberto: false,
+      nomeFantasia: empresa.nome_fantasia ?? "",
+      endereco: empresa.endereco ?? "",
+      cidade: empresa.municipio ?? "",
+      uf: empresa.uf ?? "",
+      telefone: empresa.telefone ?? "",
+      email: empresa.email ?? "",
+      linkedin: empresa.linkedin ?? "",
+    });
+    setEmpresaSalva(false);
     setFormContato((v) => ({ ...v, aberto: false }));
     setEmpresaContato({
       emails: [empresa.email, ...(empresa.emails_extra ?? [])].filter(
@@ -468,6 +493,20 @@ export default function PaginaListas() {
       }
 
       await gravarContatoFormulario();
+
+      // Contato manual com LinkedIn também alimenta a base global.
+      void fetch("/api/contatos/capturar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedin_url: formContato.linkedin.trim() || null,
+          email: emailsLista[0] ?? null,
+          nome: formContato.nome.trim() || null,
+          cargo: formContato.cargo.trim() || null,
+          empresa:
+            empresaDetalhe.nome_fantasia || empresaDetalhe.razao_social,
+        }),
+      }).catch(() => undefined);
     } finally {
       setSalvandoContato(false);
     }
@@ -519,6 +558,7 @@ export default function PaginaListas() {
       const alteracoes = {
         campeao_nome: edicaoLead.nome.trim() || null,
         campeao_email: edicaoLead.email.trim() || null,
+        campeao_telefone: edicaoLead.telefone.trim() || null,
         campeao_linkedin: edicaoLead.linkedin.trim() || null,
         informacoes_adicionais: edicaoLead.infos.trim() || null,
       };
@@ -529,6 +569,21 @@ export default function PaginaListas() {
           .update(alteracoes)
           .eq("id", empresaDetalhe.id);
       }
+
+      // Contato do lead entra na base global quando tem LinkedIn.
+      void fetch("/api/contatos/capturar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedin_url: alteracoes.campeao_linkedin,
+          email: alteracoes.campeao_email,
+          nome: alteracoes.campeao_nome,
+          cargo: empresaDetalhe.cargo_prioritario,
+          empresa:
+            empresaDetalhe.nome_fantasia || empresaDetalhe.razao_social,
+          telefone: alteracoes.campeao_telefone,
+        }),
+      }).catch(() => undefined);
 
       const atualizada: EmpresaDaLista = { ...empresaDetalhe, ...alteracoes };
       setEmpresaDetalhe(atualizada);
@@ -547,6 +602,61 @@ export default function PaginaListas() {
       });
     } finally {
       setSalvandoLead(false);
+    }
+  };
+
+  const salvarDadosEmpresa = async () => {
+    if (!empresaDetalhe || salvandoEmpresa) return;
+
+    setSalvandoEmpresa(true);
+
+    try {
+      const supabase = criarClienteSupabase();
+
+      const alteracoes = {
+        nome_fantasia: edicaoEmpresa.nomeFantasia.trim() || null,
+        endereco: edicaoEmpresa.endereco.trim() || null,
+        municipio: edicaoEmpresa.cidade.trim() || null,
+        uf: edicaoEmpresa.uf.trim().toUpperCase() || null,
+        telefone: edicaoEmpresa.telefone.trim() || null,
+        email: edicaoEmpresa.email.trim() || null,
+        linkedin: edicaoEmpresa.linkedin.trim() || null,
+      };
+
+      if (supabase) {
+        await supabase
+          .from("companies")
+          .update(alteracoes)
+          .eq("id", empresaDetalhe.id);
+      }
+
+      const atualizada: EmpresaDaLista = { ...empresaDetalhe, ...alteracoes };
+      setEmpresaDetalhe(atualizada);
+      setEmpresaContato({
+        emails: [
+          atualizada.email,
+          ...(atualizada.emails_extra ?? []),
+        ].filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i),
+        telefones: [
+          atualizada.telefone,
+          ...(atualizada.telefones_extra ?? []),
+        ].filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i),
+      });
+      setEmpresaSalva(true);
+
+      setEmpresasPorLista((atual) => {
+        const novo: Record<string, EmpresaDaLista[]> = {};
+
+        Object.entries(atual).forEach(([listaId, emps]) => {
+          novo[listaId] = emps.map((e) =>
+            e.id === atualizada.id ? atualizada : e
+          );
+        });
+
+        return novo;
+      });
+    } finally {
+      setSalvandoEmpresa(false);
     }
   };
 
@@ -1583,6 +1693,130 @@ export default function PaginaListas() {
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                    🏢 Dados da empresa (editáveis)
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      setEdicaoEmpresa((v) => ({
+                        ...v,
+                        aberto: !v.aberto,
+                      }))
+                    }
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
+                  >
+                    {edicaoEmpresa.aberto ? "✕ Fechar" : "✏️ Editar"}
+                  </button>
+                </div>
+
+                {edicaoEmpresa.aberto && (
+                  <div className="space-y-2">
+                    <input
+                      value={edicaoEmpresa.nomeFantasia}
+                      onChange={(e) =>
+                        setEdicaoEmpresa((v) => ({
+                          ...v,
+                          nomeFantasia: e.target.value,
+                        }))
+                      }
+                      placeholder="Nome da empresa"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <input
+                      value={edicaoEmpresa.endereco}
+                      onChange={(e) =>
+                        setEdicaoEmpresa((v) => ({
+                          ...v,
+                          endereco: e.target.value,
+                        }))
+                      }
+                      placeholder="Endereço"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <div className="grid grid-cols-[1fr_80px] gap-2">
+                      <input
+                        value={edicaoEmpresa.cidade}
+                        onChange={(e) =>
+                          setEdicaoEmpresa((v) => ({
+                            ...v,
+                            cidade: e.target.value,
+                          }))
+                        }
+                        placeholder="Cidade"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      />
+                      <input
+                        value={edicaoEmpresa.uf}
+                        maxLength={2}
+                        onChange={(e) =>
+                          setEdicaoEmpresa((v) => ({
+                            ...v,
+                            uf: e.target.value,
+                          }))
+                        }
+                        placeholder="UF"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm uppercase text-white focus:outline-none focus:border-pipe-blue"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={edicaoEmpresa.telefone}
+                        onChange={(e) =>
+                          setEdicaoEmpresa((v) => ({
+                            ...v,
+                            telefone: e.target.value,
+                          }))
+                        }
+                        placeholder="Telefone da empresa"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      />
+                      <input
+                        value={edicaoEmpresa.email}
+                        type="email"
+                        onChange={(e) =>
+                          setEdicaoEmpresa((v) => ({
+                            ...v,
+                            email: e.target.value,
+                          }))
+                        }
+                        placeholder="E-mail da empresa"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      />
+                    </div>
+
+                    <input
+                      value={edicaoEmpresa.linkedin}
+                      onChange={(e) =>
+                        setEdicaoEmpresa((v) => ({
+                          ...v,
+                          linkedin: e.target.value,
+                        }))
+                      }
+                      placeholder="LinkedIn da empresa (https://linkedin.com/company/...)"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+
+                    <button
+                      onClick={() => void salvarDadosEmpresa()}
+                      disabled={salvandoEmpresa}
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                    >
+                      {salvandoEmpresa
+                        ? "Salvando..."
+                        : empresaSalva
+                          ? "✅ Salvo!"
+                          : "💾 Salvar dados da empresa"}
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <section className="border-t border-pipe-border pt-4">
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
                     👤 Contato do lead (editável)
                   </p>
 
@@ -1624,6 +1858,15 @@ export default function PaginaListas() {
                       setEdicaoLead((v) => ({ ...v, email: e.target.value }))
                     }
                     placeholder="E-mail do contato"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  />
+
+                  <input
+                    value={edicaoLead.telefone}
+                    onChange={(e) =>
+                      setEdicaoLead((v) => ({ ...v, telefone: e.target.value }))
+                    }
+                    placeholder="Telefone do contato (WhatsApp)"
                     className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
                   />
 
