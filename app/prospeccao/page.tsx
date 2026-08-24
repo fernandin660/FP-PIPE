@@ -3035,6 +3035,60 @@ export default function Home() {
           }}
           onFechar={() => setCnpjEmEdicao(null)}
           onSalvar={salvarEdicaoPessoas}
+          onAcharLinkedin={async () => {
+            if (!empresaEmEdicao) {
+              return { linkedin: null, mensagem: "Empresa não encontrada." };
+            }
+
+            try {
+              const resposta = await fetch("/api/linkedin/encontrar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cnpj: empresaEmEdicao.cnpj }),
+              });
+
+              const dados = (await resposta.json()) as {
+                linkedin?: string | null;
+                mensagem?: string;
+                erro?: string;
+              };
+
+              if (!resposta.ok || dados.erro) {
+                return {
+                  linkedin: null,
+                  mensagem: dados.erro ?? "Falha na busca.",
+                };
+              }
+
+              if (dados.linkedin) {
+                const link = dados.linkedin;
+                setEmpresasEncontradas((atual) =>
+                  atual.map((e) =>
+                    e.cnpj === empresaEmEdicao.cnpj
+                      ? { ...e, linkedin: link }
+                      : e
+                  )
+                );
+
+                return {
+                  linkedin: link,
+                  mensagem: dados.mensagem ?? "✅ LinkedIn encontrado!",
+                };
+              }
+
+              return {
+                linkedin: null,
+                mensagem:
+                  dados.mensagem ??
+                  "Nenhum LinkedIn da empresa encontrado no Google.",
+              };
+            } catch {
+              return {
+                linkedin: null,
+                mensagem: "Falha na busca. Tente novamente.",
+              };
+            }
+          }}
         />
       )}
 

@@ -27,18 +27,44 @@ export default function ModalEditarPessoas({
   dadosIniciais,
   onFechar,
   onSalvar,
+  onAcharLinkedin,
 }: {
   aberto: boolean;
   dadosIniciais: DadosPessoas;
   onFechar: () => void;
   onSalvar: (dados: DadosPessoas) => void;
+  onAcharLinkedin?: () => Promise<{
+    linkedin: string | null;
+    mensagem: string;
+  }>;
 }) {
   const [dados, setDados] = useState<DadosPessoas>(dadosIniciais);
+  const [buscandoLinkedin, setBuscandoLinkedin] = useState(false);
+  const [avisoLinkedin, setAvisoLinkedin] = useState("");
 
   if (!aberto) return null;
 
   const atualizar = (campo: keyof DadosPessoas, valor: string) =>
     setDados((atual) => ({ ...atual, [campo]: valor }));
+
+  const acharLinkedin = async () => {
+    if (!onAcharLinkedin || buscandoLinkedin) return;
+
+    setBuscandoLinkedin(true);
+    setAvisoLinkedin("");
+
+    try {
+      const resultado = await onAcharLinkedin();
+
+      if (resultado.linkedin) {
+        atualizar("empresaLinkedin", resultado.linkedin);
+      }
+
+      setAvisoLinkedin(resultado.mensagem);
+    } finally {
+      setBuscandoLinkedin(false);
+    }
+  };
 
   const classesInput =
     "w-full bg-pipe-dark border border-pipe-border rounded-lg p-2.5 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white text-sm";
@@ -272,6 +298,28 @@ export default function ModalEditarPessoas({
                   placeholder="https://www.linkedin.com/company/sertran-transportes/"
                   className={`${classesInput} mt-1`}
                 />
+
+                {onAcharLinkedin && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => void acharLinkedin()}
+                      disabled={buscandoLinkedin}
+                      className="text-[11px] font-semibold bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30 px-2.5 py-1.5 rounded-lg hover:bg-pipe-blue/20 disabled:opacity-50 transition"
+                      title="Busca o LinkedIn da empresa no Google e preenche automaticamente"
+                    >
+                      {buscandoLinkedin
+                        ? "🔎 Buscando..."
+                        : "🔍 Achar LinkedIn no Google (1 crédito)"}
+                    </button>
+
+                    {avisoLinkedin && (
+                      <p className="text-[11px] text-pipe-muted mt-1.5">
+                        {avisoLinkedin}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

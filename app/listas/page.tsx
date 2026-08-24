@@ -143,6 +143,8 @@ export default function PaginaListas() {
   });
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
   const [empresaSalva, setEmpresaSalva] = useState(false);
+  const [buscandoLinkedin, setBuscandoLinkedin] = useState(false);
+  const [avisoLinkedin, setAvisoLinkedin] = useState("");
   const [contatosLead, setContatosLead] = useState<ContatoPessoa[]>([]);
   const [formContato, setFormContato] = useState({
     aberto: false,
@@ -605,10 +607,13 @@ export default function PaginaListas() {
     }
   };
 
-  const salvarDadosEmpresa = async () => {
+  const salvarDadosEmpresa = async (
+    overrides?: Partial<Record<"linkedin", string>>
+  ) => {
     if (!empresaDetalhe || salvandoEmpresa) return;
 
     setSalvandoEmpresa(true);
+    setAvisoLinkedin("");
 
     try {
       const supabase = criarClienteSupabase();
@@ -620,7 +625,10 @@ export default function PaginaListas() {
         uf: edicaoEmpresa.uf.trim().toUpperCase() || null,
         telefone: edicaoEmpresa.telefone.trim() || null,
         email: edicaoEmpresa.email.trim() || null,
-        linkedin: edicaoEmpresa.linkedin.trim() || null,
+        linkedin:
+          overrides?.linkedin?.trim() ||
+          edicaoEmpresa.linkedin.trim() ||
+          null,
       };
 
       if (supabase) {
@@ -657,6 +665,45 @@ export default function PaginaListas() {
       });
     } finally {
       setSalvandoEmpresa(false);
+    }
+  };
+
+  const acharLinkedinEmpresa = async () => {
+    if (!empresaDetalhe || buscandoLinkedin) return;
+
+    setBuscandoLinkedin(true);
+    setAvisoLinkedin("");
+
+    try {
+      const resposta = await fetch("/api/linkedin/encontrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: empresaDetalhe.id }),
+      });
+
+      const dados = (await resposta.json()) as {
+        linkedin?: string | null;
+        mensagem?: string;
+        erro?: string;
+      };
+
+      if (!resposta.ok || dados.erro) {
+        setAvisoLinkedin(dados.erro ?? "Falha na busca.");
+        return;
+      }
+
+      if (dados.linkedin) {
+        const link = dados.linkedin;
+        setEdicaoEmpresa((v) => ({ ...v, linkedin: link }));
+        void salvarDadosEmpresa({ linkedin: link });
+        setAvisoLinkedin("✅ LinkedIn encontrado e salvo!");
+      } else {
+        setAvisoLinkedin(
+          dados.mensagem ?? "Nenhum LinkedIn da empresa encontrado."
+        );
+      }
+    } finally {
+      setBuscandoLinkedin(false);
     }
   };
 
@@ -1824,17 +1871,36 @@ export default function PaginaListas() {
                       className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
                     />
 
-                    <button
-                      onClick={() => void salvarDadosEmpresa()}
-                      disabled={salvandoEmpresa}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
-                    >
-                      {salvandoEmpresa
-                        ? "Salvando..."
-                        : empresaSalva
-                          ? "✅ Salvo!"
-                          : "💾 Salvar dados da empresa"}
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => void acharLinkedinEmpresa()}
+                        disabled={buscandoLinkedin || salvandoEmpresa}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                        title="Busca o LinkedIn da empresa no Google e salva automaticamente"
+                      >
+                        {buscandoLinkedin
+                          ? "🔎 Buscando..."
+                          : "🔍 Achar LinkedIn no Google (1 crédito)"}
+                      </button>
+
+                      <button
+                        onClick={() => void salvarDadosEmpresa()}
+                        disabled={salvandoEmpresa}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                      >
+                        {salvandoEmpresa
+                          ? "Salvando..."
+                          : empresaSalva
+                            ? "✅ Salvo!"
+                            : "💾 Salvar dados da empresa"}
+                      </button>
+                    </div>
+
+                    {avisoLinkedin && (
+                      <p className="text-[11px] text-pipe-muted">
+                        {avisoLinkedin}
+                      </p>
+                    )}
                   </div>
                 )}
               </section>
