@@ -28,9 +28,18 @@ export default function ManipuladorCodigoAuth() {
     if (!supabase) return;
 
     (async () => {
-      const { error } = await supabase.auth.exchangeCodeForSession(codigo);
+      // O proprio cliente Supabase costuma consumir o codigo sozinho ao
+      // carregar (detectSessionInUrl). Tentamos o troca manual e, em todo
+      // caso, checamos se existe sessao valida para seguir adiante.
+      try {
+        await supabase.auth.exchangeCodeForSession(codigo);
+      } catch {
+        // Codigo ja consumido pela deteccao automatica: segue.
+      }
 
-      if (!error) {
+      const { data } = await supabase.auth.getUser();
+
+      if (data?.user) {
         router.replace("/auth/redefinir");
       }
     })();
