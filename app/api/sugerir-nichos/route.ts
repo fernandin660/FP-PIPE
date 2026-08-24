@@ -1,4 +1,5 @@
 import { exigirAcesso } from "../../../lib/gate";
+import { registrarUso } from "../../../lib/avisos";
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +30,8 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
+
+    void registrarUso("openai");
 
     const resposta = await fetch(
       "https://api.openai.com/v1/chat/completions",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { registrarUso } from "../../../lib/avisos";
 
 const EMAIL_DONO =
   process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
@@ -43,6 +44,7 @@ export async function POST() {
 
     if (CHAVE_RESEND) {
       try {
+        void registrarUso("resend");
         await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {

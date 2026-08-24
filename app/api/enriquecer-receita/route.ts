@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { registrarUso } from "../../../lib/avisos";
 
 type RespostaReceita = {
   email?: string | null;
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
   let resposta: Response;
 
   try {
+    void registrarUso("minhareceita");
     resposta = await fetch(
       `https://minhareceita.org/${encodeURIComponent(cnpjLimpo)}`,
       { cache: "no-store", headers: { Accept: "application/json" } }

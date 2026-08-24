@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { registrarUso } from "../../../../lib/avisos";
 
 function limparNomeEmpresa(nome: string): string {
   return nome
@@ -164,6 +165,8 @@ export async function POST(requisicao: Request) {
   try {
     if (chaveSerper) {
       // Caminho preferencial: Serper (busca do Google via API).
+      void registrarUso("serper");
+
       const contexto = [empresa.municipio, empresa.uf]
         .filter(Boolean)
         .join(" ");
@@ -196,6 +199,8 @@ export async function POST(requisicao: Request) {
       itens = dadosBusca.organic ?? [];
     } else {
       // Fallback: OpenAI com busca na web (sem cadastro extra).
+      void registrarUso("openai");
+
       const respostaIA = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {

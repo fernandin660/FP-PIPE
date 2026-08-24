@@ -8,6 +8,7 @@ import {
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { avaliarAcesso, mesAtual } from "../../../lib/planos";
+import { registrarUso } from "../../../lib/avisos";
 
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
@@ -92,7 +93,7 @@ type RespostaCasadosDados = {
 async function pesquisarRecorte(
   codigosCnae: string[],
   uf?: string,
-  municipio?: string,
+  municipios: string[] = [],
   codigosPorte: string[] = []
 ): Promise<RespostaCasadosDados | null> {
   const corpo: Record<string, unknown> = {
@@ -101,7 +102,7 @@ async function pesquisarRecorte(
     limite: LIMITE_POR_RECORTE,
   };
   if (uf) corpo.uf = [uf];
-  if (municipio) corpo.municipio = [municipio];
+  if (municipios.length > 0) corpo.municipio = municipios.slice(0, 4);
   if (codigosPorte.length > 0) {
     corpo.porte_empresa = { codigos: codigosPorte };
   }
@@ -213,10 +214,17 @@ export async function POST(request: Request) {
       typeof dados.estado === "string" && dados.estado.trim()
         ? normalizarTextoLocal(dados.estado).replace(/\s/g, "")
         : undefined;
-    const cidade: string | undefined =
-      typeof dados.cidade === "string" && dados.cidade.trim()
-        ? normalizarTextoLocal(dados.cidade)
-        : undefined;
+    const cidadesBrutas: string[] = Array.isArray(dados.cidades)
+      ? dados.cidades.filter(
+          (c: unknown): c is string => typeof c === "string"
+        )
+      : typeof dados.cidade === "string" && dados.cidade.trim()
+        ? [dados.cidade]
+        : [];
+    const cidades = cidadesBrutas
+      .map((c) => normalizarTextoLocal(c))
+      .filter(Boolean)
+      .slice(0, 4);
     const portes: string[] = Array.isArray(dados.portes)
       ? dados.portes.filter(
           (p: unknown): p is string => typeof p === "string"
@@ -235,6 +243,8 @@ export async function POST(request: Request) {
     const mapaRazoesSociais = new Set<string>();
     let chamadas = 0;
 
+    void registrarUso("casadosdados");
+
     const excluiImobiliarios =
       !segmentos.some((s) => SEGMENTOS_IMOBILIARIOS.has(s));
 
@@ -250,7 +260,7 @@ export async function POST(request: Request) {
           const resposta = await pesquisarRecorte(
             [codigo],
             estado,
-            cidade,
+            cidades,
             codigosPorte
           );
           if (resposta?.cnpjs) {
@@ -285,7 +295,7 @@ export async function POST(request: Request) {
                 dataSituacao: item.situacao_cadastral?.data?.slice(0, 10) ?? "",
                 segmentoIcp: segmento,
                 uf: estado ?? "",
-                municipio: cidade ?? "",
+                municipio: cidades[0] ?? "",
               });
             }
           }

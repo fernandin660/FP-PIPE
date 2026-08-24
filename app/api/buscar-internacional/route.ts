@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { mesAtual } from "../../../lib/planos";
+import { registrarUso } from "../../../lib/avisos";
 import { formatarCnpj } from "@/lib/conhecimento-cnae";
 
 export const maxDuration = 60;
@@ -64,6 +65,7 @@ async function geocodificarCidade(
     limit: "1",
     addressdetails: "0",
   });
+  void registrarUso("nominatim");
   const resposta = await fetch(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
     {
@@ -91,21 +93,29 @@ async function geocodificarCidade(
 }
 
 async function buscarNoOverpass(
-  bbox: [number, number, number, number]
+  bboxes: Array<[number, number, number, number]>
 ): Promise<ElementoOsm[] | null> {
-  const filtroBbox = `${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]}`;
+  const filtros = bboxes
+    .map((b) => `${b[0]},${b[2]},${b[1]},${b[3]}`)
+    .map(
+      (f) =>
+        `  node["name"]["office"](${f});\n` +
+        `  way["name"]["office"](${f});\n` +
+        `  node["name"]["shop"](${f});\n` +
+        `  way["name"]["shop"](${f});\n` +
+        `  node["name"]["craft"](${f});\n` +
+        `  way["name"]["craft"](${f});\n` +
+        `  node["name"]["industrial"](${f});\n` +
+        `  way["name"]["industrial"](${f});`
+    )
+    .join("\n");
   const consulta = `[out:json][timeout:25];
 (
-  node["name"]["office"](${filtroBbox});
-  way["name"]["office"](${filtroBbox});
-  node["name"]["shop"](${filtroBbox});
-  way["name"]["shop"](${filtroBbox});
-  node["name"]["craft"](${filtroBbox});
-  way["name"]["craft"](${filtroBbox});
-  node["name"]["industrial"](${filtroBbox});
-  way["name"]["industrial"](${filtroBbox});
+${filtros}
 );
 out center ${LIMITE_TOTAL_EMPRESAS * 4};`;
+
+  void registrarUso("overpass");
 
   const resposta = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
@@ -193,10 +203,17 @@ export async function POST(request: Request) {
       typeof corpo.pais === "string"
         ? chaveSemAcento(corpo.pais).replace(/[^a-z]/g, "")
         : "";
-    const cidadeBuscada =
-      typeof corpo.cidade === "string" && corpo.cidade.trim()
-        ? corpo.cidade.trim()
-        : "";
+    const cidadesBrutas: string[] = Array.isArray(corpo.cidades)
+      ? corpo.cidades.filter(
+          (c: unknown): c is string => typeof c === "string"
+        )
+      : typeof corpo.cidade === "string" && corpo.cidade.trim()
+        ? [corpo.cidade]
+        : [];
+    const cidadesBuscadas = cidadesBrutas
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .slice(0, 4);
     const segmento =
       typeof corpo.segmento === "string" && corpo.segmento.trim()
         ? corpo.segmento.trim()
@@ -212,9 +229,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (!cidadeBuscada) {
+    if (cidadesBuscadas.length === 0) {
       return NextResponse.json(
-        { erro: "Informe a cidade para buscar." },
+        { erro: "Informe ao menos uma cidade para buscar (até 4)." },
         { status: 400 }
       );
     }
@@ -225,11 +242,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const geo = await geocodificarCidade(cidadeBuscada, pais);
-    if (!geo) {
+    // Geocodifica cada cidade (Nominatim pede ~1 req/s: respeita o ritmo).
+    const geos: Array<{
+      bbox: [number, number, number, number];
+      nome: string;
+    }> = [];
+    for (let i = 0; i < cidadesBuscadas.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 1100));
+      try {
+        const geo = await geocodificarCidade(cidadesBuscadas[i], pais);
+        if (geo) geos.push(geo);
+      } catch {
+        // Cidade falhou — segue para a próxima.
+      }
+    }
+
+    if (geos.length === 0) {
       return NextResponse.json(
         {
-          erro: `Não encontramos a cidade "${cidadeBuscada}" nesse país. Verifique o nome e tente novamente.`,
+          erro: `Não encontramos as cidades informadas nesse país (${cidadesBuscadas.join(
+            ", "
+          )}). Verifique os nomes e tente novamente.`,
         },
         { status: 404 }
       );
@@ -237,7 +270,7 @@ export async function POST(request: Request) {
 
     let elementos: ElementoOsm[] | null = null;
     try {
-      elementos = await buscarNoOverpass(geo.bbox);
+      elementos = await buscarNoOverpass(geos.map((g) => g.bbox));
     } catch {
       elementos = null;
     }
@@ -274,6 +307,22 @@ export async function POST(request: Request) {
       );
     };
 
+    // Descobre a qual cidade buscada o elemento pertence pelo ponto
+    // dentro do bbox de cada geocodificação.
+    const cidadeDoElemento = (elemento: ElementoOsm): string => {
+      const lat = elemento.lat ?? elemento.center?.lat;
+      const lon = elemento.lon ?? elemento.center?.lon;
+      if (typeof lat === "number" && typeof lon === "number") {
+        for (const g of geos) {
+          const [sul, norte, oeste, leste] = g.bbox;
+          if (lat >= sul && lat <= norte && lon >= oeste && lon <= leste) {
+            return g.nome;
+          }
+        }
+      }
+      return geos[0].nome;
+    };
+
     const mapaEmpresas = new Map<string, unknown>();
     const chavesNome = new Set<string>();
     let restantesParaMeta = Math.min(LIMITE_TOTAL_EMPRESAS, restante);
@@ -289,7 +338,10 @@ export async function POST(request: Request) {
       if (exigirSegmento && !casaComSegmento(elemento)) return false;
 
       const chaveUnica = `${chaveSemAcento(nome)}|${
-        (tags["addr:city"] ?? chaveSemAcento(geo.nome)).slice(0, 20)
+        (tags["addr:city"] ?? chaveSemAcento(cidadeDoElemento(elemento))).slice(
+          0,
+          20
+        )
       }`;
       if (chavesNome.has(chaveUnica)) return false;
 
@@ -307,7 +359,7 @@ export async function POST(request: Request) {
         [tags["addr:street"], tags["addr:housenumber"]]
           .filter((p): p is string => Boolean(p && p.trim()))
           .join(", "),
-        tags["addr:city"] ?? geo.nome,
+        tags["addr:city"] ?? cidadeDoElemento(elemento),
       ]
         .filter(Boolean)
         .join(" · ");
@@ -327,7 +379,7 @@ export async function POST(request: Request) {
         uf: tags["addr:state"]
           ? tags["addr:state"].toUpperCase().slice(0, 2)
           : pais.toUpperCase(),
-        municipio: tags["addr:city"] ?? geo.nome,
+        municipio: tags["addr:city"] ?? cidadeDoElemento(elemento),
         endereco: enderecoStr,
         telefone: telefone?.trim() ?? null,
         email: email?.trim().toLowerCase() ?? null,
@@ -375,7 +427,7 @@ export async function POST(request: Request) {
       recortesPesquisados: 1,
       plano: acesso.plano,
       cotaRestante: Math.max(0, restante - empresasFinais.length),
-      cidadeResolvida: geo.nome,
+      cidadeResolvida: geos.map((g) => g.nome).join(", "),
     });
   } catch {
     return NextResponse.json(

@@ -207,6 +207,96 @@ type IcpGerado = {
   };
 };
 
+const MAX_CIDADES = 4;
+
+function EntradaCidades({
+  cidades,
+  aoMudar,
+  placeholder = "Digite a cidade e aperte Enter",
+}: {
+  cidades: string[];
+  aoMudar: (cidades: string[]) => void;
+  placeholder?: string;
+}) {
+  const [rascunho, setRascunho] = useState("");
+
+  const adicionarCidade = () => {
+    const valor = rascunho.trim();
+    if (!valor) return;
+    if (cidades.length >= MAX_CIDADES) return;
+    const duplicada = cidades.some(
+      (c) => c.toLowerCase() === valor.toLowerCase()
+    );
+    if (duplicada) {
+      setRascunho("");
+      return;
+    }
+    aoMudar([...cidades, valor]);
+    setRascunho("");
+  };
+
+  const cheio = cidades.length >= MAX_CIDADES;
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={rascunho}
+          onChange={(e) => setRascunho(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              adicionarCidade();
+            }
+          }}
+          disabled={cheio}
+          placeholder={cheio ? `Máximo de ${MAX_CIDADES} cidades` : placeholder}
+          className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 disabled:opacity-60"
+        />
+        <button
+          type="button"
+          onClick={adicionarCidade}
+          disabled={cheio || !rascunho.trim()}
+          className="px-4 rounded-lg border border-pipe-border bg-pipe-card hover:border-pipe-blue/60 disabled:opacity-40 transition font-medium text-white"
+        >
+          + Add
+        </button>
+      </div>
+
+      {cidades.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {cidades.map((cidade) => (
+            <span
+              key={cidade.toLowerCase()}
+              className="inline-flex items-center gap-2 bg-pipe-blue/15 border border-pipe-blue/50 text-white text-sm rounded-full pl-3 pr-1.5 py-1"
+            >
+              📍 {cidade}
+              <button
+                type="button"
+                onClick={() =>
+                  aoMudar(
+                    cidades.filter(
+                      (c) => c.toLowerCase() !== cidade.toLowerCase()
+                    )
+                  )
+                }
+                className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-pipe-blue/40 transition text-xs"
+                aria-label={`Remover ${cidade}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+          <span className="text-xs text-pipe-muted self-center">
+            {cidades.length}/{MAX_CIDADES}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   // =========================
   // CONTROLE DE TELAS
@@ -409,7 +499,7 @@ export default function Home() {
 
   const [tipoLocalizacao, setTipoLocalizacao] = useState("");
   const [estadoSelecionado, setEstadoSelecionado] = useState("");
-  const [cidade, setCidade] = useState("");
+  const [cidadesBusca, setCidadesBusca] = useState<string[]>([]);
 
   const [segmentosSelecionados, setSegmentosSelecionados] = useState<string[]>([]);
 
@@ -474,7 +564,7 @@ export default function Home() {
     "brasil"
   );
   const [paisIntl, setPaisIntl] = useState("US");
-  const [cidadeIntl, setCidadeIntl] = useState("");
+  const [cidadesIntl, setCidadesIntl] = useState<string[]>([]);
   const [segmentoIntl, setSegmentoIntl] = useState("");
   const [buscandoEmailSite, setBuscandoEmailSite] = useState<string | null>(
     null
@@ -531,7 +621,7 @@ export default function Home() {
         segmentosSelecionados[0] ?? "Leads"
       } · ${
         tipoLocalizacao === "Cidade específica"
-          ? cidade
+          ? cidadesBusca.join(", ")
           : tipoLocalizacao === "Estado específico"
             ? estadoSelecionado
             : "Brasil"
@@ -546,7 +636,7 @@ export default function Home() {
           icpResumo: icpGerado?.resumo_icp ?? "",
           localizacao:
             tipoLocalizacao === "Cidade específica"
-              ? cidade
+              ? cidadesBusca.join(", ")
               : tipoLocalizacao === "Estado específico"
                 ? `Estado de ${estadoSelecionado}`
                 : "Brasil",
@@ -892,7 +982,8 @@ export default function Home() {
         setFaixaFuncionarios(d.faixaFuncionarios);
       if (d.tipoLocalizacao) setTipoLocalizacao(d.tipoLocalizacao);
       if (d.estadoSelecionado) setEstadoSelecionado(d.estadoSelecionado);
-      if (d.cidade) setCidade(d.cidade);
+      if (Array.isArray(d.cidadesBusca)) setCidadesBusca(d.cidadesBusca);
+      else if (d.cidade) setCidadesBusca([d.cidade]);
       if (Array.isArray(d.segmentosSelecionados))
         setSegmentosSelecionados(d.segmentosSelecionados);
     } catch {}
@@ -908,7 +999,7 @@ export default function Home() {
           faixaFuncionarios,
           tipoLocalizacao,
           estadoSelecionado,
-          cidade,
+          cidadesBusca,
           segmentosSelecionados,
         })
       );
@@ -918,7 +1009,7 @@ export default function Home() {
     faixaFuncionarios,
     tipoLocalizacao,
     estadoSelecionado,
-    cidade,
+    cidadesBusca,
     segmentosSelecionados,
   ]);
 
@@ -1076,7 +1167,8 @@ export default function Home() {
           segmentos: segmentosSelecionados,
           estado:
             tipoLocalizacao === "Estado específico" ? estadoSelecionado : "",
-          cidade: tipoLocalizacao === "Cidade específica" ? cidade : "",
+          cidades:
+            tipoLocalizacao === "Cidade específica" ? cidadesBusca : [],
           portes: porteEmpresa,
         }),
       });
@@ -1150,7 +1242,7 @@ export default function Home() {
   // =========================
 
   const buscarInternacional = async () => {
-    if (!cidadeIntl.trim() || !segmentoIntl.trim()) return;
+    if (cidadesIntl.length === 0 || !segmentoIntl.trim()) return;
 
     setBuscandoEmpresas(true);
     setErroEmpresas("");
@@ -1163,7 +1255,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pais: paisIntl,
-          cidade: cidadeIntl,
+          cidades: cidadesIntl,
           segmento: segmentoIntl,
         }),
       });
@@ -1189,7 +1281,7 @@ export default function Home() {
 
       if (empresas.length === 0) {
         throw new Error(
-          `Não encontramos empresas de "${segmentoIntl}" em ${dados.cidadeResolvida || cidadeIntl}. Tente outro segmento ou cidade.`
+          `Não encontramos empresas de "${segmentoIntl}" em ${dados.cidadeResolvida || cidadesIntl.join(", ")}. Tente outro segmento ou cidade.`
         );
       }
 
@@ -1328,9 +1420,9 @@ export default function Home() {
       tipoLocalizacao === "Estado específico"
         ? `Localização: estado de ${estadoSelecionado}`
         : tipoLocalizacao === "Cidade específica"
-          ? `Localização: ${cidade}`
+          ? `Localização: ${cidadesBusca.join(", ")}`
           : modoBusca === "internacional"
-            ? `Localização: ${cidadeIntl || "América"} (${nomePais(paisIntl)}) — prospecção internacional`
+            ? `Localização: ${cidadesIntl.length > 0 ? cidadesIntl.join(", ") : "América"} (${nomePais(paisIntl)}) — prospecção internacional`
             : "Localização: Brasil inteiro",
     ].filter(Boolean);
 
@@ -1552,9 +1644,9 @@ export default function Home() {
 
     if (
       tipoLocalizacao === "Cidade específica" &&
-      !cidade.trim()
+      cidadesBusca.length === 0
     ) {
-      alert("Informe uma cidade.");
+      alert("Informe pelo menos uma cidade (até 4).");
       return;
     }
 
@@ -1582,7 +1674,8 @@ export default function Home() {
           faixaFuncionarios,
           tipoLocalizacao,
           estadoSelecionado,
-          cidade,
+          cidade: cidadesBusca.join(", "),
+          cidadesBusca,
           segmentosSelecionados,
         }),
       });
@@ -2140,11 +2233,11 @@ export default function Home() {
                           tipo === "Brasil inteiro"
                         ) {
                           setEstadoSelecionado("");
-                          setCidade("");
+                          setCidadesBusca([]);
                         }
 
                         if (tipo === "Estado específico") {
-                          setCidade("");
+                          setCidadesBusca([]);
                         }
                       }}
                       className={`border rounded-lg p-4 text-left transition ${
@@ -2191,18 +2284,9 @@ export default function Home() {
 
                 {tipoLocalizacao === "Cidade específica" && (
                   <div className="mt-4">
-                    <label className="block font-medium mb-2 text-white">
-                      Cidade
-                    </label>
-
-                    <input
-                      type="text"
-                      value={cidade}
-                      onChange={(e) =>
-                        setCidade(e.target.value)
-                      }
-                      placeholder="Digite a cidade"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60"
+                    <EntradaCidades
+                      cidades={cidadesBusca}
+                      aoMudar={setCidadesBusca}
                     />
                   </div>
                 )}
@@ -2239,15 +2323,13 @@ export default function Home() {
 
                   <div>
                     <label className="block font-medium mb-2 text-white">
-                      Cidade
+                      Cidades (até 4)
                     </label>
 
-                    <input
-                      type="text"
-                      value={cidadeIntl}
-                      onChange={(e) => setCidadeIntl(e.target.value)}
-                      placeholder="Ex.: Buenos Aires, Cidade do México, Miami..."
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60"
+                    <EntradaCidades
+                      cidades={cidadesIntl}
+                      aoMudar={setCidadesIntl}
+                      placeholder="Ex.: Miami, Buenos Aires, Cidade do México..."
                     />
                   </div>
 
@@ -2386,7 +2468,7 @@ export default function Home() {
                       {tipoLocalizacao === "Estado específico"
                         ? `Estado de ${estadoSelecionado}`
                         : tipoLocalizacao === "Cidade específica"
-                          ? `${cidade} - ${estadoSelecionado}`
+                          ? `${cidadesBusca.join(", ")} - ${estadoSelecionado}`
                           : "Brasil inteiro"}
                     </p>
                   </div>

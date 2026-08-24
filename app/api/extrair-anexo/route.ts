@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { registrarUso } from "../../../lib/avisos";
 
 export const runtime = "nodejs";
 
@@ -171,6 +172,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    void registrarUso("openai");
 
     const texto =
       tipo === "pdf"

@@ -21,6 +21,12 @@ const NOMES_APIS: Record<string, string> = {
   maps: "🗺️ Google Maps",
   anymail: "📧 Anymail Finder",
   openai: "🤖 OpenAI",
+  serper: "🔎 Serper (busca Google)",
+  casadosdados: "🏢 Casas dos Dados",
+  minhareceita: "🏛️ Minha Receita (CNPJ)",
+  nominatim: "🌍 OpenStreetMap — geocoding",
+  overpass: "🗺️ Overpass — empresas OSM",
+  resend: "✉️ Resend (e-mails)",
 };
 
 export default function PaginaAdminUso() {

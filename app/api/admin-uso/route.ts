@@ -45,10 +45,14 @@ export async function GET() {
     .select("api, chamadas")
     .eq("mes", mes);
 
-  const apis = (usoApis ?? []).map((u) => ({
-    api: u.api,
-    chamadas: u.chamadas,
-    limite: LIMITES_MENSAIS[u.api] ?? null,
+  const mapaUso = new Map<string, number>(
+    (usoApis ?? []).map((u) => [u.api, u.chamadas])
+  );
+
+  const apis = Object.keys(LIMITES_MENSAIS).map((api) => ({
+    api,
+    chamadas: mapaUso.get(api) ?? 0,
+    limite: LIMITES_MENSAIS[api],
   }));
 
   const { data: listaUsuarios } = await admin.auth.admin.listUsers({

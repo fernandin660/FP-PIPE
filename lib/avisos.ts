@@ -4,12 +4,18 @@ const EMAIL_DESTINO =
   process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
 const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
 
-// Franquias/planos reais: Maps Enterprise ~1.000 gratis/mes,
-// Anymail $29 = 400 creditos, OpenAI monitorado por volume.
+// Franquias/planos reais por API externa. Quando o consumo do mês
+// bate exatamente no limite, o dono recebe UM aviso por e-mail.
 export const LIMITES_MENSAIS: Record<string, number> = {
   maps: 800,
   anymail: 350,
   openai: 2000,
+  serper: 2500,
+  casadosdados: 5000,
+  minhareceita: 3000,
+  nominatim: 2000,
+  overpass: 1500,
+  resend: 500,
 };
 
 async function enviarAviso(assunto: string, texto: string) {
