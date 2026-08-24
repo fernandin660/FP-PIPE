@@ -1,60 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AvatarConsultor from "../../components/AvatarConsultor";
 
 type Ciclo = "mensal" | "anual";
+type PlanoChave = "silver" | "gold" | "platinum";
 
-const planos = [
+const planos: Array<{
+  chave: PlanoChave;
+  icone: string;
+  nome: string;
+  precoMensal: number;
+  precoAnual: number;
+  descricao: string;
+  destaques?: boolean;
+  selo?: string;
+  itens: string[];
+  cta: string;
+}> = [
   {
-    nome: "Grátis",
-    precoMensal: 0,
-    precoAnual: 0,
-    descricao: "Para conhecer a plataforma de verdade.",
-    destaques: false,
-    itens: [
-      "5 créditos para desbloquear leads",
-      "ICP completo gerado por IA",
-      "Perfil da sua empresa + portfólio",
-      "Score 0–100 das empresas encontradas",
-      "Sem cartão de crédito",
-    ],
-    cta: "Criar conta grátis",
-    porLead: null as string | null,
-  },
-  {
-    nome: "Fundador",
+    chave: "silver",
+    icone: "🥈",
+    nome: "Silver",
     precoMensal: 147,
     precoAnual: 117,
-    descricao: "Preço travado pra sempre · vagas limitadas.",
-    destaques: true,
+    descricao: "Para montar listas de prospecção com inteligência.",
     itens: [
-      "10 listas por mês (até 500 leads)",
-      "✉️ E-mail pronto por lead — assunto + mensagem personalizados",
-      "📎 Portfólio ilimitado: a IA lê seus PDFs e imagens",
-      "Listas persistentes com ficha completa do lead",
-      "Exportação CSV",
-      "= R$ 0,29 por lead com e-mail pronto",
+      "500 empresas prontas por mês",
+      "ICP completo gerado por IA",
+      "Score 0–100 de aderência ao seu negócio",
+      "Fichas completas: CNPJ, porte, região",
+      "Listas persistentes + exportação CSV",
     ],
-    cta: "Quero ser Fundador →",
-    porLead: "R$ 0,29/lead",
+    cta: "Assinar o Silver →",
   },
   {
-    nome: "Pro",
-    precoMensal: 347,
-    precoAnual: 277,
-    descricao: "Para quem prospecta todos os dias.",
-    destaques: false,
+    chave: "gold",
+    icone: "🥇",
+    nome: "Gold",
+    precoMensal: 297,
+    precoAnual: 227,
+    descricao: "Para quem prospecta de verdade toda semana.",
+    destaques: true,
+    selo: "⭐ Mais escolhido",
     itens: [
-      "Tudo do Fundador, mais:",
-      "30 listas por mês (até 1.500 leads)",
+      "Tudo do Silver, mais:",
+      "1.500 empresas prontas por mês",
+      "🔎 400 buscas de e-mail verificado por mês",
+      "✍️ Primeiro e-mail escrito pela IA para cada lead",
+      "Abordagens personalizadas com o seu portfólio",
+    ],
+    cta: "Assinar o Gold →",
+  },
+  {
+    chave: "platinum",
+    icone: "💎",
+    nome: "Platinum",
+    precoMensal: 497,
+    precoAnual: 387,
+    descricao: "Volume alto para vender todos os dias.",
+    itens: [
+      "Tudo do Gold, mais:",
+      "3.000 empresas prontas por mês",
+      "🔎 1.000 buscas de e-mail verificado por mês",
       "Prioridade na geração de listas",
       "Suporte prioritário via WhatsApp",
-      "= R$ 0,23 por lead com e-mail pronto",
+      "= R$ 0,39 por lead com e-mail pronto",
     ],
-    cta: "Assinar o Pro →",
-    porLead: "R$ 0,23/lead",
+    cta: "Assinar o Platinum →",
   },
 ];
 
@@ -62,27 +77,95 @@ const faq = [
   {
     pergunta: "Precisa de cartão de crédito para começar?",
     resposta:
-      "Não. Você cria a conta, ganha 5 créditos e testa tudo de verdade — inclusive o e-mail pronto. Só assina se fizer sentido.",
+      "Não. Você cria a conta, ganha créditos de teste e usa a plataforma de verdade — gera lista, busca contatos e recebe abordagens escritas por IA. Só assina se fizer sentido.",
   },
   {
-    pergunta: "O que significa 'preço travado pra sempre'?",
+    pergunta: "Como funciona a cobrança?",
     resposta:
-      "Os planos Fundador são limitados aos primeiros assinantes. Quem entra nesse preço mantém ele mesmo quando a tabela subir — é nossa forma de recompensar quem confiou primeiro.",
+      "No plano mensal a cobrança é exclusivamente no cartão de crédito, todo mês. No anual você paga uma vez só (com desconto) e pode usar cartão ou Pix — sem renovação automática surpresa.",
   },
   {
-    pergunta: "Como funciona o e-mail pronto?",
+    pergunta: "O que são 'empresas prontas'?",
     resposta:
-      "Para cada empresa da sua lista, a IA escreve assunto + mensagem citando o nome da empresa, a dor do segmento dela e a oferta do SEU negócio — lendo até seu portfólio anexado. O texto fica editável na ficha do lead.",
+      "São leads B2B já filtrados pelo seu perfil ideal de cliente: CNPJ ativo, segmento certo, região certa e nota de aderência 0–100. Você abre a ficha e já tem contexto para vender.",
+  },
+  {
+    pergunta: "As buscas de e-mail não usadas acumulam?",
+    resposta:
+      "Não — o saldo de buscas renova a cada ciclo contratado. Por isso o anual sai tão mais barato: você garante o preço cheio por 12 meses.",
   },
   {
     pergunta: "Tem fidelidade?",
     resposta:
-      "Não. Mensal é cancelável quando quiser. No anual você paga uma vez e economiza ~20%, sem renovação automática surpresa.",
+      "Não. No mensal você não renova quando quiser parar. No anual vale a pena justamente pelo desconto, mas não há multa nem letra miúda.",
   },
 ];
 
 export default function Planos() {
+  const router = useRouter();
+
   const [ciclo, setCiclo] = useState<Ciclo>("anual");
+  const [carregandoPlano, setCarregandoPlano] = useState<PlanoChave | null>(
+    null
+  );
+  const [erro, setErro] = useState("");
+  const [avisoStatus, setAvisoStatus] = useState<{
+    tipo: "ok" | "pendente" | "falhou";
+    texto: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("status");
+    if (status === "sucesso") {
+      setAvisoStatus({
+        tipo: "ok",
+        texto:
+          "🎉 Pagamento aprovado! Estamos ativando seu plano — recarregue a página em alguns segundos.",
+      });
+    } else if (status === "pendente") {
+      setAvisoStatus({
+        tipo: "pendente",
+        texto:
+          "⏳ Pagamento pendente. Se foi Pix, aguarde a confirmação de alguns minutos.",
+      });
+    } else if (status === "falhou") {
+      setAvisoStatus({
+        tipo: "falhou",
+        texto:
+          "😕 O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
+      });
+    }
+  }, []);
+
+  async function assinar(planoChave: PlanoChave) {
+    setErro("");
+    setCarregandoPlano(planoChave);
+
+    try {
+      const resposta = await fetch("/api/checkout/mercadopago", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plano: planoChave, ciclo }),
+      });
+
+      if (resposta.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      const dados = await resposta.json();
+
+      if (dados.urlPagamento) {
+        window.location.href = dados.urlPagamento;
+      } else {
+        setErro(dados.erro || "Não foi possível iniciar o pagamento.");
+      }
+    } catch {
+      setErro("Falha de conexão. Tente novamente.");
+    } finally {
+      setCarregandoPlano(null);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-pipe-bg text-gray-200">
@@ -123,9 +206,25 @@ export default function Planos() {
         </h1>
 
         <p className="text-pipe-muted text-lg mt-4 max-w-2xl mx-auto">
-          Comece grátis. Quando ver o resultado, escolha um plano — sem
-          fidelidade e com preço honesto por lead.
+          Comece grátis com créditos de teste. Quando ver o resultado,
+          escolha um plano — sem fidelidade e sem letra miúda.
         </p>
+
+        {/* AVISO DE RETORNO DO PAGAMENTO */}
+
+        {avisoStatus && (
+          <p
+            className={`mt-6 mx-auto max-w-xl text-sm rounded-lg border px-4 py-3 ${
+              avisoStatus.tipo === "ok"
+                ? "text-lime-300 bg-lime-500/10 border-lime-500/30"
+                : avisoStatus.tipo === "pendente"
+                  ? "text-yellow-300 bg-yellow-500/10 border-yellow-500/30"
+                  : "text-red-300 bg-red-500/10 border-red-500/30"
+            }`}
+          >
+            {avisoStatus.texto}
+          </p>
+        )}
 
         {/* TOGGLE CICLO */}
 
@@ -140,7 +239,7 @@ export default function Planos() {
           >
             Anual
             <span className="ml-2 text-xs font-bold text-lime-400">
-              -20%
+              até -24%
             </span>
           </button>
           <button
@@ -157,16 +256,24 @@ export default function Planos() {
 
         {ciclo === "anual" ? (
           <p className="text-pipe-muted/70 text-xs mt-3">
-            Cobrança única por ano · mais de 2 meses grátis · sem renovação
+            💳 Cartão ou ⚡ Pix · cobrança única por ano · sem renovação
             automática
           </p>
         ) : (
           <p className="text-pipe-muted/70 text-xs mt-3">
-            Prefere pagar mês a mês? Troque pro anual e economize 20% a
-            qualquer momento.
+            💳 Somente cartão de crédito · cancele quando quiser · troque pro
+            anual e economize até 24%
           </p>
         )}
       </section>
+
+      {/* ERRO GLOBAL */}
+
+      {erro && (
+        <p className="max-w-md mx-auto px-6 pb-4 -mt-4 text-red-400 text-sm text-center">
+          {erro}
+        </p>
+      )}
 
       {/* CARDS */}
 
@@ -177,42 +284,39 @@ export default function Planos() {
 
           return (
             <div
-              key={plano.nome}
+              key={plano.chave}
               className={`relative flex flex-col rounded-2xl p-7 border ${
                 plano.destaques
                   ? "bg-pipe-card border-pipe-lime/50 shadow-[0_0_32px_rgba(127,255,0,0.08)] md:-mt-3 md:mb-[-12px]"
                   : "bg-pipe-card border-pipe-border"
               }`}
             >
-              {plano.destaques && (
+              {plano.selo && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold tracking-wide uppercase bg-pipe-lime text-black rounded-full px-4 py-1">
-                  ⭐ Vagas limitadas
+                  {plano.selo}
                 </span>
               )}
 
-              <h2 className="font-display text-xl text-white">{plano.nome}</h2>
+              <h2 className="font-display text-xl text-white">
+                {plano.icone} {plano.nome}
+              </h2>
               <p className="text-pipe-muted text-sm mt-1 min-h-[40px]">
                 {plano.descricao}
               </p>
 
               <div className="flex items-end gap-1 mt-5">
                 <span className="font-display text-4xl text-white">
-                  {preco === 0 ? "R$ 0" : `R$ ${preco}`}
+                  R$ {preco}
                 </span>
                 <span className="text-pipe-muted text-sm mb-1">/mês</span>
               </div>
 
-              {ciclo === "anual" && plano.precoAnual > 0 && (
+              {ciclo === "anual" && (
                 <p className="text-pipe-muted/70 text-xs mt-1">
-                  R$ {(plano.precoAnual * 12).toLocaleString("pt-BR")} cobrados
+                  R${" "}
+                  {(plano.precoAnual * 12).toLocaleString("pt-BR")} cobrados
                   uma vez ao ano
                 </p>
-              )}
-
-              {plano.porLead && (
-                <span className="inline-block mt-3 w-fit text-xs font-semibold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-3 py-1">
-                  ≈ {plano.porLead} com e-mail pronto
-                </span>
               )}
 
               <ul className="mt-6 space-y-2.5 text-sm flex-1">
@@ -224,16 +328,25 @@ export default function Planos() {
                 ))}
               </ul>
 
-              <Link
-                href="/prospeccao"
-                className={`mt-7 block text-center font-semibold rounded-lg py-3 transition ${
+              <button
+                onClick={() => assinar(plano.chave)}
+                disabled={carregandoPlano !== null}
+                className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
                   plano.destaques
                     ? "bg-pipe-lime text-black hover:opacity-90"
                     : "border border-pipe-border text-white hover:border-pipe-blue"
                 }`}
               >
-                {plano.cta}
-              </Link>
+                {carregandoPlano === plano.chave
+                  ? "Abrindo pagamento..."
+                  : plano.cta}
+              </button>
+
+              <p className="text-pipe-muted/60 text-[11px] text-center mt-2">
+                {ciclo === "mensal"
+                  ? "Somente cartão de crédito"
+                  : "Cartão de crédito ou Pix"}
+              </p>
             </div>
           );
         })}
@@ -253,7 +366,11 @@ export default function Planos() {
             <span className="text-pipe-lime font-semibold">
               cada lead já sai com o primeiro e-mail redigido
             </span>{" "}
-            conectando sua oferta à dor dele.
+            — no Platinum, isso dá{" "}
+            <span className="text-white font-semibold">
+              R$ 0,39 por lead pronto
+            </span>
+            .
           </p>
         </div>
       </section>

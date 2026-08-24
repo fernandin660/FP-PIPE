@@ -53,6 +53,23 @@ export async function POST(req: Request) {
   const valor = precoDoPlano(plano, ciclo);
   const origem = req.headers.get("origin") || new URL(req.url).origin;
 
+  // Regras de pagamento:
+  // - mensal: exclusivamente cartao de credito (cobranca recorrente)
+  // - anual: cartao de credito ou Pix
+  const metodosPagamento =
+    ciclo === "mensal"
+      ? {
+          excluded_payment_types: [
+            { id: "ticket" },
+            { id: "bank_transfer" },
+            { id: "atm" },
+            { id: "debit_card" },
+          ],
+        }
+      : {
+          excluded_payment_types: [{ id: "ticket" }, { id: "atm" }],
+        };
+
   // external_reference propaga com segurança até o webhook:
   // quem comprou, qual plano e qual ciclo.
   const referenciaExterna = `${userData.user.id}|${plano}|${ciclo}`;
@@ -76,6 +93,7 @@ export async function POST(req: Request) {
             currency_id: "BRL",
           },
         ],
+        payment_methods: metodosPagamento,
         back_urls: {
           success: `${origem}/planos?status=sucesso`,
           pending: `${origem}/planos?status=pendente`,
