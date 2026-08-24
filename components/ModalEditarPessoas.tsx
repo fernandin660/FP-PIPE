@@ -14,6 +14,12 @@ export type DadosPessoas = {
   campeaoTelefone: string;
   campeaoEmail: string;
   empresaLinkedin: string;
+  empresaNome: string;
+  empresaEndereco: string;
+  empresaCidade: string;
+  empresaUf: string;
+  empresaTelefone: string;
+  empresaEmail: string;
 };
 
 export default function ModalEditarPessoas({
@@ -195,16 +201,79 @@ export default function ModalEditarPessoas({
           {/* EMPRESA */}
           <div className="border border-pipe-border rounded-lg p-4">
             <p className="text-sm font-bold text-pipe-blue mb-3">
-              🔗 LinkedIn da empresa
+              🏢 Dados da empresa
             </p>
 
-            <input
-              type="url"
-              value={dados.empresaLinkedin}
-              onChange={(e) => atualizar("empresaLinkedin", e.target.value)}
-              placeholder="https://www.linkedin.com/company/sertran-transportes/"
-              className={classesInput}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className={classesLabel}>Nome</label>
+                <input
+                  value={dados.empresaNome}
+                  onChange={(e) => atualizar("empresaNome", e.target.value)}
+                  placeholder="Ex.: Sertran Transportes"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+              <div className="col-span-2">
+                <label className={classesLabel}>Endereço</label>
+                <input
+                  value={dados.empresaEndereco}
+                  onChange={(e) => atualizar("empresaEndereco", e.target.value)}
+                  placeholder="Av. Paulista, 1000 - Sala 12"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+              <div>
+                <label className={classesLabel}>Cidade</label>
+                <input
+                  value={dados.empresaCidade}
+                  onChange={(e) => atualizar("empresaCidade", e.target.value)}
+                  placeholder="Ex.: Ribeirão Preto"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+              <div>
+                <label className={classesLabel}>UF</label>
+                <input
+                  value={dados.empresaUf}
+                  maxLength={2}
+                  onChange={(e) =>
+                    atualizar("empresaUf", e.target.value.toUpperCase())
+                  }
+                  placeholder="SP"
+                  className={`${classesInput} mt-1 uppercase`}
+                />
+              </div>
+              <div>
+                <label className={classesLabel}>Telefone</label>
+                <input
+                  value={dados.empresaTelefone}
+                  onChange={(e) => atualizar("empresaTelefone", e.target.value)}
+                  placeholder="(16) 3333-0000"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+              <div>
+                <label className={classesLabel}>E-mail</label>
+                <input
+                  type="email"
+                  value={dados.empresaEmail}
+                  onChange={(e) => atualizar("empresaEmail", e.target.value)}
+                  placeholder="contato@empresa.com.br"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+              <div className="col-span-2">
+                <label className={classesLabel}>LinkedIn da empresa</label>
+                <input
+                  type="url"
+                  value={dados.empresaLinkedin}
+                  onChange={(e) => atualizar("empresaLinkedin", e.target.value)}
+                  placeholder="https://www.linkedin.com/company/sertran-transportes/"
+                  className={`${classesInput} mt-1`}
+                />
+              </div>
+            </div>
           </div>
 
           <button

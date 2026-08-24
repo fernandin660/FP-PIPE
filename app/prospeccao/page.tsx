@@ -681,6 +681,12 @@ export default function Home() {
       await supabase
         .from("companies")
         .update({
+          nome_fantasia: dados.empresaNome || null,
+          endereco: dados.empresaEndereco || null,
+          municipio: dados.empresaCidade || null,
+          uf: dados.empresaUf || null,
+          telefone: dados.empresaTelefone || null,
+          email: dados.empresaEmail || null,
           decisor_nome: dados.aprovadorNome || null,
           decisor_cargo: dados.aprovadorCargo || null,
           aprovador_linkedin: dados.aprovadorLinkedin || null,
@@ -711,6 +717,12 @@ export default function Home() {
         e.cnpj === cnpjAlvo
           ? {
               ...e,
+              nomeFantasia: dados.empresaNome || e.nomeFantasia,
+              endereco: dados.empresaEndereco || null,
+              municipio: dados.empresaCidade || e.municipio,
+              uf: dados.empresaUf || e.uf,
+              telefone: dados.empresaTelefone || null,
+              email: dados.empresaEmail || null,
               decisorNome: dados.aprovadorNome || e.decisorNome,
               decisorCargo: dados.aprovadorCargo || e.decisorCargo,
               aprovadorLinkedin: dados.aprovadorLinkedin || null,
@@ -752,6 +764,12 @@ export default function Home() {
         campeaoTelefone: alvo?.campeaoTelefone ?? "",
         campeaoEmail: alvo?.campeaoEmail ?? "",
         empresaLinkedin: alvo?.linkedin ?? "",
+        empresaNome: alvo?.nomeFantasia || alvo?.razaoSocial || "",
+        empresaEndereco: alvo?.endereco ?? "",
+        empresaCidade: alvo?.municipio ?? "",
+        empresaUf: alvo?.uf ?? "",
+        empresaTelefone: alvo?.telefone ?? "",
+        empresaEmail: alvo?.email ?? "",
       },
       true
     );
@@ -1281,7 +1299,8 @@ export default function Home() {
               }
 
               // Empresas já salvas: atualiza SÓ dados de máquina.
-              // decisor_nome/decisor_cargo ficam intocados (edições do usuário)
+              // decisor_*, contato e dados da empresa ficam intocados
+              // (edições do usuário têm prioridade sobre a busca).
               for (const e of antigas) {
                 await supabase
                   .from("companies")
@@ -1290,12 +1309,8 @@ export default function Home() {
                     score_motivo: e.motivo ?? null,
                     capital_social: e.capitalSocial ?? null,
                     porte: e.porte ?? null,
-                    endereco: e.endereco ?? null,
-                    nome_fantasia: e.nomeFantasia || "",
                     email_assunto: e.emailProspeccao?.assunto ?? null,
                     email_corpo: e.emailProspeccao?.mensagem ?? null,
-                    telefone: e.telefone ?? null,
-                    email: e.email ?? null,
                     cargo_prioritario: e.cargoPrioritario ?? null,
                   })
                   .match({ usuario_id: user.id, cnpj: e.cnpj });
@@ -3010,6 +3025,13 @@ export default function Home() {
             campeaoTelefone: empresaEmEdicao.campeaoTelefone ?? "",
             campeaoEmail: empresaEmEdicao.campeaoEmail ?? "",
             empresaLinkedin: empresaEmEdicao.linkedin ?? "",
+            empresaNome:
+              empresaEmEdicao.nomeFantasia || empresaEmEdicao.razaoSocial,
+            empresaEndereco: empresaEmEdicao.endereco ?? "",
+            empresaCidade: empresaEmEdicao.municipio ?? "",
+            empresaUf: empresaEmEdicao.uf ?? "",
+            empresaTelefone: empresaEmEdicao.telefone ?? "",
+            empresaEmail: empresaEmEdicao.email ?? "",
           }}
           onFechar={() => setCnpjEmEdicao(null)}
           onSalvar={salvarEdicaoPessoas}
