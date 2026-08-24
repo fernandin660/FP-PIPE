@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { limparNomeEmpresa } from "../../../lib/linkedin-links";
 import { registrarUso } from "../../../lib/avisos";
+import { exigirAcesso } from "../../../lib/gate";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,11 @@ async function chamarOpenAI(
 
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const e: EmpresaEntrada = await request.json();
 
     const temIcp = Boolean(e.icpResumo?.trim());

@@ -1,5 +1,6 @@
 import http from "http";
 
+import { exigirAcesso } from "../../../lib/gate";
 import { conhecimentoSegmentos } from "../../../lib/conhecimento-segmentos";
 import { registrarUso } from "../../../lib/avisos";
 
@@ -162,6 +163,11 @@ async function chamarOpenAI(
 
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const {
       nomeEmpresa,
       produto,

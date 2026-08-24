@@ -1,4 +1,5 @@
 import { registrarUso } from "../../../lib/avisos";
+import { exigirAcesso } from "../../../lib/gate";
 
 async function chamarOpenAI(prompt: string): Promise<{ response: string }> {
   if (process.env.USAR_OPENAI !== "true") {
@@ -43,6 +44,11 @@ async function chamarOpenAI(prompt: string): Promise<{ response: string }> {
 
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const { produto, produtosServicos } = await request.json();
 
     const prompt = `

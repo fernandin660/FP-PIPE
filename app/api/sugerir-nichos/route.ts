@@ -1,5 +1,12 @@
+import { exigirAcesso } from "../../../lib/gate";
+
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const { areaAtuacao = "", produtosServicos = "" } =
       await request.json();
 

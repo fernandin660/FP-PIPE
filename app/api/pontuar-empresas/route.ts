@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { registrarUso } from "../../../lib/avisos";
+import { exigirAcesso } from "../../../lib/gate";
 
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
@@ -204,6 +205,11 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
 
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const dados = await request.json();
 
     const icpResumo: string =

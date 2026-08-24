@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { exigirAcesso } from "../../../lib/gate";
+
 export const runtime = "nodejs";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -105,6 +107,11 @@ Responda apenas: {"resumo":"..."}`,
 
 export async function POST(request: Request) {
   try {
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
+    }
+
     const corpo = await request.json();
 
     const url: string = typeof corpo.url === "string" ? corpo.url : "";
