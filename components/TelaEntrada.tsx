@@ -1,15 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
 
 export default function TelaEntrada() {
+  const router = useRouter();
+
   const [modo, setModo] = useState<"entrar" | "criar">("criar");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [proximoDestino, setProximoDestino] = useState("");
+
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    // Só aceita caminhos internos para evitar open redirect.
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      setProximoDestino(next);
+    }
+  }, []);
+
+  // Garante sessão limpa antes de entrar ou criar conta.
+  async function limparSessaoAnterior() {
+    const supabase = criarClienteSupabase();
+    if (!supabase) return;
+
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Sem sessão ativa: segue o jogo.
+    }
+  }
 
   async function entrarComGoogle() {
     const supabase = criarClienteSupabase();
@@ -18,15 +42,19 @@ export default function TelaEntrada() {
       return;
     }
 
+    await limparSessaoAnterior();
+
+    const redirectToGoogle = proximoDestino
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(proximoDestino)}`
+      : `${window.location.origin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: redirectToGoogle },
     });
 
     if (error) {
-      setErro(
-        "Login com Google ainda não está configurado. Use e-mail e senha por enquanto."
-      );
+      setErro("Não foi possível entrar com o Google. Tente novamente.");
     }
   }
 
@@ -43,6 +71,10 @@ export default function TelaEntrada() {
     setErro("");
     setMensagem("");
 
+    await limparSessaoAnterior();
+
+    const destinoFinal = proximoDestino || "/prospeccao";
+
     if (modo === "entrar") {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -55,6 +87,8 @@ export default function TelaEntrada() {
         setErro("E-mail ou senha incorretos. Tente novamente.");
         return;
       }
+
+      router.push(destinoFinal);
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -72,7 +106,9 @@ export default function TelaEntrada() {
         return;
       }
 
-      if (!data.session) {
+      if (data.session) {
+        router.push(destinoFinal);
+      } else {
         setMensagem(
           "Conta criada! Confira seu e-mail e clique no link de confirmação."
         );
@@ -154,7 +190,8 @@ export default function TelaEntrada() {
               </div>
             </div>
             <p className="text-xs text-gray-300 mt-3">
-              🎯 Fale com: <span className="text-pipe-lime">Gerente de TI</span>
+              🎯 Fale com:{" "}
+              <span className="text-pipe-lime">Gerente Comercial</span>
             </p>
           </div>
 
@@ -165,7 +202,7 @@ export default function TelaEntrada() {
 
         <p className="text-pipe-muted/60 text-xs mt-8">
           © FP Pipe — Inteligência comercial para quem vende B2B.{" "}
-          <a href="/inicio" className="hover:text-pipe-blue transition">
+          <a href="/" className="hover:text-pipe-blue transition">
             Conheça os diferenciais →
           </a>
         </p>
