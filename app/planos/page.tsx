@@ -28,7 +28,7 @@ const planos: Array<{
     precoAnual: 117,
     descricao: "Para montar listas de prospecção com inteligência.",
     itens: [
-      "500 empresas prontas por mês",
+      "250 empresas prontas por mês",
       "ICP completo gerado por IA",
       "Score 0–100 de aderência ao seu negócio",
       "Fichas completas: CNPJ, porte, região",
@@ -47,7 +47,7 @@ const planos: Array<{
     selo: "⭐ Mais escolhido",
     itens: [
       "Tudo do Silver, mais:",
-      "1.500 empresas prontas por mês",
+      "400 empresas prontas por mês",
       "🔎 400 buscas de e-mail verificado por mês",
       "✍️ Primeiro e-mail escrito pela IA para cada lead",
       "Abordagens personalizadas com o seu portfólio",
@@ -63,7 +63,7 @@ const planos: Array<{
     descricao: "Volume alto para vender todos os dias.",
     itens: [
       "Tudo do Gold, mais:",
-      "3.000 empresas prontas por mês",
+      "1.000 empresas prontas por mês",
       "🔎 1.000 buscas de e-mail verificado por mês",
       "Prioridade na geração de listas",
       "Suporte prioritário via WhatsApp",
