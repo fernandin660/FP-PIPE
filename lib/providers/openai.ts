@@ -1,3 +1,5 @@
+import { registrarUso } from "../avisos";
+
 const CHAVE_OPENAI = process.env.OPENAI_API_KEY ?? "";
 
 export type RespostaJsonIA<Formato> = Formato | null;
@@ -8,6 +10,8 @@ export async function chamarOpenaiJson<Formato>(
   maxTokens = 900
 ): Promise<RespostaJsonIA<Formato>> {
   if (!CHAVE_OPENAI) throw new Error("Chave da OpenAI não configurada.");
+
+  void registrarUso("openai");
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

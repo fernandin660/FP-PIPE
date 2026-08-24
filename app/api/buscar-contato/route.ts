@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { registrarUso } from "../../../lib/avisos";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
@@ -288,6 +289,8 @@ export async function POST(requisicao: Request) {
       { status: 402 }
     );
   }
+
+  void registrarUso("anymail");
 
   const respostaAnymail = await fetch(
     "https://api.anymailfinder.com/v5.1/find-email/linkedin-url",

@@ -1,3 +1,5 @@
+import { registrarUso } from "../../../lib/avisos";
+
 async function chamarOpenAI(prompt: string): Promise<{ response: string }> {
   if (process.env.USAR_OPENAI !== "true") {
     throw new Error("OpenAI desativada (USAR_OPENAI != true).");
@@ -5,6 +7,8 @@ async function chamarOpenAI(prompt: string): Promise<{ response: string }> {
 
   const chave = process.env.OPENAI_API_KEY;
   if (!chave) throw new Error("Chave da OpenAI não configurada.");
+
+  void registrarUso("openai");
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

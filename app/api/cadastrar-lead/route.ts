@@ -4,6 +4,7 @@ import {
   criarClienteSupabaseServidor,
 } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { registrarUso } from "../../../lib/avisos";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 
@@ -244,6 +245,8 @@ export async function POST(req: NextRequest) {
         ]
           .filter(Boolean)
           .join(" ");
+
+        void registrarUso("maps");
 
         const respostaMaps = await fetch(
           "https://places.googleapis.com/v1/places:searchText",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { registrarUso } from "../../../lib/avisos";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 
@@ -96,6 +97,8 @@ export async function POST(req: NextRequest) {
     .join(" ");
 
   let resposta: Response;
+
+  void registrarUso("maps");
 
   try {
     resposta = await fetch(

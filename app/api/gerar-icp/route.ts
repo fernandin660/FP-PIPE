@@ -1,6 +1,7 @@
 import http from "http";
 
 import { conhecimentoSegmentos } from "../../../lib/conhecimento-segmentos";
+import { registrarUso } from "../../../lib/avisos";
 
 export const runtime = "nodejs";
 
@@ -125,6 +126,8 @@ async function chamarOpenAI(
 
   const chave = process.env.OPENAI_API_KEY;
   if (!chave) throw new Error("Chave da OpenAI não configurada.");
+
+  void registrarUso("openai");
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

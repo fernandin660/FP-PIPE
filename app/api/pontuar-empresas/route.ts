@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { registrarUso } from "../../../lib/avisos";
+
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
 const MAX_EMPRESAS = 50;
@@ -29,6 +31,8 @@ async function chamarOpenAI(
   }
   const chave = process.env.OPENAI_API_KEY;
   if (!chave) throw new Error("Chave da OpenAI não configurada.");
+
+  void registrarUso("openai");
 
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
