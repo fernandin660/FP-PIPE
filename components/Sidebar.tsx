@@ -13,6 +13,9 @@ type Props = {
   aoAbrirPerfil: () => void;
 };
 
+const EMAIL_ADMIN =
+  process.env.NEXT_PUBLIC_EMAIL_ADMIN ?? "fernandopugliesi@fppipe.com.br";
+
 export default function Sidebar({
   perfil,
   saldoCreditos,
@@ -22,11 +25,19 @@ export default function Sidebar({
   const router = useRouter();
   const [temBuscador, setTemBuscador] = useState<boolean | null>(null);
   const [popupBuscadorAberto, setPopupBuscadorAberto] = useState(false);
+  const [ehAdmin, setEhAdmin] = useState(false);
 
   useEffect(() => {
     (async () => {
       const supabase = criarClienteSupabase();
       if (!supabase) return;
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if ((user?.email ?? "").toLowerCase() === EMAIL_ADMIN) {
+        setEhAdmin(true);
+      }
 
       const { data } = await supabase
         .from("assinaturas")
@@ -43,7 +54,10 @@ export default function Sidebar({
       setTemBuscador(
         statusValido &&
           dentroDaValidade &&
-          (plano === "gold" || plano === "platinum")
+          (plano === "gold" ||
+            plano === "platinum" ||
+            plano === "gold_intl" ||
+            plano === "platinum_intl")
       );
     })();
   }, []);
@@ -164,6 +178,12 @@ export default function Sidebar({
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
+          {ehAdmin && (
+            <>
+              {item("/admin", "Admin · Usuários", "👑", pathname === "/admin")}
+              {item("/admin/uso", "Admin · Uso de APIs", "📊", pathname === "/admin/uso")}
+            </>
+          )}
         </nav>
 
         <div className="px-4 pb-5 space-y-1">
