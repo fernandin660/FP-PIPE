@@ -1520,20 +1520,30 @@ export default function PaginaListas() {
                     </a>
                   ) : null}
 
-                  <a
-                    href={
-                      empresaDetalhe.linkedin ||
-                      gerarLinkBuscaEmpresa(
-                        empresaDetalhe.nome_fantasia,
-                        empresaDetalhe.razao_social
-                      )
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-pipe-blue hover:underline"
-                  >
-                    🔗 LinkedIn da empresa →
-                  </a>
+                  {empresaDetalhe.linkedin ? (
+                    <a
+                      href={empresaDetalhe.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pipe-blue hover:underline break-all"
+                    >
+                      🔗 LinkedIn da empresa →
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEdicaoEmpresa((v) => ({ ...v, aberto: true }));
+                        void acharLinkedinEmpresa();
+                      }}
+                      disabled={buscandoLinkedin}
+                      className="text-left text-[13px] font-semibold text-pipe-blue hover:underline disabled:opacity-60"
+                      title="Busca o LinkedIn da empresa no Google e salva automaticamente (1 crédito)"
+                    >
+                      {buscandoLinkedin
+                        ? "🔎 Buscando LinkedIn..."
+                        : "🔍 Achar LinkedIn da empresa (1 crédito)"}
+                    </button>
+                  )}
                 </div>
               </section>
 
