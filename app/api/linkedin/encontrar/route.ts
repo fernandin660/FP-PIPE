@@ -129,12 +129,41 @@ export async function POST(requisicao: Request) {
     );
   }
 
+  // Comparação sem acento/caixa: "Logística" casa com "logistica".
+  const normalizarTexto = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const STOPWORDS = new Set([
+    "e",
+    "de",
+    "da",
+    "do",
+    "das",
+    "dos",
+    "em",
+    "por",
+    "com",
+  ]);
+
+  const tokensBase = normalizarTexto(termo)
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !STOPWORDS.has(t));
+
+  // Núcleo da marca para a consulta: razão social inteira é específica
+  // demais e esconde as páginas certas do Google.
+  const nucleo =
+    tokensBase.length >= 2
+      ? tokensBase.slice(0, 2).join(" ")
+      : tokensBase.join(" ");
+
   let itens: ItemBusca[] = [];
 
   try {
     if (chaveSerper) {
       // Caminho preferencial: Serper (busca do Google via API).
-      // Nome entre aspas + cidade/UF reduzem confusão com nomes parecidos.
       const contexto = [empresa.municipio, empresa.uf]
         .filter(Boolean)
         .join(" ");
@@ -146,7 +175,7 @@ export async function POST(requisicao: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          q: `"${termo}" linkedin site:linkedin.com/company${
+          q: `"${nucleo}" site:linkedin.com/company${
             contexto ? ` ${contexto}` : ""
           }`,
           num: 10,
@@ -214,17 +243,6 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  // Comparação sem acento/caixa: "Logística" casa com "logistica".
-  const normalizarTexto = (v: string) =>
-    v
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-
-  const tokens = normalizarTexto(termo)
-    .split(/\s+/)
-    .filter((t) => t.length >= 3);
-
   const tituloPorLink = new Map<string, string>();
   for (const item of itens) {
     if (!item.link) continue;
@@ -234,24 +252,42 @@ export async function POST(requisicao: Request) {
     }
   }
 
+  // Palavra no SLUG da página vale 2 (é o @ da empresa no LinkedIn);
+  // no título do resultado vale 1.
   const candidatos = Array.from(tituloPorLink.entries())
     .map(([link, titulo]) => {
-      const alvo = normalizarTexto(`${link} ${titulo}`);
-      const pontos = tokens.reduce(
-        (total, t) => total + (alvo.includes(t) ? 1 : 0),
-        0
-      );
-      return { link, pontos };
+      const slug = normalizarTexto(link.split("/company/")[1] ?? "");
+      const tituloNormalizado = normalizarTexto(titulo);
+
+      let pontos = 0;
+      let acertosSlug = 0;
+
+      for (const t of tokensBase) {
+        if (slug.includes(t)) {
+          pontos += 2;
+          acertosSlug += 1;
+        }
+        if (tituloNormalizado.includes(t)) {
+          pontos += 1;
+        }
+      }
+
+      return { link, pontos, acertosSlug };
     })
     .sort((a, b) => b.pontos - a.pontos);
 
   const melhor = candidatos[0];
 
-  // Só aceita se a maioria dos tokens do nome bater — evita
-  // salvar um "Atacadão Centro Sul" no lugar de "Centro Sul Logística".
-  const minimo = Math.max(1, Math.ceil(tokens.length / 2));
+  // Exige ao menos uma palavra da marca no slug e força mínima total:
+  // evita salvar um "Atacadão Centro Sul" ou um "oficialcentrosul"
+  // no lugar de "Centrosul Logística".
+  const minimo = Math.max(1, tokensBase.length);
 
-  if (!melhor || melhor.pontos < minimo) {
+  if (
+    !melhor ||
+    melhor.acertosSlug < 1 ||
+    melhor.pontos < minimo
+  ) {
     return NextResponse.json({
       linkedin: null,
       cobrado: false,
