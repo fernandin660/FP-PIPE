@@ -56,9 +56,11 @@ export async function POST(req: Request) {
   // Regras de pagamento:
   // - mensal: exclusivamente cartao de credito (cobranca recorrente)
   // - anual: cartao de credito ou Pix
+  // - sempre a vista, sem parcelamento
   const metodosPagamento =
     ciclo === "mensal"
       ? {
+          installments: 1,
           excluded_payment_types: [
             { id: "ticket" },
             { id: "bank_transfer" },
@@ -67,6 +69,7 @@ export async function POST(req: Request) {
           ],
         }
       : {
+          installments: 1,
           excluded_payment_types: [{ id: "ticket" }, { id: "atm" }],
         };
 
