@@ -2636,7 +2636,7 @@ export default function Home() {
                                     : "select-none blur-[4px] cursor-not-allowed"
                                 }`}
                               >
-                                {empresa.razaoSocial}
+                                {empresa.nomeFantasia || empresa.razaoSocial}
                               </p>
                             </div>
                             <p

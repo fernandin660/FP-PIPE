@@ -1250,7 +1250,9 @@ export default function PaginaListas() {
                                 className="text-sm text-white font-medium truncate text-left hover:text-pipe-blue hover:underline transition"
                                 title="Abrir ficha completa do lead"
                               >
-                                {empresa.razao_social || "Sem razão social"}
+                                {empresa.nome_fantasia ||
+                                  empresa.razao_social ||
+                                  "Sem nome"}
                                 {empresa.confirmado ? (
                                   <span className="ml-2 text-[10px] font-bold text-pipe-lime">
                                     ✔️ Confirmado
@@ -1266,7 +1268,10 @@ export default function PaginaListas() {
                                 ) : null}
                               </button>
 
-                              <p className="text-xs text-pipe-muted mt-0.5">
+                              <p className="text-xs text-pipe-muted mt-0.5 truncate">
+                                {empresa.nome_fantasia && empresa.razao_social
+                                  ? `${empresa.razao_social} · `
+                                  : ""}
                                 {[empresa.municipio, empresa.uf]
                                   .filter(Boolean)
                                   .join(", ") || "Brasil"}
@@ -1304,7 +1309,9 @@ export default function PaginaListas() {
             <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="font-bold text-lg text-white leading-snug">
-                  {empresaDetalhe.razao_social || "Sem razão social"}
+                  {empresaDetalhe.nome_fantasia ||
+                    empresaDetalhe.razao_social ||
+                    "Sem nome"}
                 </h2>
 
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
