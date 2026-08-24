@@ -53,18 +53,10 @@ async function extrairDePdf(
   bytes: ArrayBuffer,
   chave: string
 ): Promise<string> {
-  const moduloPdf = await import("pdf-parse");
-  const pdfParse =
-    ((moduloPdf as unknown as { default?: typeof moduloPdf }).default ??
-      moduloPdf) as unknown as (
-    buffer: Buffer
-  ) => Promise<{ text: string }>;
-  const resultado = await pdfParse(Buffer.from(bytes));
-  const texto = (resultado.text || "").replace(/\s+/g, " ").trim();
+  // Leitura nativa de PDF da OpenAI (input_file): funciona com PDFs
+  // de texto E escaneados/imagem, sem depender de libs locais.
+  const base64 = Buffer.from(bytes).toString("base64");
 
-  if (!texto) return "";
-
-  // Resume com a IA para caber no orçamento de tokens dos prompts
   const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -73,36 +65,37 @@ async function extrairDePdf(
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: 0.3,
       max_tokens: 700,
       messages: [
         {
-          role: "system",
-          content:
-            "Você é um analista comercial. Responda SEMPRE apenas com JSON válido.",
-        },
-        {
           role: "user",
-          content: `O texto abaixo é um documento do portfólio de uma empresa. Resuma em português, em até 200 palavras, o que a empresa vende: produtos/serviços, público-alvo e diferenciais.
-
-TEXTO:
-${texto.slice(0, 12000)}
-
-Responda apenas: {"resumo":"..."}`,
+          content: [
+            {
+              type: "text",
+              text: 'O arquivo anexo é um documento do portfólio de uma empresa. Extraia e resuma em português, em até 200 palavras: o que a empresa vende, produtos/serviços citados, público-alvo e diferenciais. Responda apenas o texto corrido.',
+            },
+            {
+              type: "file",
+              file: {
+                filename: "portfolio.pdf",
+                file_data: `data:application/pdf;base64,${base64}`,
+              },
+            },
+          ],
         },
       ],
     }),
     signal: AbortSignal.timeout(90000),
   });
 
-  if (!resposta.ok) throw new Error(`Erro da OpenAI: ${resposta.status}`);
+  if (!resposta.ok) {
+    const detalhe = await resposta.text().catch(() => "");
+    console.error("OpenAI PDF falhou:", resposta.status, detalhe.slice(0, 300));
+    throw new Error(`Erro da OpenAI: ${resposta.status}`);
+  }
 
   const dados = await resposta.json();
-  const parsed = JSON.parse(dados.choices[0].message.content) as {
-    resumo?: string;
-  };
-  return parsed.resumo ?? "";
+  return dados.choices[0].message.content ?? "";
 }
 
 export async function POST(request: Request) {
