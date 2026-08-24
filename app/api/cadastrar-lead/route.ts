@@ -54,7 +54,7 @@ type DadosMinhaReceita = {
 type RespostaPlaces = {
   places?: Array<{
     internationalPhoneNumber?: string;
-    formattedPhoneNumber?: string;
+    nationalPhoneNumber?: string;
   }>;
 };
 
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
               "Content-Type": "application/json",
               "X-Goog-Api-Key": CHAVE_MAPS,
               "X-Goog-FieldMask":
-                "places.internationalPhoneNumber,places.formattedPhoneNumber",
+                "places.internationalPhoneNumber,places.nationalPhoneNumber",
             },
             body: JSON.stringify({
               textQuery: termo,
@@ -273,12 +273,12 @@ export async function POST(req: NextRequest) {
           const lugar = (d.places ?? []).find(
             (p) =>
               p.internationalPhoneNumber ||
-              p.formattedPhoneNumber
+              p.nationalPhoneNumber
           );
 
           const telMaps =
             lugar?.internationalPhoneNumber ??
-            lugar?.formattedPhoneNumber ??
+            lugar?.nationalPhoneNumber ??
             null;
 
           if (

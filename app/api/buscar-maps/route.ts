@@ -13,7 +13,7 @@ type RespostaPlaces = {
   places?: Array<{
     displayName?: { text?: string };
     internationalPhoneNumber?: string;
-    formattedPhoneNumber?: string;
+    nationalPhoneNumber?: string;
     websiteUri?: string;
   }>;
 };
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": CHAVE_MAPS,
           "X-Goog-FieldMask":
-            "places.displayName,places.internationalPhoneNumber,places.formattedPhoneNumber,places.websiteUri",
+            "places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber",
         },
         body: JSON.stringify({
           textQuery: termo,
@@ -138,11 +138,11 @@ export async function POST(req: NextRequest) {
   const lugar = (dados.places ?? []).find(
     (p) =>
       typeof p.internationalPhoneNumber === "string" ||
-      typeof p.formattedPhoneNumber === "string"
+      typeof p.nationalPhoneNumber === "string"
   );
 
   const telefoneMaps =
-    lugar?.internationalPhoneNumber ?? lugar?.formattedPhoneNumber ?? null;
+    lugar?.internationalPhoneNumber ?? lugar?.nationalPhoneNumber ?? null;
 
   if (!telefoneMaps) {
     return NextResponse.json(
