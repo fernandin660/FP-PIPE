@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, usuarioId } = gate.ctx!;
+    const { supabase, orgId } = gate.ctx!;
 
     const corpo = await request.json();
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const { data: listaCriada, error: erroLista } = await supabase
       .from("listas")
       .insert({
-        usuario_id: usuarioId,
+        organizacao_id: orgId,
         nome,
         segmentos,
         icp_resumo: icpResumo,
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const { data: linhasEmpresas } = await supabase
       .from("companies")
       .select("id, cnpj, contato_desbloqueado_em")
-      .eq("usuario_id", usuarioId)
+      .eq("organizacao_id", orgId)
       .in("cnpj", leadsUnicos);
 
     const todas = linhasEmpresas ?? [];
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       const { data: creditos } = await admin
         .from("creditos_contatos")
         .select("saldo")
-        .eq("usuario_id", usuarioId)
+        .eq("organizacao_id", orgId)
         .maybeSingle();
 
       const saldoBuscador = creditos?.saldo ?? 0;
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
           saldo: Math.max(0, saldoBuscador - bloqueadas.length),
           atualizado_em: agora,
         })
-        .eq("usuario_id", usuarioId);
+        .eq("organizacao_id", orgId);
 
       await admin
         .from("companies")
@@ -138,6 +138,7 @@ export async function POST(request: Request) {
       todas.map((linha: { id: string }) => ({
         lista_id: listaCriada.id,
         company_id: linha.id,
+        organizacao_id: orgId,
       }))
     );
 
@@ -151,18 +152,18 @@ export async function POST(request: Request) {
         const { data: saldoAtual } = await admin
           .from("creditos_ia")
           .select("saldo")
-          .eq("usuario_id", usuarioId)
+          .eq("organizacao_id", orgId)
           .maybeSingle();
 
         if (saldoAtual) {
           await admin
             .from("creditos_ia")
             .update({ saldo: saldoAtual.saldo + ganhoIa, atualizado_em: agora })
-            .eq("usuario_id", usuarioId);
+            .eq("organizacao_id", orgId);
         } else {
           await admin
             .from("creditos_ia")
-            .insert({ usuario_id: usuarioId, saldo: ganhoIa, atualizado_em: agora });
+            .insert({ organizacao_id: orgId, saldo: ganhoIa, atualizado_em: agora });
         }
       }
     }

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (gate.resposta) {
     return gate.resposta;
   }
-  const { usuarioId } = gate.ctx!;
+  const { orgId } = gate.ctx!;
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const { data: empresa } = await admin
     .from("companies")
     .select("id, contato_desbloqueado_em")
-    .eq("usuario_id", usuarioId)
+    .eq("organizacao_id", orgId)
     .eq("cnpj", cnpj)
     .maybeSingle();
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const { data: creditos } = await admin
     .from("creditos_contatos")
     .select("saldo")
-    .eq("usuario_id", usuarioId)
+    .eq("organizacao_id", orgId)
     .maybeSingle();
 
   const saldoAtual = creditos?.saldo ?? 0;
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       saldo: Math.max(0, saldoAtual - 1),
       atualizado_em: agora,
     })
-    .eq("usuario_id", usuarioId);
+    .eq("organizacao_id", orgId);
 
   return NextResponse.json({
     ok: true,

@@ -311,6 +311,7 @@ export default function Home() {
   // Moeda de lead (desbloqueio/salvamento via Anymail Finder),
   // separada das buscas pra não confundir.
   const [saldoBuscador, setSaldoBuscador] = useState<number | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [empresasDesbloqueadas, setEmpresasDesbloqueadas] =
     useState<Set<string>>(new Set());
   const [modalCompraAberto, setModalCompraAberto] = useState(false);
@@ -347,16 +348,31 @@ export default function Home() {
     if (!supabase) return;
 
     try {
+      // Busca o contexto da organização (orgId) uma vez.
+      let org = orgId;
+      if (!org) {
+        try {
+          const respostaOrg = await fetch("/api/org");
+          if (respostaOrg.ok) {
+            const dadosOrg = await respostaOrg.json();
+            org = dadosOrg.orgId ?? null;
+            if (org) setOrgId(org);
+          }
+        } catch {
+          // ignora — usa legado por usuario_id
+        }
+      }
+
       const [{ data: listas }, { data: contatos }] = await Promise.all([
         supabase
           .from("creditos")
           .select("saldo")
-          .eq("usuario_id", usuarioId)
+          .eq(org ? "organizacao_id" : "usuario_id", org ?? usuarioId)
           .maybeSingle(),
         supabase
           .from("creditos_contatos")
           .select("saldo")
-          .eq("usuario_id", usuarioId)
+          .eq(org ? "organizacao_id" : "usuario_id", org ?? usuarioId)
           .maybeSingle(),
       ]);
 

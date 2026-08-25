@@ -36,7 +36,7 @@ export async function POST(requisicao: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 
-  const { supabase, usuarioId } = gate.ctx!;
+  const { supabase, orgId } = gate.ctx!;
 
   let corpo: unknown;
   try {
@@ -109,7 +109,7 @@ export async function POST(requisicao: Request) {
   const { data: creditos } = await supabase
     .from("creditos_contatos")
     .select("saldo")
-    .eq("usuario_id", usuarioId)
+    .eq("organizacao_id", orgId)
     .maybeSingle();
 
   let saldo = creditos?.saldo;
@@ -117,7 +117,7 @@ export async function POST(requisicao: Request) {
   if (saldo === null || saldo === undefined) {
     const { data: criada } = await supabase
       .from("creditos_contatos")
-      .insert({ usuario_id: usuarioId, saldo: 5 })
+      .insert({ organizacao_id: orgId, saldo: 5 })
       .select("saldo")
       .maybeSingle();
     saldo = criada?.saldo ?? 0;
@@ -320,7 +320,7 @@ export async function POST(requisicao: Request) {
   await admin
     .from("creditos_contatos")
     .update({ saldo: Math.max(0, (saldo ?? 0) - 1) })
-    .eq("usuario_id", usuarioId);
+    .eq("organizacao_id", orgId);
 
   return NextResponse.json({
     linkedin: melhor.link,

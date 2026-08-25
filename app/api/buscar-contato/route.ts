@@ -2,8 +2,8 @@
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
-import { avaliarAcesso } from "../../../lib/planos";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
@@ -122,33 +122,11 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const supabase = await criarClienteSupabaseServidor();
-  if (!supabase) {
-    return NextResponse.json(
-      { erro: "AutenticaÃ§Ã£o nÃ£o configurada." },
-      { status: 503 }
-    );
-  }
+  const gate = await exigirAcesso();
+  if (gate.resposta) return gate.resposta;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, usuarioId, orgId, acesso } = gate.ctx!;
 
-  if (!user) {
-    return NextResponse.json({ erro: "FaÃ§a login novamente." }, { status: 401 });
-  }
-
-  const acesso = await avaliarAcesso(supabase, user.id);
-  if (acesso.expirada) {
-    return NextResponse.json(
-      {
-        erro:
-          "Seu plano expirou. Assine ou renove em /planos para usar o Buscador.",
-        motivo: "plano_expirado",
-      },
-      { status: 403 }
-    );
-  }
   if (!acesso.def.temBuscador) {
     return NextResponse.json(
       {
@@ -193,7 +171,7 @@ export async function POST(requisicao: Request) {
   const { data: perfilDepto } = await supabase
     .from("perfil")
     .select("departamento_uso")
-    .eq("usuario_id", user.id)
+    .eq("usuario_id", usuarioId)
     .maybeSingle();
   const deptoAtual =
     (perfilDepto?.departamento_uso as string | null)?.trim() || "";
@@ -210,7 +188,7 @@ export async function POST(requisicao: Request) {
       const { data: creditosCache } = await supabase
         .from("creditos_contatos")
         .select("saldo")
-        .eq("usuario_id", user.id)
+        .eq("organizacao_id", orgId)
         .maybeSingle();
 
       let saldoCache = creditosCache?.saldo;
@@ -218,7 +196,7 @@ export async function POST(requisicao: Request) {
       if (saldoCache === null || saldoCache === undefined) {
         const { data: criada } = await supabase
           .from("creditos_contatos")
-          .insert({ usuario_id: user.id, saldo: 5 })
+          .insert({ organizacao_id: orgId, saldo: 5 })
           .select("saldo")
           .single();
 
@@ -237,7 +215,7 @@ export async function POST(requisicao: Request) {
       await admin
         .from("creditos_contatos")
         .update({ saldo: novoSaldoCache })
-        .eq("usuario_id", user.id);
+        .eq("organizacao_id", orgId);
 
       const contatoCache = {
         linkedin_url: linkedinNormalizado,
@@ -249,7 +227,7 @@ export async function POST(requisicao: Request) {
 
       const existenteCache = await localizarContatoExistente(
         supabase,
-        user.id,
+        usuarioId,
         linkedinNormalizado
       );
 
@@ -274,7 +252,7 @@ export async function POST(requisicao: Request) {
           .from("contatos")
           .insert({
             ...contatoCache,
-            usuario_id: user.id,
+            usuario_id: usuarioId,
             emails: [contatoCache.email],
             telefones: [],
           })
@@ -302,7 +280,7 @@ export async function POST(requisicao: Request) {
   const { data: creditosAtuais } = await supabase
     .from("creditos_contatos")
     .select("saldo")
-    .eq("usuario_id", user.id)
+    .eq("organizacao_id", orgId)
     .maybeSingle();
 
   let saldo = creditosAtuais?.saldo;
@@ -310,7 +288,7 @@ export async function POST(requisicao: Request) {
   if (saldo === null || saldo === undefined) {
     const { data: criada, error: erroCriar } = await admin
       .from("creditos_contatos")
-      .insert({ usuario_id: user.id, saldo: 5 })
+      .insert({ organizacao_id: orgId, saldo: 5 })
       .select("saldo")
       .single();
 
@@ -381,7 +359,7 @@ export async function POST(requisicao: Request) {
   await admin
     .from("creditos_contatos")
     .update({ saldo: novoSaldo })
-    .eq("usuario_id", user.id);
+    .eq("organizacao_id", orgId);
 
   const contato = {
     linkedin_url: linkedinNormalizado,
@@ -410,7 +388,7 @@ export async function POST(requisicao: Request) {
 
   const existente = await localizarContatoExistente(
     supabase,
-    user.id,
+    usuarioId,
     linkedinNormalizado
   );
 
@@ -435,7 +413,7 @@ export async function POST(requisicao: Request) {
       .from("contatos")
       .insert({
         ...contato,
-        usuario_id: user.id,
+        usuario_id: usuarioId,
         emails: [contato.email],
         telefones: [],
       })
