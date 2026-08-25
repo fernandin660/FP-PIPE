@@ -49,11 +49,17 @@ export default function EquipePage() {
     setAceitandoConvite(true);
     try {
       const res = await fetch("/api/org/convite/aceitar", { method: "POST" });
+
+      if (res.status === 401) {
+        // Não logado → redireciona pra login com retorno automático
+        window.location.href = "/login?next=" + encodeURIComponent("/equipe?convite=aceitar");
+        return;
+      }
+
       const dados = await res.json();
 
       if (res.ok) {
         setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite aceito!" });
-        // Limpa a URL e recarrega os dados
         window.history.replaceState({}, "", "/equipe");
         await carregarOrg();
       } else {
