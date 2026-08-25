@@ -4,6 +4,7 @@ import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
+import { enriquecerTelefonesContato } from "../../../lib/enriquecimento";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
@@ -262,6 +263,20 @@ export async function POST(requisicao: Request) {
         salvoCache = data;
       }
 
+      // Enriquecimento: tenta encontrar telefone/website da empresa
+      const enrichCache = await enriquecerTelefonesContato(
+        linkedinNormalizado,
+        contatoCache.empresa ?? ""
+      );
+
+      // Atualiza contato com telefones encontrados
+      if (enrichCache.telefones.length > 0 && salvoCache?.id) {
+        await supabase
+          .from("contatos")
+          .update({ telefones: enrichCache.telefones })
+          .eq("id", salvoCache.id);
+      }
+
       return NextResponse.json({
         encontrado: true,
         doCache: true,
@@ -270,7 +285,11 @@ export async function POST(requisicao: Request) {
             ...contatoCache,
             id: existenteCache?.id,
             company_id: existenteCache?.company_id ?? null,
+            telefones: enrichCache.telefones,
           },
+        telefones: enrichCache.telefones,
+        website: enrichCache.website,
+        fontes: enrichCache.fontes,
         saldoContatos: novoSaldoCache,
       });
     }
@@ -370,6 +389,12 @@ export async function POST(requisicao: Request) {
     email: emailVerificado,
   };
 
+  // Enriquecimento: tenta encontrar telefone/website da empresa
+  const enrich = await enriquecerTelefonesContato(
+    linkedinNormalizado,
+    contato.empresa ?? ""
+  );
+
   // Guarda no cache global para futuras buscas do mesmo perfil,
   // amarrado ao departamento de uso do vendedor que buscou.
   if (admin) {
@@ -402,6 +427,7 @@ export async function POST(requisicao: Request) {
         nome: contato.nome,
         cargo: contato.cargo,
         empresa: contato.empresa,
+        telefones: enrich.telefones.length > 0 ? enrich.telefones : undefined,
       })
       .eq("id", existente.id)
       .select()
@@ -415,7 +441,7 @@ export async function POST(requisicao: Request) {
         ...contato,
         usuario_id: usuarioId,
         emails: [contato.email],
-        telefones: [],
+        telefones: enrich.telefones,
       })
       .select()
       .single();
@@ -431,7 +457,11 @@ export async function POST(requisicao: Request) {
         ...contato,
         id: existente?.id,
         company_id: existente?.company_id ?? null,
+        telefones: enrich.telefones,
       },
+    telefones: enrich.telefones,
+    website: enrich.website,
+    fontes: enrich.fontes,
     saldoContatos: novoSaldo,
   });
 }
