@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type Membro = {
   id: string;
@@ -25,6 +26,7 @@ type OrgData = {
 };
 
 export default function EquipePage() {
+  const searchParams = useSearchParams();
   const [org, setOrg] = useState<OrgData | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [emailConvite, setEmailConvite] = useState("");
@@ -32,10 +34,39 @@ export default function EquipePage() {
   const [msg, setMsg] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(
     null
   );
+  const [aceitandoConvite, setAceitandoConvite] = useState(false);
 
   useEffect(() => {
-    carregarOrg();
+    // Se veio com ?convite=aceitar, tenta aceitar automaticamente
+    if (searchParams.get("convite") === "aceitar") {
+      aceitarConvite();
+    } else {
+      carregarOrg();
+    }
   }, []);
+
+  async function aceitarConvite() {
+    setAceitandoConvite(true);
+    try {
+      const res = await fetch("/api/org/convite/aceitar", { method: "POST" });
+      const dados = await res.json();
+
+      if (res.ok) {
+        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite aceito!" });
+        // Limpa a URL e recarrega os dados
+        window.history.replaceState({}, "", "/equipe");
+        await carregarOrg();
+      } else {
+        setMsg({ tipo: "erro", texto: dados.erro ?? "Falha ao aceitar convite." });
+        await carregarOrg();
+      }
+    } catch {
+      setMsg({ tipo: "erro", texto: "Erro de conexão ao aceitar convite." });
+      await carregarOrg();
+    } finally {
+      setAceitandoConvite(false);
+    }
+  }
 
   async function carregarOrg() {
     try {

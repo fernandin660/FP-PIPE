@@ -7,21 +7,18 @@ import {
   type Ciclo,
   type PlanoChave,
 } from "../../../../lib/planos";
+import { exigirAcesso } from "../../../../lib/gate";
 
 export async function POST(req: Request) {
-  const supabase = await criarClienteSupabaseServidor();
-  if (!supabase) {
-    return NextResponse.json(
-      { erro: "Autenticação não configurada." },
-      { status: 500 }
-    );
-  }
+  const gate = await exigirAcesso();
+  if (gate.resposta) return gate.resposta;
 
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData?.user) {
+  const { supabase, papel } = gate.ctx!;
+
+  if (papel !== "admin") {
     return NextResponse.json(
-      { erro: "Faça login para assinar um plano." },
-      { status: 401 }
+      { erro: "Apenas o administrador da empresa pode assinar ou alterar planos." },
+      { status: 403 }
     );
   }
 
@@ -74,8 +71,8 @@ export async function POST(req: Request) {
         };
 
   // external_reference propaga com segurança até o webhook:
-  // quem comprou, qual plano e qual ciclo.
-  const referenciaExterna = `${userData.user.id}|${plano}|${ciclo}`;
+  // quem comprou, qual plano, qual ciclo e qual organização.
+  const referenciaExterna = `${gate.ctx!.usuarioId}|${plano}|${ciclo}|${gate.ctx!.orgId}`;
 
   const respostaMp = await fetch(
     "https://api.mercadopago.com/checkout/preferences",

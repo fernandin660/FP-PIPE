@@ -82,8 +82,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, status: pagamento.status });
   }
 
-  // Formato: "<usuario_id>|<plano>|<ciclo>" (definido no checkout).
-  const [usuarioId, planoBruto, cicloBruto] =
+  // Formato: "<usuario_id>|<plano>|<ciclo>|<org_id>" (definido no checkout).
+  const [usuarioId, planoBruto, cicloBruto, orgId] =
     (pagamento.external_reference as string | undefined)?.split("|") || [];
   const plano = (pagamento.metadata?.plano ||
     planoBruto ||
@@ -101,6 +101,22 @@ export async function POST(req: Request) {
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
     return NextResponse.json({ erro: "Banco não configurado." }, { status: 500 });
+  }
+
+  // Verifica se o comprador é admin da organização
+  if (orgId) {
+    const { data: membro } = await admin
+      .from("organizacao_membros")
+      .select("papel")
+      .eq("organizacao_id", orgId)
+      .eq("usuario_id", usuarioId)
+      .eq("status", "ativo")
+      .maybeSingle();
+
+    if (!membro || membro.papel !== "admin") {
+      console.error(`Webhook MP rejeitado: usuário ${usuarioId} não é admin da org ${orgId}`);
+      return NextResponse.json({ erro: "Comprador não é admin." }, { status: 403 });
+    }
   }
 
   const agora = new Date();

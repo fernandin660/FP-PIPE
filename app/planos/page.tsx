@@ -166,11 +166,13 @@ function CartaoPlano({
   ciclo,
   carregando,
   aoAssinar,
+  ehAdmin,
 }: {
   plano: (typeof planos)[number];
   ciclo: Ciclo;
   carregando: PlanoChave | null;
   aoAssinar: (chave: PlanoChave) => void;
+  ehAdmin: boolean;
 }) {
   const preco = ciclo === "mensal" ? plano.precoMensal : plano.precoAnual;
 
@@ -216,17 +218,23 @@ function CartaoPlano({
         ))}
       </ul>
 
-      <button
-        onClick={() => aoAssinar(plano.chave)}
-        disabled={carregando !== null}
-        className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
-          plano.destaques
-            ? "bg-pipe-lime text-black hover:opacity-90"
-            : "border border-pipe-border text-white hover:border-pipe-blue"
-        }`}
-      >
-        {carregando === plano.chave ? "Abrindo pagamento..." : plano.cta}
-      </button>
+      {ehAdmin ? (
+        <button
+          onClick={() => aoAssinar(plano.chave)}
+          disabled={carregando !== null}
+          className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
+            plano.destaques
+              ? "bg-pipe-lime text-black hover:opacity-90"
+              : "border border-pipe-border text-white hover:border-pipe-blue"
+          }`}
+        >
+          {carregando === plano.chave ? "Abrindo pagamento..." : plano.cta}
+        </button>
+      ) : (
+        <div className="mt-7 block w-full text-center font-semibold rounded-lg py-3 bg-gray-800 text-gray-400 border border-gray-700">
+          Peça ao administrador
+        </div>
+      )}
 
       <p className="text-pipe-muted/60 text-[11px] text-center mt-2">
         {ciclo === "mensal"
@@ -245,6 +253,7 @@ export default function Planos() {
     null
   );
   const [erro, setErro] = useState("");
+  const [papel, setPapel] = useState<string | null>(null);
   const [avisoStatus, setAvisoStatus] = useState<{
     tipo: "ok" | "pendente" | "falhou";
     texto: string;
@@ -271,6 +280,12 @@ export default function Planos() {
           "😕 O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
       });
     }
+
+    // Verifica se é admin
+    fetch("/api/org")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.papel) setPapel(d.papel); })
+      .catch(() => {});
   }, []);
 
   async function assinar(planoChave: PlanoChave) {
@@ -423,6 +438,7 @@ export default function Planos() {
               ciclo={ciclo}
               carregando={carregandoPlano}
               aoAssinar={assinar}
+              ehAdmin={papel === "admin"}
             />
           ))}
       </section>
@@ -449,6 +465,7 @@ export default function Planos() {
               ciclo={ciclo}
               carregando={carregandoPlano}
               aoAssinar={assinar}
+              ehAdmin={papel === "admin"}
             />
           ))}
       </section>
