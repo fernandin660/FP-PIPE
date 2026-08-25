@@ -101,7 +101,22 @@ export async function POST(request: Request) {
 
       const saldoBuscador = creditos?.saldo ?? 0;
 
-      if (saldoBuscador < bloqueadas.length) {
+      const agora = new Date().toISOString();
+
+      // Débito atômico: só debita se saldo >= quantidade necessária.
+      // Substitui a verificação + débito separados para evitar race condition.
+      const { data: novoSaldo } = await admin
+        .from("creditos_contatos")
+        .update({
+          saldo: saldoBuscador - bloqueadas.length,
+          atualizado_em: agora,
+        })
+        .eq("organizacao_id", orgId)
+        .gte("saldo", bloqueadas.length)
+        .select("saldo")
+        .maybeSingle();
+
+      if (!novoSaldo) {
         return NextResponse.json(
           {
             erro: `Para salvar esta lista faltam ${bloqueadas.length} desbloqueio(s), mas você tem só ${saldoBuscador} crédito(s) de lead. Compre mais em /planos ou desmarque alguns leads.`,
@@ -110,17 +125,6 @@ export async function POST(request: Request) {
           { status: 403 }
         );
       }
-
-      const agora = new Date().toISOString();
-
-      // Débito com cliente admin: usuário não manipula via RLS.
-      await admin
-        .from("creditos_contatos")
-        .update({
-          saldo: Math.max(0, saldoBuscador - bloqueadas.length),
-          atualizado_em: agora,
-        })
-        .eq("organizacao_id", orgId);
 
       await admin
         .from("companies")

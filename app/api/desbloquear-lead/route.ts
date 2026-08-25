@@ -77,35 +77,55 @@ export async function POST(request: Request) {
 
   const agora = new Date().toISOString();
 
-  // Marca PRIMEIRO: se falhar (ex.: coluna ainda não criada), o
-  // usuário não é cobrado. Cobrar e falhar seria perder crédito à toa.
+  // Débito atômico: uma única query que só debita se saldo > 0.
+  // Evita race condition (requests simultâneos drenando saldo negativo).
+  const { data: novoSaldo } = await admin
+    .from("creditos_contatos")
+    .update({
+      saldo: saldoAtual - 1,
+      atualizado_em: agora,
+    })
+    .eq("organizacao_id", orgId)
+    .gt("saldo", 0)
+    .select("saldo")
+    .maybeSingle();
+
+  if (!novoSaldo) {
+    return NextResponse.json(
+      {
+        erro:
+          "Você usou seus créditos de lead. Compre mais ou faça upgrade em /planos.",
+        motivo: "limite_creditos",
+      },
+      { status: 403 }
+    );
+  }
+
+  // Marca o lead como desbloqueado (só após débito confirmado)
   const { error: erroMarca } = await admin
     .from("companies")
     .update({ contato_desbloqueado_em: agora })
     .eq("id", empresa.id);
 
   if (erroMarca) {
+    // Reverte o débito se falhar ao marcar
+    await admin
+      .from("creditos_contatos")
+      .update({ saldo: saldoAtual, atualizado_em: agora })
+      .eq("organizacao_id", orgId);
+
     return NextResponse.json(
       {
         erro:
-          "Não conseguimos registrar o desbloqueio. Rode o SQL supabase-contato-desbloqueado.sql no Supabase.",
+          "Não conseguimos registrar o desbloqueio. Tente novamente.",
       },
       { status: 500 }
     );
   }
 
-  // Débito com cliente admin: usuário não pode manipular via RLS.
-  await admin
-    .from("creditos_contatos")
-    .update({
-      saldo: Math.max(0, saldoAtual - 1),
-      atualizado_em: agora,
-    })
-    .eq("organizacao_id", orgId);
-
   return NextResponse.json({
     ok: true,
     jaDesbloqueado: false,
-    novoSaldo: Math.max(0, saldoAtual - 1),
+    novoSaldo: novoSaldo.saldo,
   });
 }

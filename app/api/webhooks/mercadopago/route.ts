@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     : "mensal") as Ciclo;
 
   const definicao = DEFINICAO_PLANOS[plano];
-  if (!usuarioId || !definicao || plano === "teste") {
+  if (!usuarioId || !definicao || plano === "teste" || !orgId) {
     console.error("Webhook MP com referência inválida:", pagamento.external_reference);
     return NextResponse.json({ ok: true });
   }
@@ -104,19 +104,17 @@ export async function POST(req: Request) {
   }
 
   // Verifica se o comprador é admin da organização
-  if (orgId) {
-    const { data: membro } = await admin
-      .from("organizacao_membros")
-      .select("papel")
-      .eq("organizacao_id", orgId)
-      .eq("usuario_id", usuarioId)
-      .eq("status", "ativo")
-      .maybeSingle();
+  const { data: membro } = await admin
+    .from("organizacao_membros")
+    .select("papel")
+    .eq("organizacao_id", orgId)
+    .eq("usuario_id", usuarioId)
+    .eq("status", "ativo")
+    .maybeSingle();
 
-    if (!membro || membro.papel !== "admin") {
-      console.error(`Webhook MP rejeitado: usuário ${usuarioId} não é admin da org ${orgId}`);
-      return NextResponse.json({ erro: "Comprador não é admin." }, { status: 403 });
-    }
+  if (!membro || membro.papel !== "admin") {
+    console.error(`Webhook MP rejeitado: usuário ${usuarioId} não é admin da org ${orgId}`);
+    return NextResponse.json({ erro: "Comprador não é admin." }, { status: 403 });
   }
 
   const agora = new Date();

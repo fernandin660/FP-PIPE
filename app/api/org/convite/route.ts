@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     .eq("id", orgId)
     .single();
 
-  const nomeOrg = org?.nome ?? "sua empresa";
+  const nomeOrg = (org?.nome ?? "sua empresa").replace(/[<>"'&]/g, "");
   const linkAceitar = `${URL_APP}/equipe?convite=aceitar`;
 
   // Envia e-mail via Resend
