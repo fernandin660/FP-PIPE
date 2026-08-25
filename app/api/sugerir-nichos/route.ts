@@ -1,5 +1,5 @@
 import { exigirAcesso } from "../../../lib/gate";
-import { registrarUso } from "../../../lib/avisos";
+import { chamarIa } from "../../../lib/ia";
 
 export async function POST(request: Request) {
   try {
@@ -21,38 +21,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const chave = process.env.OPENAI_API_KEY;
-    const usarOpenai = process.env.USAR_OPENAI === "true";
-
-    if (!chave || !usarOpenai) {
-      return Response.json(
-        { erro: "IA não configurada neste ambiente." },
-        { status: 503 }
-      );
-    }
-
-    void registrarUso("openai");
-
-    const resposta = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${chave}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content:
-                'Você é especialista em prospecção B2B no Brasil. Responda APENAS com JSON válido no formato {"nichos": ["..."]}.',
-            },
-            {
-              role: "user",
-              content: `
+    const resposta = await chamarIa(
+      `
 Empresa que vende:
 Área de atuação: ${areaAtuacao || "(não informada)"}
 Produtos/serviços: ${produtosServicos || "(não informado)"}
@@ -63,20 +33,13 @@ Regras:
 - Inclua também 2 a 3 itens adjacentes óbvios que essa empresa provavelmente vende mas não citou.
 - Máximo 6 palavras por item, começando com substantivo.
 - Itens distintos entre si, ordenados do mais central ao mais complementar.
+
+Responda APENAS com JSON válido no formato {"nichos": ["..."]}.
 `.trim(),
-            },
-          ],
-        }),
-        signal: AbortSignal.timeout(60000),
-      }
+      { maxTokens: 800, temperature: 0.7, timeoutMs: 60000 }
     );
 
-    if (!resposta.ok) {
-      throw new Error(`Erro da OpenAI: ${resposta.status}`);
-    }
-
-    const dados = await resposta.json();
-    const conteudo = String(dados.choices?.[0]?.message?.content ?? "{}");
+    const conteudo = String(resposta.response ?? "{}");
 
     let nichos: string[] = [];
 

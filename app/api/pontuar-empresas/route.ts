@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { chamarIa } from "../../../lib/ia";
 import { registrarUso } from "../../../lib/avisos";
 import { exigirAcesso } from "../../../lib/gate";
 
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
-const URL_GEMINI =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const MAX_EMPRESAS = 50;
 const TAMANHO_LOTE_OPENAI = 10;
 const CONCORRENCIA_ENRIQUECIMENTO = 5;
@@ -25,110 +24,6 @@ type EmpresaEnriquecida = EmpresaEntrada & {
   decisorNome?: string | null;
   decisorCargo?: string | null;
 };
-
-async function chamarOpenAI(
-  prompt: string
-): Promise<{ response: string }> {
-  if (process.env.USAR_OPENAI !== "true") {
-    throw new Error("OpenAI desativada.");
-  }
-  const chave = process.env.OPENAI_API_KEY;
-  if (!chave) throw new Error("Chave da OpenAI não configurada.");
-
-  void registrarUso("openai");
-
-  const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${chave}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é analista sênior de inteligência comercial B2B no Brasil. Responda SEMPRE apenas com JSON válido.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-      max_tokens: 4000,
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-
-  if (!resposta.ok) {
-    throw new Error(`Erro da OpenAI: ${resposta.status}`);
-  }
-
-  const dados = await resposta.json();
-  return { response: dados.choices[0].message.content };
-}
-
-// Plano B de IA: Google Gemini (camada gratuita, JSON nativo).
-async function chamarGemini(prompt: string): Promise<string> {
-  const chave = process.env.GEMINI_API_KEY;
-  if (!chave) throw new Error("Chave do Gemini não configurada.");
-
-  void registrarUso("gemini");
-
-  const resposta = await fetch(
-    `${URL_GEMINI}?key=${encodeURIComponent(chave)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 4000,
-          responseMimeType: "application/json",
-        },
-      }),
-      signal: AbortSignal.timeout(120000),
-    }
-  );
-
-  if (!resposta.ok) {
-    throw new Error(`Erro do Gemini: ${resposta.status}`);
-  }
-
-  const dados = (await resposta.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-
-  const texto =
-    dados.candidates?.[0]?.content?.parts
-      ?.map((parte) => parte.text ?? "")
-      .join("") ?? "";
-
-  if (!texto) throw new Error("Gemini respondeu vazio.");
-  return texto;
-}
-
-// Cadeia de IAs: OpenAI primeiro, Gemini como reserva. Se ambas
-// caírem, quem chamada decide (hoje: heurística local).
-async function chamarIaComFallback(
-  prompt: string
-): Promise<{ response: string; provedor: "openai" | "gemini" }> {
-  try {
-    const resposta = await chamarOpenAI(prompt);
-    return { ...resposta, provedor: "openai" };
-  } catch {
-    try {
-      return { response: await chamarGemini(prompt), provedor: "gemini" };
-    } catch (erroGemini) {
-      throw new Error(
-        `OpenAI e Gemini indisponíveis (${String(erroGemini).slice(0, 80)})`
-      );
-    }
-  }
-}
 
 type Socio = {
   nome_socio?: string;
@@ -518,7 +413,11 @@ ${criterioEmail}
 RESPONDA APENAS COM ESTE FORMATO JSON:
 {"avaliacoes":[{"cnpj":"numero_cnpj_apenas_digitos","score":75,"motivo":"uma frase curta em português explicando o potencial desta empresa PARA ESTE cliente específico","cargo_prioritario":"ex.: Gerente de TI","email_prospeccao":{"assunto":"assunto curto","mensagem":"corpo completo do e-mail"}}]}`;
 
-      const resposta = await chamarIaComFallback(prompt);
+      const resposta = await chamarIa(prompt, {
+        maxTokens: 4000,
+        temperature: 0.4,
+        timeoutMs: 120000,
+      });
 
       try {
         const parsed = JSON.parse(resposta.response) as {

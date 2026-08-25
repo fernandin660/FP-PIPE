@@ -2,7 +2,7 @@ import http from "http";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { conhecimentoSegmentos } from "../../../lib/conhecimento-segmentos";
-import { registrarUso } from "../../../lib/avisos";
+import { chamarIa } from "../../../lib/ia";
 
 export const runtime = "nodejs";
 
@@ -116,49 +116,6 @@ async function buscarTextoSite(urlEntrada: string): Promise<string> {
   } catch {
     return "";
   }
-}
-
-async function chamarOpenAI(
-  prompt: string
-): Promise<{ response: string }> {
-  if (process.env.USAR_OPENAI !== "true") {
-    throw new Error("OpenAI desativada (USAR_OPENAI != true).");
-  }
-
-  const chave = process.env.OPENAI_API_KEY;
-  if (!chave) throw new Error("Chave da OpenAI não configurada.");
-
-  void registrarUso("openai");
-
-  const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${chave}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um especialista em prospecção B2B e inteligência comercial no Brasil. Responda SEMPRE apenas com JSON válido, sem texto fora do JSON.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 2500,
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-
-  if (!resposta.ok) {
-    throw new Error(`Erro da OpenAI: ${resposta.status}`);
-  }
-
-  const dados = await resposta.json();
-  return { response: dados.choices[0].message.content };
 }
 
 export async function POST(request: Request) {
@@ -290,7 +247,11 @@ Retorne APENAS um JSON válido:
     let respostaIA: { response: string };
 
     try {
-      respostaIA = await chamarOpenAI(prompt);
+      respostaIA = await chamarIa(prompt, {
+        maxTokens: 2500,
+        temperature: 0.7,
+        timeoutMs: 120000,
+      });
       console.log("Resposta recebida da OpenAI!");
     } catch (erroOpenAI) {
       console.error(

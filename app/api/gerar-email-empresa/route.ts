@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { limparNomeEmpresa } from "../../../lib/linkedin-links";
-import { registrarUso } from "../../../lib/avisos";
+import { chamarIa } from "../../../lib/ia";
 import { exigirAcesso } from "../../../lib/gate";
 
 export const runtime = "nodejs";
@@ -21,53 +21,6 @@ type EmpresaEntrada = {
   perfilVendedor?: string;
 };
 
-async function chamarOpenAI(
-  prompt: string
-): Promise<{ assunto: string; mensagem: string }> {
-  const chave = process.env.OPENAI_API_KEY;
-
-  if (!chave) throw new Error("Chave da OpenAI não configurada.");
-
-  void registrarUso("openai");
-
-  const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${chave}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um especialista em prospecção B2B no Brasil. Responda SEMPRE apenas com JSON válido.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 700,
-    }),
-    signal: AbortSignal.timeout(60000),
-  });
-
-  if (!resposta.ok) {
-    throw new Error(`Erro da OpenAI: ${resposta.status}`);
-  }
-
-  const dados = await resposta.json();
-  const parsed = JSON.parse(dados.choices[0].message.content) as {
-    assunto?: string;
-    mensagem?: string;
-  };
-
-  return {
-    assunto: parsed.assunto ?? "",
-    mensagem: parsed.mensagem ?? "",
-  };
-}
 
 export async function POST(request: Request) {
   try {
@@ -138,9 +91,21 @@ ${instrucaoSaudacao}
 RESPONDA APENAS COM ESTE JSON:
 {"assunto":"assunto curto com até 60 caracteres","mensagem":"corpo completo do e-mail"}`;
 
-    const resultado = await chamarOpenAI(prompt);
+    const { response } = await chamarIa(prompt, {
+      maxTokens: 700,
+      temperature: 0.7,
+      timeoutMs: 60000,
+    });
 
-    return NextResponse.json(resultado);
+    const parsed = JSON.parse(response) as {
+      assunto?: string;
+      mensagem?: string;
+    };
+
+    return NextResponse.json({
+      assunto: parsed.assunto ?? "",
+      mensagem: parsed.mensagem ?? "",
+    });
   } catch {
     return NextResponse.json(
       { erro: "Não conseguimos gerar o e-mail agora. Tente novamente." },

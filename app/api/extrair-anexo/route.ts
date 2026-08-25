@@ -6,6 +6,14 @@ import { registrarUso } from "../../../lib/avisos";
 export const runtime = "nodejs";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+const URL_GEMINI =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+const INSTRUCAO_EXTRACAO =
+  "Esta imagem faz parte do portfólio de uma empresa (print de site, slide, catálogo, diagrama etc.). Extraia e resuma em português, em até 200 palavras: o que a empresa vende, serviços/produtos citados, público-alvo e diferenciais. Responda apenas o texto corrido.";
+
+const INSTRUCAO_EXTRACAO_PDF =
+  "O arquivo anexo é um documento do portfólio de uma empresa. Extraia e resuma em português, em até 200 palavras: o que a empresa vende, produtos/serviços citados, público-alvo e diferenciais. Responda apenas o texto corrido.";
 
 async function extrairDeImagem(
   bytes: ArrayBuffer,
@@ -28,7 +36,7 @@ async function extrairDeImagem(
           content: [
             {
               type: "text",
-              text: "Esta imagem faz parte do portfólio de uma empresa (print de site, slide, catálogo, diagrama etc.). Extraia e resuma em português, em até 200 palavras: o que a empresa vende, serviços/produtos citados, público-alvo e diferenciais. Responda apenas o texto corrido.",
+              text: INSTRUCAO_EXTRACAO,
             },
             {
               type: "image_url",
@@ -73,7 +81,7 @@ async function extrairDePdf(
           content: [
             {
               type: "text",
-              text: 'O arquivo anexo é um documento do portfólio de uma empresa. Extraia e resuma em português, em até 200 palavras: o que a empresa vende, produtos/serviços citados, público-alvo e diferenciais. Responda apenas o texto corrido.',
+              text: INSTRUCAO_EXTRACAO_PDF,
             },
             {
               type: "file",
@@ -97,6 +105,63 @@ async function extrairDePdf(
 
   const dados = await resposta.json();
   return dados.choices[0].message.content ?? "";
+}
+
+// Plano B multimodal: Gemini lê imagem e PDF via inline_data.
+async function extrairComGemini(
+  bytes: ArrayBuffer,
+  tipo: "pdf" | "imagem"
+): Promise<string> {
+  const chave = process.env.GEMINI_API_KEY;
+  if (!chave) throw new Error("Chave do Gemini não configurada.");
+
+  void registrarUso("gemini");
+
+  const base64 = Buffer.from(bytes).toString("base64");
+  const mimeType = tipo === "pdf" ? "application/pdf" : "image/jpeg";
+
+  const resposta = await fetch(
+    `${URL_GEMINI}?key=${encodeURIComponent(chave)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text:
+                  tipo === "pdf"
+                    ? INSTRUCAO_EXTRACAO_PDF
+                    : INSTRUCAO_EXTRACAO,
+              },
+              { inline_data: { mime_type: mimeType, data: base64 } },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 700 },
+      }),
+      signal: AbortSignal.timeout(90000),
+    }
+  );
+
+  if (!resposta.ok) {
+    throw new Error(`Erro do Gemini: ${resposta.status}`);
+  }
+
+  const dados = (await resposta.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+
+  const texto =
+    dados.candidates?.[0]?.content?.parts
+      ?.map((parte) => parte.text ?? "")
+      .join("") ?? "";
+
+  if (!texto) throw new Error("Gemini respondeu vazio.");
+  return texto;
 }
 
 export async function POST(request: Request) {
@@ -173,12 +238,24 @@ export async function POST(request: Request) {
       );
     }
 
-    void registrarUso("openai");
-
-    const texto =
-      tipo === "pdf"
-        ? await extrairDePdf(bytes, chave)
-        : await extrairDeImagem(bytes, chave);
+    // Cadeia: OpenAI primeiro; se cair, Gemini lê o anexo.
+    let texto: string;
+    try {
+      void registrarUso("openai");
+      texto =
+        tipo === "pdf"
+          ? await extrairDePdf(bytes, chave)
+          : await extrairDeImagem(bytes, chave);
+    } catch (erroOpenai) {
+      console.warn(
+        "Extração via OpenAI falhou, tentando Gemini:",
+        erroOpenai instanceof Error ? erroOpenai.message : erroOpenai
+      );
+      texto = await extrairComGemini(
+        bytes,
+        tipo === "pdf" ? "pdf" : "imagem"
+      );
+    }
 
     return NextResponse.json({ texto });
   } catch (erroExtracao) {
