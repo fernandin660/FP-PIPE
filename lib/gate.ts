@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "./supabase/server";
 import { avaliarAcesso, type AcessoUsuario } from "./planos";
+import { resolverOrg, type ContextoOrg, type PapelOrg } from "./org";
 
 type ClienteServidor = NonNullable<
   Awaited<ReturnType<typeof criarClienteSupabaseServidor>>
@@ -10,11 +11,14 @@ type ClienteServidor = NonNullable<
 export interface ContextoAcesso {
   supabase: ClienteServidor;
   usuarioId: string;
+  orgId: string;
+  papel: PapelOrg;
   acesso: AcessoUsuario;
 }
 
 /**
- * Portao padrao das rotas de API: exige login e plano ativo.
+ * Portao padrao das rotas de API: exige login, resolve a
+ * organização do usuário e devolve o plano ativo.
  * Quando bloqueia, devolve `resposta` pronta pra retornar ao cliente.
  */
 export async function exigirAcesso(): Promise<{
@@ -44,7 +48,10 @@ export async function exigirAcesso(): Promise<{
     };
   }
 
-  const acesso = await avaliarAcesso(supabase, user.id);
+  const [acesso, contextoOrg] = await Promise.all([
+    avaliarAcesso(supabase, user.id),
+    resolverOrg(supabase, user.id),
+  ]);
 
   if (acesso.expirada) {
     return {
@@ -59,5 +66,13 @@ export async function exigirAcesso(): Promise<{
     };
   }
 
-  return { ctx: { supabase, usuarioId: user.id, acesso } };
+  return {
+    ctx: {
+      supabase,
+      usuarioId: user.id,
+      orgId: contextoOrg.orgId,
+      papel: contextoOrg.papel,
+      acesso,
+    },
+  };
 }

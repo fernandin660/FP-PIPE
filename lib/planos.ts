@@ -17,6 +17,7 @@ export interface DefinicaoPlano {
   temBuscador: boolean;
   buscasMes: number | null;
   internacional: boolean;
+  usuariosInclusos: number;
 }
 
 export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
@@ -29,6 +30,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 5,
     internacional: false,
+    usuariosInclusos: 1,
   },
   silver: {
     nome: "Silver",
@@ -39,6 +41,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: false,
     buscasMes: null,
     internacional: false,
+    usuariosInclusos: 1,
   },
   gold: {
     nome: "Gold",
@@ -49,6 +52,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 400,
     internacional: false,
+    usuariosInclusos: 3,
   },
   platinum: {
     nome: "Platinum",
@@ -59,6 +63,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 1000,
     internacional: false,
+    usuariosInclusos: 6,
   },
   silver_intl: {
     nome: "Silver Internacional",
@@ -69,6 +74,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: false,
     buscasMes: null,
     internacional: true,
+    usuariosInclusos: 1,
   },
   gold_intl: {
     nome: "Gold Internacional",
@@ -79,6 +85,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 400,
     internacional: true,
+    usuariosInclusos: 3,
   },
   platinum_intl: {
     nome: "Platinum Internacional",
@@ -89,6 +96,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 1000,
     internacional: true,
+    usuariosInclusos: 6,
   },
 };
 
@@ -102,6 +110,10 @@ export function precoDoPlano(plano: PlanoChave, ciclo: Ciclo): number {
 
 export function duracaoDias(ciclo: Ciclo): number {
   return ciclo === "anual" ? 365 : 30;
+}
+
+export function podeConvidar(def: DefinicaoPlano): boolean {
+  return def.usuariosInclusos > 1;
 }
 
 // ------------------------------------------------------------
