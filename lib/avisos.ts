@@ -86,6 +86,35 @@ async function enviarAviso(assunto: string, texto: string) {
   }
 }
 
+async function enviarEmailHtml(
+  para: string[],
+  assunto: string,
+  html: string,
+  textoFallback: string
+) {
+  if (!CHAVE_RESEND || para.length === 0) return;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CHAVE_RESEND}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "FP Pipe <avisos@fppipe.com.br>",
+        to: para,
+        subject: assunto,
+        text: textoFallback,
+        html,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    // Falha no e-mail não derruba o fluxo.
+  }
+}
+
 // Conta chamadas por API no mes corrente. Quando bate exatamente no
 // limite configurado, envia UM aviso por e-mail para o dono.
 export async function registrarUso(api: string) {
@@ -159,6 +188,12 @@ export async function verificarCreditosBaixos(orgId: string) {
         .maybeSingle();
 
       const saldo = data?.saldo ?? 0;
+
+      // Quando chega a 0, envia e-mail de upsell (se não enviou ainda)
+      if (saldo === 0) {
+        void enviarUpsellCreditosEsgotados(orgId, tabela);
+      }
+
       if (saldo > 1) continue;
 
       // Verifica se já enviou aviso para esta org+moeda neste mês
@@ -196,5 +231,197 @@ export async function verificarCreditosBaixos(orgId: string) {
     }
   } catch {
     // Alerta nunca derruba o fluxo do usuario.
+  }
+}
+
+// ============================================================
+// E-mail de upsell: enviado quando os créditos gratuitos
+// do usuário chegam a 0. Busca o e-mail do dono da org
+// e envia um e-mail bonito com CTA para /planos.
+// ============================================================
+
+const URL_APP = process.env.NEXT_PUBLIC_APP_URL ?? "https://fp-pipe-psi.vercel.app";
+
+export async function enviarUpsellCreditosEsgotados(
+  orgId: string,
+  moeda: string
+) {
+  try {
+    const admin = criarClienteSupabaseAdmin();
+    if (!admin) return;
+
+    // Dedup: 1 e-mail por org por moeda por mês
+    const mes = new Date().toISOString().slice(0, 7);
+    const chaveUpsell = `upsell:${orgId}:${moeda}`;
+
+    const { data: jaEnviado } = await admin
+      .from("alertas_creditos")
+      .select("id")
+      .eq("chave", chaveUpsell)
+      .eq("mes", mes)
+      .maybeSingle();
+
+    if (jaEnviado) return;
+
+    // Busca dados da organização e do dono
+    const { data: org } = await admin
+      .from("organizacoes")
+      .select("nome, dono_id")
+      .eq("id", orgId)
+      .maybeSingle();
+
+    if (!org?.dono_id) return;
+
+    const { data: dono } = await admin.auth.admin.getUserById(org.dono_id);
+    const emailDono = dono?.user?.email;
+    if (!emailDono) return;
+
+    const nomeOrg = (org.nome ?? "sua empresa").replace(/[<>"'&]/g, "");
+    const nomeMoeda = {
+      creditos: "Buscas",
+      creditos_contatos: "Créditos de Lead",
+      creditos_ia: "Créditos de IA",
+    }[moeda] ?? moeda;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding:0 0 32px;text-align:center;">
+              <span style="font-size:28px;font-weight:800;color:#ffffff;font-family:monospace;">FP <span style="color:#7fff00;">Pipe</span></span>
+            </td>
+          </tr>
+
+          <!-- Card principal -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:16px;padding:40px 36px;border:1px solid #2a2a4a;">
+
+              <!-- Ícone -->
+              <tr>
+                <td style="padding:0 0 24px;text-align:center;font-size:48px;">
+                  🚀
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
+                    Seus créditos acabaram
+                  </h1>
+                  <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;text-align:center;">
+                    ${nomeMoeda} da organização <strong style="color:#7fff00;">${nomeOrg}</strong> esgotou.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Divider -->
+              <tr>
+                <td style="padding:0 0 24px;">
+                  <div style="height:1px;background:linear-gradient(90deg,transparent,#334155,transparent);"></div>
+                </td>
+              </tr>
+
+              <!-- Benefícios -->
+              <tr>
+                <td>
+                  <p style="margin:0 0 16px;font-size:14px;color:#cbd5e1;font-weight:600;">O que você pode fazer agora:</p>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                    <tr>
+                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
+                        <strong>Continuar prospectando</strong> — escolha um plano e volte a gerar listas em segundos
+                      </td>
+                    </tr>
+                    <tr>
+                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
+                        <strong>Desbloquear contatos</strong> — e-mails e telefones verificados de decisores
+                      </td>
+                    </tr>
+                    <tr>
+                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
+                        <strong>IA trabalhando pra você</strong> — pontuação de aderência e e-mails personalizados
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- CTA Button -->
+              <tr>
+                <td style="padding:0 0 24px;text-align:center;">
+                  <a href="${URL_APP}/planos" style="display:inline-block;background:#7fff00;color:#0a0a0a;font-size:16px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:12px;letter-spacing:0.5px;">
+                    Ver planos e assinar →
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Preço -->
+              <tr>
+                <td style="text-align:center;">
+                  <p style="margin:0;font-size:13px;color:#64748b;">
+                    Planos a partir de <strong style="color:#94a3b8;">R$ 147/mês</strong> · Cancele quando quiser
+                  </p>
+                </td>
+              </tr>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:32px 0 0;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#475569;">
+                Este e-mail foi enviado automaticamente pelo FP Pipe.
+              </p>
+              <p style="margin:0;font-size:12px;color:#475569;">
+                <a href="${URL_APP}" style="color:#64748b;text-decoration:underline;">fp-pipe.com.br</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const textoFallback = `Seus ${nomeMoeda} da organização "${nomeOrg}" esgotaram.
+
+Escolha um plano e volte a prospectar:
+${URL_APP}/planos
+
+Planos a partir de R$ 147/mês. Cancele quando quiser.
+
+FP Pipe`;
+
+    await enviarEmailHtml(
+      [emailDono],
+      `Seus ${nomeMoeda} acabaram — FP Pipe`,
+      html,
+      textoFallback
+    );
+
+    // Registra dedup
+    await admin
+      .from("alertas_creditos")
+      .insert({ chave: chaveUpsell, mes })
+      .select();
+  } catch {
+    // Upsell nunca derruba o fluxo do usuario.
   }
 }
