@@ -146,7 +146,7 @@ export default function EquipePage() {
             <span>Papel</span>
             <span>Convite</span>
             <span className="text-right">
-              {org.permiteConvidar && vagasRestantes > 0 && (
+              {org.papel === "admin" && org.permiteConvidar && vagasRestantes > 0 && (
                 <button
                   onClick={() =>
                     document.getElementById("campo-convite")?.focus()
@@ -155,6 +155,14 @@ export default function EquipePage() {
                 >
                   + Adicionar
                 </button>
+              )}
+              {org.papel === "admin" && !org.permiteConvidar && (
+                <Link
+                  href="/planos"
+                  className="text-yellow-400 hover:text-yellow-300 normal-case tracking-normal font-semibold"
+                >
+                  + Adicionar (upgrade)
+                </Link>
               )}
             </span>
           </div>
@@ -234,7 +242,23 @@ export default function EquipePage() {
       </section>
 
       {/* Upgrade prompt */}
-      {org.permiteConvidar && vagasRestantes <= 0 && (
+      {org.papel === "admin" && !org.permiteConvidar && org.plano !== "teste" && (
+        <section className="bg-gray-800/40 border border-gray-700 rounded-lg p-6 text-center">
+          <p className="text-gray-300 mb-3">
+            Seu plano <strong>{org.planoNome}</strong> inclui apenas 1 assento.
+            Faça upgrade para Gold ou Platinum e adicione colaboradores.
+          </p>
+          <Link
+            href="/planos"
+            className="inline-block bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-5 py-2 rounded-lg transition"
+          >
+            Fazer upgrade do plano
+          </Link>
+        </section>
+      )}
+
+      {/* Upgrade prompt: vagas esgotadas */}
+      {org.papel === "admin" && org.permiteConvidar && vagasRestantes <= 0 && (
         <section className="bg-gray-800/40 border border-gray-700 rounded-lg p-6 text-center">
           <p className="text-gray-300 mb-3">
             Limite de assentos atingido ({org.usuariosInclusos}/{org.usuariosInclusos}).
