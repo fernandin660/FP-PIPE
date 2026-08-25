@@ -456,11 +456,36 @@ export default function Home() {
       return;
     }
 
-    // Débito real acontece no servidor (moeda de listas).
-    // Aqui é apenas o efeito visual de desbloqueio da sessão.
-    const novoSaldo = (saldoCreditos ?? 0) - 1;
-    setSaldoCreditos(novoSaldo);
-    setEmpresasDesbloqueadas((atual) => new Set(atual).add(cnpj));
+    // Débito REAL no servidor + marca companies.contato_desbloqueado_em
+    // (é isso que autoriza o lead a entrar em lista salva depois).
+    try {
+      const resposta = await fetch("/api/desbloquear-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        if (dados?.motivo === "limite_creditos") {
+          setModalCompraAberto(true);
+        } else {
+          alert(dados?.erro ?? "Não conseguimos desbloquear agora.");
+        }
+        return;
+      }
+
+      if (typeof dados.novoSaldo === "number") {
+        setSaldoCreditos(dados.novoSaldo);
+      } else if (!dados.jaDesbloqueado) {
+        setSaldoCreditos(Math.max(0, (saldoCreditos ?? 1) - 1));
+      }
+
+      setEmpresasDesbloqueadas((atual) => new Set(atual).add(cnpj));
+    } catch {
+      alert("Não conseguimos falar com o servidor. Tente novamente.");
+    }
   };
 
   async function sairDaConta() {
@@ -571,6 +596,12 @@ export default function Home() {
   );
 
   const alternarEmpresa = (cnpj: string) => {
+    // Lead borrado não pode ser selecionado: só entra na lista quem
+    // foi desbloqueado com crédito (o servidor confere de novo).
+    if (CONTATOS_BLOQUEADOS && !empresasDesbloqueadas.has(cnpj)) {
+      return;
+    }
+
     setEmpresasSelecionadas((atual) => {
       const novo = new Set(atual);
       if (novo.has(cnpj)) {
@@ -583,10 +614,15 @@ export default function Home() {
   };
 
   const alternarTodas = () => {
+    // Só alterna leads desbloqueados: bloqueado não entra na seleção.
+    const desbloqueadas = empresasEncontradas.filter(
+      (e) => !CONTATOS_BLOQUEADOS || empresasDesbloqueadas.has(e.cnpj)
+    );
+
     setEmpresasSelecionadas((atual) =>
-      atual.size === empresasEncontradas.length
+      atual.size === desbloqueadas.length && desbloqueadas.length > 0
         ? new Set<string>()
-        : new Set(empresasEncontradas.map((e) => e.cnpj))
+        : new Set(desbloqueadas.map((e) => e.cnpj))
     );
   };
 
@@ -599,17 +635,19 @@ export default function Home() {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
 
-    // Só entra na lista o lead que o usuário marcou (e revelou).
+    // Só entra na lista o lead que o usuário marcou, revelou E que
+    // tem score (o servidor revalida o desbloqueio de novo).
     const selecionadasComScore = empresasEncontradas.filter(
       (e) =>
         empresasSelecionadas.has(e.cnpj) &&
+        empresasDesbloqueadas.has(e.cnpj) &&
         typeof e.score === "number" &&
         e.score !== null
     );
 
     if (selecionadasComScore.length === 0) {
       alert(
-        "Selecione pelo menos um lead com score para salvar. Marque os leads desbloqueados que quer levar."
+        "Selecione pelo menos um lead desbloqueado com score para salvar. Leads borrados precisam ser desbloqueados com créditos primeiro."
       );
       return;
     }
@@ -653,8 +691,12 @@ export default function Home() {
       setListaJaSalva(true);
 
       const ganho = dadosResposta?.creditosIaGanhos ?? 0;
+      const ignorados = dadosResposta?.ignoradosSemDesbloqueio ?? 0;
       alert(
         `✅ Lista salva com ${dadosResposta?.leadsSalvos ?? selecionadasComScore.length} leads!` +
+          (ignorados > 0
+            ? `\n⚠️ ${ignorados} lead(s) ficaram de fora porque não estavam desbloqueados.`
+            : "") +
           (ganho > 0
             ? `\n🎁 Você ganhou ${ganho} Créditos de IA para gerar abordagens.`
             : "")
@@ -788,13 +830,40 @@ export default function Home() {
       return;
     }
 
-    const novoSaldo = (saldoCreditos ?? 0) - alvos.length;
-    setSaldoCreditos(novoSaldo);
-    setEmpresasDesbloqueadas((atual) => {
-      const novo = new Set(atual);
-      alvos.forEach((a) => novo.add(a.cnpj));
-      return novo;
-    });
+    // Desbloqueio real, um por um: cada chamada debita no servidor.
+    let saldoFinal = saldoCreditos ?? 0;
+
+    for (const alvo of alvos) {
+      try {
+        const resposta = await fetch("/api/desbloquear-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cnpj: alvo.cnpj }),
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+          alert(dados?.erro ?? "Não conseguimos desbloquear agora.");
+          break;
+        }
+
+        if (typeof dados.novoSaldo === "number") {
+          saldoFinal = dados.novoSaldo;
+        } else if (dados.jaDesbloqueado) {
+          saldoFinal -= 0;
+        }
+
+        setEmpresasDesbloqueadas((atual) =>
+          new Set(atual).add(alvo.cnpj)
+        );
+      } catch {
+        alert("Não conseguimos falar com o servidor. Tente novamente.");
+        break;
+      }
+    }
+
+    setSaldoCreditos(Math.max(0, saldoFinal));
   };
 
   const empresaEmEdicao = empresasEncontradas.find(
@@ -2920,8 +2989,12 @@ export default function Home() {
                         type="checkbox"
                         checked={
                           empresasSelecionadas.size ===
-                            empresasEncontradas.length &&
-                          empresasEncontradas.length > 0
+                            empresasEncontradas.filter(
+                              (e) =>
+                                !CONTATOS_BLOQUEADOS ||
+                                empresasDesbloqueadas.has(e.cnpj)
+                            ).length &&
+                          empresasSelecionadas.size > 0
                         }
                         onChange={alternarTodas}
                         className="w-4 h-4 accent-lime-400"
@@ -2969,6 +3042,7 @@ export default function Home() {
                             checked={empresasSelecionadas.has(
                               empresa.cnpj
                             )}
+                            disabled={!liberado}
                             onChange={() =>
                               alternarEmpresa(empresa.cnpj)
                             }

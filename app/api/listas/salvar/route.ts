@@ -59,26 +59,46 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Vincula apenas as empresas selecionadas.
+    // 2. Vincula APENAS as empresas cujo contato foi desbloqueado
+    //    (pago com crédito de buscador). Salvar "às cegas" burlaria
+    //    a moeda — então filtra aqui no servidor, não confia no front.
     const { data: linhasEmpresas } = await supabase
       .from("companies")
-      .select("id, cnpj")
+      .select("id, cnpj, contato_desbloqueado_em")
       .eq("usuario_id", usuarioId)
       .in("cnpj", leadsUnicos);
 
-    if (linhasEmpresas && linhasEmpresas.length > 0) {
+    const empresasLiberadas = (linhasEmpresas ?? []).filter(
+      (linha: { contato_desbloqueado_em: string | null }) =>
+        Boolean(linha.contato_desbloqueado_em)
+    );
+
+    const ignoradosSemDesbloqueio = leadsUnicos.length - empresasLiberadas.length;
+
+    if (empresasLiberadas.length === 0) {
+      return NextResponse.json(
+        {
+          erro:
+            "Nenhum dos leads selecionados está desbloqueado. Desbloqueie com créditos antes de salvar na lista.",
+          motivo: "sem_desbloqueio",
+          ignorados: ignoradosSemDesbloqueio,
+        },
+        { status: 403 }
+      );
+    }
+
+    if (empresasLiberadas.length > 0) {
       await supabase.from("lista_empresas").insert(
-        linhasEmpresas.map((linha: { id: string }) => ({
+        empresasLiberadas.map((linha: { id: string }) => ({
           lista_id: listaCriada.id,
           company_id: linha.id,
         }))
       );
     }
 
-    // 3. BÃ´nus: 5 CrÃ©ditos de IA por lead salvo (escrita via admin).
-    const ganhoIa = linhasEmpresas
-      ? linhasEmpresas.length * CREDITOS_IA_POR_LEAD
-      : 0;
+    // 3. Bônus: 5 Créditos de IA por lead salvo (escrita via admin).
+    const ganhoIa =
+      empresasLiberadas.length * CREDITOS_IA_POR_LEAD;
 
     if (ganhoIa > 0) {
       const admin = criarClienteSupabaseAdmin();
@@ -106,8 +126,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       listaId: listaCriada.id,
-      leadsSalvos: linhasEmpresas?.length ?? 0,
+      leadsSalvos: empresasLiberadas.length,
       creditosIaGanhos: ganhoIa,
+      ignoradosSemDesbloqueio,
     });
   } catch {
     return NextResponse.json(
