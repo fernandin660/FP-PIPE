@@ -203,8 +203,99 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
   };
 }
 
-export async function POST(request: Request) {
-  try {
+// ===== PLANO B (sem IA): pontuação heurística determinística =====
+// Usa só dados que já temos em mãos. Nunca falha, é instantânea.
+type PontuacaoFallback = {
+  score: number;
+  motivo: string;
+  cargoPrioritario: string;
+  emailProspeccao: { assunto: string; mensagem: string } | null;
+};
+
+function pontuarHeuristico(
+  e: EmpresaEnriquecida,
+  segmentosAlvo: string[],
+  portesAlvo: string[]
+): PontuacaoFallback {
+  const semAcento = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  let pontos = 40;
+  const motivos: string[] = [];
+
+  const textoEmpresa = semAcento(
+    [e.razaoSocial, e.cnaeDescricao].filter(Boolean).join(" ")
+  );
+
+  const casaSegmento = segmentosAlvo.some((s) => {
+    const alvo = semAcento(s);
+    return (
+      textoEmpresa.includes(alvo) ||
+      alvo
+        .split(/\s+/)
+        .some((t) => t.length >= 4 && textoEmpresa.includes(t))
+    );
+  });
+  if (casaSegmento) {
+    pontos += 20;
+    motivos.push("atividade alinhada ao segmento-alvo");
+  }
+
+  if (
+    portesAlvo.length === 0 ||
+    (e.porte &&
+      portesAlvo.some(
+        (p) =>
+          semAcento(e.porte!).includes(semAcento(p)) ||
+          semAcento(p).includes(semAcento(e.porte!))
+      ))
+  ) {
+    pontos += 10;
+    motivos.push("porte compatível");
+  }
+
+  const capital = e.capitalSocial ?? 0;
+  if (capital >= 50000) {
+    pontos += 10;
+    motivos.push("capital social sólido");
+  } else if (capital >= 20000) {
+    pontos += 5;
+    motivos.push("capital social adequado");
+  }
+
+  const anos = e.dataAbertura
+    ? Math.floor(
+        (Date.now() - new Date(e.dataAbertura).getTime()) /
+          (365.25 * 24 * 3600 * 1000)
+      )
+    : 0;
+  if (anos >= 5) {
+    pontos += 10;
+    motivos.push("empresa estabelecida há anos");
+  } else if (anos >= 2) {
+    pontos += 5;
+    motivos.push("maturidade moderada");
+  }
+
+  if (e.telefone || e.email) {
+    pontos += 10;
+    motivos.push("contato público disponível");
+  }
+
+  return {
+    score: Math.max(0, Math.min(100, pontos)),
+    motivo: `Estimativa automática (IA indisponível): ${
+      motivos.join(", ") || "critérios básicos"
+    }.`,
+    cargoPrioritario: "",
+    emailProspeccao: null,
+  };
+}
+
+export async function POST(request: Request) {  try {
     const gate = await exigirAcesso();
     if (gate.resposta) {
       return gate.resposta;
@@ -227,6 +318,18 @@ export async function POST(request: Request) {
               typeof c === "string" && c.trim().length > 0
           )
           .slice(0, 10)
+      : [];
+
+    // Contexto para o plano B (score heurístico sem IA).
+    const segmentosAlvo: string[] = Array.isArray(dados.segmentos)
+      ? dados.segmentos.filter(
+          (s: unknown): s is string => typeof s === "string"
+        )
+      : [];
+    const portesAlvo: string[] = Array.isArray(dados.portes)
+      ? dados.portes.filter(
+          (p: unknown): p is string => typeof p === "string"
+        )
       : [];
 
     const empresas: EmpresaEntrada[] = Array.isArray(dados.empresas)
@@ -405,20 +508,17 @@ RESPONDA APENAS COM ESTE FORMATO JSON:
       lotes.map((lote) => avaliarLote(lote))
     );
 
-    // Falha silenciosa aqui deixava TODOS os scores null sem aviso.
-    if (mapaAvaliacoes.size === 0 && enriquecidas.length > 0) {
-      const motivosFalha = resultadosLotes
-        .filter((r) => r.status === "rejected")
-        .map((r) => String((r as PromiseRejectedResult).reason ?? ""));
+    // ===== PLANO B: score heurístico sem IA =====
+    // Se a OpenAI falhar (cota, instabilidade, JSON truncado), nenhum
+    // usuário fica sem pontuação: estimamos com os dados enriquecidos.
+    const falhaTotalIA =
+      mapaAvaliacoes.size === 0 && enriquecidas.length > 0;
 
-      return NextResponse.json(
-        {
-          erro:
-            "A IA não conseguiu pontuar as empresas agora (serviço instável ou cota). Você ainda pode salvar os leads normalmente.",
-          detalhe: motivosFalha[0]?.slice(0, 140) ?? "lotes sem retorno",
-        },
-        { status: 502 }
-      );
+    if (mapaAvaliacoes.size < enriquecidas.length) {
+      for (const e of enriquecidas) {
+        if (mapaAvaliacoes.has(e.cnpj)) continue;
+        mapaAvaliacoes.set(e.cnpj, pontuarHeuristico(e, segmentosAlvo, portesAlvo));
+      }
     }
 
     return NextResponse.json({
@@ -442,7 +542,8 @@ RESPONDA APENAS COM ESTE FORMATO JSON:
             mapaAvaliacoes.get(e.cnpj)?.emailProspeccao ?? null,
         };
       }),
-      totalAvaliadas: mapaAvaliacoes.size,
+      totalAvaliadas: enriquecidas.length,
+      modoFallback: falhaTotalIA,
     });
   } catch {
     return NextResponse.json(

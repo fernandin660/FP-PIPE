@@ -1534,6 +1534,11 @@ export default function Home() {
           icp: partesIcp.join("\n"),
           perfilVendedor: montarPerfilVendedor(),
           cargosPrioritarios: ordenarPorAutoridade(cargosEscolhidos),
+          segmentos:
+            modoBusca === "internacional" && segmentoIntl.trim()
+              ? [segmentoIntl, ...segmentosSelecionados]
+              : segmentosSelecionados,
+          portes: porteEmpresa,
           empresas: lista.map((e) => ({
             cnpj: e.cnpj,
             razaoSocial: e.razaoSocial,
@@ -1551,9 +1556,9 @@ export default function Home() {
         return;
       }
 
-      if ((dados.totalAvaliadas ?? 0) === 0) {
+      if (dados.modoFallback) {
         setErroEmpresas(
-          "⚠️ A IA não pontuou nenhuma empresa agora. Os leads continuam disponíveis para seleção e salvamento."
+          "⚠️ IA indisponível agora — os scores exibidos são ESTIMATIVAS automáticas (sem análise de IA)."
         );
       }
 
