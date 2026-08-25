@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -25,7 +25,7 @@ type OrgData = {
   membros: Membro[];
 };
 
-export default function EquipePage() {
+function EquipeContent() {
   const searchParams = useSearchParams();
   const [org, setOrg] = useState<OrgData | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -337,5 +337,19 @@ export default function EquipePage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function EquipePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex-1 flex items-center justify-center py-24">
+          <p className="text-gray-400">Carregando...</p>
+        </main>
+      }
+    >
+      <EquipeContent />
+    </Suspense>
   );
 }
