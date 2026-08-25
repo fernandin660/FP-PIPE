@@ -68,15 +68,21 @@ async function provisionarOrg(
 
   const orgId = org.id;
 
-  // 2. Insere membro como admin
+  // 2. Busca o e-mail do usuário
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // 3. Insere membro como admin
   await admin.from("organizacao_membros").insert({
     organizacao_id: orgId,
     usuario_id: usuarioId,
+    email_convite: user?.email ?? null,
     papel: "admin",
     status: "ativo",
   });
 
-  // 3. Migra dados existentes para a nova org
+  // 4. Migra dados existentes para a nova org
   const tabelas = [
     "creditos",
     "creditos_contatos",
