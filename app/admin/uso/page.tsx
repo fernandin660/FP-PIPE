@@ -22,6 +22,7 @@ const NOMES_APIS: Record<string, string> = {
   maps: "🗺️ Google Maps",
   anymail: "📧 Anymail Finder",
   openai: "🤖 OpenAI",
+  gemini: "✨ Google Gemini (reserva)",
   serper: "🔎 Serper (busca Google)",
   casadosdados: "🏢 Casas dos Dados",
   minhareceita: "🏛️ Minha Receita (CNPJ)",

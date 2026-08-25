@@ -13,6 +13,8 @@ const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
 //   (~5 mil text searches com folga para outros endpoints).
 // - anymail: conta free do Anymail Finder = 200 créditos no total.
 // - openai: pay-as-you-go sem teto rígido; 2000 é vigia de volume.
+// - gemini: camada gratuita generosa do Google AI Studio; reserva
+//   da OpenAI na pontuação de leads.
 // - serper: 2.500 créditos grátis no signup (únicos, não renovam).
 // - casadosdados: endpoint público extra-oficial; 5000 é sanidade.
 // - minhareceita: API pública da Receita; 3000 é cortesia/sanity.
@@ -23,6 +25,7 @@ export const LIMITES_MENSAIS: Record<string, number> = {
   maps: 5000,
   anymail: 200,
   openai: 2000,
+  gemini: 5000,
   serper: 2500,
   casadosdados: 5000,
   minhareceita: 3000,
