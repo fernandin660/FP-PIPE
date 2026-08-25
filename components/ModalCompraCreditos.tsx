@@ -53,7 +53,7 @@ export default function ModalCompraCreditos({
 
         <h2 className="font-display text-3xl text-white">
           Ficou sem{" "}
-          <span className="text-pipe-lime">créditos</span>
+          <span className="text-pipe-lime">créditos de lead</span>
         </h2>
 
         <p className="text-pipe-muted text-sm mt-2">
@@ -80,7 +80,7 @@ export default function ModalCompraCreditos({
               <p className="font-display text-3xl text-white">
                 {pacote.creditos}
               </p>
-              <p className="text-pipe-muted text-xs">créditos</p>
+              <p className="text-pipe-muted text-xs">créditos de lead</p>
 
               <p className="text-white font-bold mt-3">{pacote.preco}</p>
               <p className="text-pipe-muted/70 text-[11px] mt-1">

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 
-// Desbloqueio REAL de contato: debita 1 crédito de buscador e marca
+// Desbloqueio REAL de contato: debita 1 crédito de lead e marca
 // a empresa como desbloqueada (companies.contato_desbloqueado_em).
 // Só leads marcados assim podem entrar em listas salvas.
 export async function POST(request: Request) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         erro:
-          "Você usou seus créditos de buscador. Compre mais ou faça upgrade em /planos.",
+          "Você usou seus créditos de lead. Compre mais ou faça upgrade em /planos.",
         motivo: "limite_creditos",
       },
       { status: 403 }

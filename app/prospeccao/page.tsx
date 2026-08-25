@@ -308,7 +308,8 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(false);
   const [carregandoAuth, setCarregandoAuth] = useState(true);
   const [saldoCreditos, setSaldoCreditos] = useState<number | null>(null);
-  // Moeda do desbloqueio/buscador — separada das listas pra não confundir.
+  // Moeda de lead (desbloqueio/salvamento via Anymail Finder),
+  // separada das buscas pra não confundir.
   const [saldoBuscador, setSaldoBuscador] = useState<number | null>(null);
   const [empresasDesbloqueadas, setEmpresasDesbloqueadas] =
     useState<Set<string>>(new Set());
@@ -655,7 +656,7 @@ export default function Home() {
       return;
     }
 
-    // Custos de buscador dos leads que ainda estão borrados.
+    // Custos de lead dos leads que ainda estão borrados.
     const bloqueadas = selecionadasComScore.filter(
       (e) => !empresasDesbloqueadas.has(e.cnpj)
     );
@@ -665,7 +666,7 @@ export default function Home() {
 
       if (bloqueadas.length > saldoDisponivel) {
         alert(
-          `Você selecionou ${bloqueadas.length} lead(s) bloqueado(s), mas tem só ${saldoDisponivel} crédito(s) de buscador. Desmarque alguns ou compre mais créditos.`
+          `Você selecionou ${bloqueadas.length} lead(s) bloqueado(s), mas tem só ${saldoDisponivel} crédito(s) de lead. Desmarque alguns ou compre mais créditos.`
         );
         setModalCompraAberto(true);
         return;
@@ -673,7 +674,7 @@ export default function Home() {
 
       const confirmaAuto =
         window.confirm(
-          `${bloqueadas.length} lead(s) ainda estão bloqueados e vão consumir ${bloqueadas.length} crédito(s) de buscador agora, junto do salvamento.\n\nContinuar?`
+          `${bloqueadas.length} lead(s) ainda estão bloqueados e vão consumir ${bloqueadas.length} crédito(s) de lead agora, junto do salvamento.\n\nContinuar?`
         );
       if (!confirmaAuto) return;
     }
@@ -856,7 +857,7 @@ export default function Home() {
 
     if ((saldoBuscador ?? 0) < alvos.length) {
       alert(
-        `Você tem ${saldoBuscador} crédito(s) de buscador, mas precisa de ${alvos.length}.`
+        `Você tem ${saldoBuscador} crédito(s) de lead, mas precisa de ${alvos.length}.`
       );
       setModalCompraAberto(true);
       return;
@@ -3013,11 +3014,11 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                       <span
                         className="text-xs font-semibold bg-pipe-lime/10 text-pipe-lime px-2 py-1 rounded-full"
-                        title="💰 = créditos de lista · 🔓 = créditos de buscador (desbloqueio)"
+                        title="🔎 Buscas = gerações de lista no mês · 🎫 Leads = desbloqueio/salvamento de leads (integração Anymail Finder)"
                       >
-                        💰 {saldoCreditos ?? 0} lista{(saldoCreditos ?? 0) === 1 ? "" : "s"}
+                        🔎 {saldoCreditos ?? 0} busca{(saldoCreditos ?? 0) === 1 ? "" : "s"}
                         {" · "}
-                        🔓 {saldoBuscador ?? 0} buscador
+                        🎫 {saldoBuscador ?? 0} lead{(saldoBuscador ?? 0) === 1 ? "" : "s"}
                       </span>
                       <label className="flex items-center gap-2 text-xs text-pipe-muted cursor-pointer">
                       <input

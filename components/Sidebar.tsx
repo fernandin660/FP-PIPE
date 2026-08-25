@@ -162,7 +162,7 @@ export default function Sidebar({
 
           {saldoCreditos !== null && (
             <p className="mt-3 px-1 text-[11px] text-pipe-muted">
-              💳 Créditos:{" "}
+              🔎 Buscas:{" "}
               <span className="text-pipe-lime font-bold">{saldoCreditos}</span>
             </p>
           )}

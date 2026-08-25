@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Leads que ainda estão borrados são DESBLOQUEADOS AGORA:
-    //    o salvamento debita os créditos de buscador automaticamente
+    //    o salvamento debita os créditos de lead automaticamente
     //    (com verificação de saldo) e marca contato_desbloqueado_em.
     const { data: linhasEmpresas } = await supabase
       .from("companies")
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       if (saldoBuscador < bloqueadas.length) {
         return NextResponse.json(
           {
-            erro: `Para salvar esta lista faltam ${bloqueadas.length} desbloqueio(s), mas você tem só ${saldoBuscador} crédito(s) de buscador. Compre mais em /planos ou desmarque alguns leads.`,
+            erro: `Para salvar esta lista faltam ${bloqueadas.length} desbloqueio(s), mas você tem só ${saldoBuscador} crédito(s) de lead. Compre mais em /planos ou desmarque alguns leads.`,
             motivo: "limite_creditos",
           },
           { status: 403 }
