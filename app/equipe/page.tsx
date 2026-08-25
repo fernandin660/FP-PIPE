@@ -35,6 +35,15 @@ function EquipeContent() {
     null
   );
   const [aceitandoConvite, setAceitandoConvite] = useState(false);
+  // timestamp (ms) de quando cada convite foi reenviado — 控制 cooldown
+  const [reenvios, setReenvios] = useState<Record<string, number>>({});
+  const [agora, setAgora] = useState(Date.now());
+
+  // Ticker a cada segundo para atualizar os countdowns
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     // Se veio com ?convite=aceitar, tenta aceitar automaticamente
@@ -139,6 +148,33 @@ function EquipeContent() {
     }
   }
 
+  async function reenviarConvite(membroId: string) {
+    try {
+      const res = await fetch("/api/org/convite/reenviar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membroId }),
+      });
+
+      const dados = await res.json();
+
+      if (res.ok) {
+        setReenvios((prev) => ({ ...prev, [membroId]: Date.now() }));
+        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite reenviado!" });
+      } else {
+        setMsg({ tipo: "erro", texto: dados.erro ?? "Falha ao reenviar." });
+      }
+    } catch {
+      setMsg({ tipo: "erro", texto: "Erro de conexão." });
+    }
+  }
+
+  function tempoRestante(membroId: string): number {
+    const ultimo = reenvios[membroId] ?? 0;
+    const diff = 120 - (agora - ultimo) / 1000; // 120 segundos = 2 min
+    return Math.max(0, Math.ceil(diff));
+  }
+
   if (carregando) {
     return (
       <main className="flex-1 flex items-center justify-center py-24">
@@ -230,7 +266,25 @@ function EquipeContent() {
               >
                 {m.status === "ativo" ? "Aceito" : "Pendente"}
               </span>
-              <div className="text-right">
+              <div className="text-right flex items-center justify-end gap-3">
+                {m.status === "convite_pendente" &&
+                  m.papel !== "admin" &&
+                  org.papel === "admin" && (
+                    <>
+                      {tempoRestante(m.id) > 0 ? (
+                        <span className="text-xs text-gray-500">
+                          {tempoRestante(m.id)}s
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => reenviarConvite(m.id)}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          Reenviar
+                        </button>
+                      )}
+                    </>
+                  )}
                 {m.papel !== "admin" && org.papel === "admin" && (
                   <button
                     onClick={() => removerMembro(m.id, m.email_convite ?? "")}
