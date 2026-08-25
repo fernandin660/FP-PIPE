@@ -308,6 +308,8 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(false);
   const [carregandoAuth, setCarregandoAuth] = useState(true);
   const [saldoCreditos, setSaldoCreditos] = useState<number | null>(null);
+  // Moeda do desbloqueio/buscador — separada das listas pra não confundir.
+  const [saldoBuscador, setSaldoBuscador] = useState<number | null>(null);
   const [empresasDesbloqueadas, setEmpresasDesbloqueadas] =
     useState<Set<string>>(new Set());
   const [modalCompraAberto, setModalCompraAberto] = useState(false);
@@ -344,20 +346,24 @@ export default function Home() {
     if (!supabase) return;
 
     try {
-      const { data } = await supabase
-        .from("creditos")
-        .select("saldo")
-        .eq("usuario_id", usuarioId)
-        .maybeSingle();
+      const [{ data: listas }, { data: contatos }] = await Promise.all([
+        supabase
+          .from("creditos")
+          .select("saldo")
+          .eq("usuario_id", usuarioId)
+          .maybeSingle(),
+        supabase
+          .from("creditos_contatos")
+          .select("saldo")
+          .eq("usuario_id", usuarioId)
+          .maybeSingle(),
+      ]);
 
-      if (!data) {
-        setSaldoCreditos(0);
-        return;
-      }
-
-      setSaldoCreditos(data.saldo);
+      setSaldoCreditos(listas?.saldo ?? 0);
+      setSaldoBuscador(contatos?.saldo ?? 0);
     } catch {
       setSaldoCreditos(0);
+      setSaldoBuscador(0);
     }
   }
 
@@ -451,7 +457,7 @@ export default function Home() {
   };
 
   const desbloquearEmpresa = async (cnpj: string) => {
-    if ((saldoCreditos ?? 0) <= 0) {
+    if ((saldoBuscador ?? 0) <= 0) {
       setModalCompraAberto(true);
       return;
     }
@@ -477,9 +483,9 @@ export default function Home() {
       }
 
       if (typeof dados.novoSaldo === "number") {
-        setSaldoCreditos(dados.novoSaldo);
+        setSaldoBuscador(dados.novoSaldo);
       } else if (!dados.jaDesbloqueado) {
-        setSaldoCreditos(Math.max(0, (saldoCreditos ?? 1) - 1));
+        setSaldoBuscador(Math.max(0, (saldoBuscador ?? 1) - 1));
       }
 
       setEmpresasDesbloqueadas((atual) => new Set(atual).add(cnpj));
@@ -635,21 +641,41 @@ export default function Home() {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
 
-    // Só entra na lista o lead que o usuário marcou, revelou E que
-    // tem score (o servidor revalida o desbloqueio de novo).
+    // Seleção = leads marcados com score. Bloqueados entram também:
+    // o servidor debita o desbloqueio automaticamente ao salvar.
     const selecionadasComScore = empresasEncontradas.filter(
       (e) =>
         empresasSelecionadas.has(e.cnpj) &&
-        empresasDesbloqueadas.has(e.cnpj) &&
         typeof e.score === "number" &&
         e.score !== null
     );
 
     if (selecionadasComScore.length === 0) {
-      alert(
-        "Selecione pelo menos um lead desbloqueado com score para salvar. Leads borrados precisam ser desbloqueados com créditos primeiro."
-      );
+      alert("Selecione pelo menos um lead com score para salvar.");
       return;
+    }
+
+    // Custos de buscador dos leads que ainda estão borrados.
+    const bloqueadas = selecionadasComScore.filter(
+      (e) => !empresasDesbloqueadas.has(e.cnpj)
+    );
+
+    if (bloqueadas.length > 0) {
+      const saldoDisponivel = saldoBuscador ?? 0;
+
+      if (bloqueadas.length > saldoDisponivel) {
+        alert(
+          `Você selecionou ${bloqueadas.length} lead(s) bloqueado(s), mas tem só ${saldoDisponivel} crédito(s) de buscador. Desmarque alguns ou compre mais créditos.`
+        );
+        setModalCompraAberto(true);
+        return;
+      }
+
+      const confirmaAuto =
+        window.confirm(
+          `${bloqueadas.length} lead(s) ainda estão bloqueados e vão consumir ${bloqueadas.length} crédito(s) de buscador agora, junto do salvamento.\n\nContinuar?`
+        );
+      if (!confirmaAuto) return;
     }
 
     setSalvandoLista(true);
@@ -691,16 +717,22 @@ export default function Home() {
       setListaJaSalva(true);
 
       const ganho = dadosResposta?.creditosIaGanhos ?? 0;
-      const ignorados = dadosResposta?.ignoradosSemDesbloqueio ?? 0;
+      const autoDesbloqueados = dadosResposta?.desbloqueadosAgora ?? 0;
       alert(
         `✅ Lista salva com ${dadosResposta?.leadsSalvos ?? selecionadasComScore.length} leads!` +
-          (ignorados > 0
-            ? `\n⚠️ ${ignorados} lead(s) ficaram de fora porque não estavam desbloqueados.`
+          (autoDesbloqueados > 0
+            ? `\n🔓 ${autoDesbloqueados} lead(s) foram desbloqueados automaticamente ao salvar.`
             : "") +
           (ganho > 0
             ? `\n🎁 Você ganhou ${ganho} Créditos de IA para gerar abordagens.`
             : "")
       );
+
+      if (autoDesbloqueados > 0 && usuarioEmail) {
+        const supabaseAtual = criarClienteSupabase();
+        const { data: { user } } = await supabaseAtual!.auth.getUser();
+        if (user) carregarSaldo(user.id);
+      }
     } catch (erroSalvarLista) {
       console.error("Erro ao salvar lista:", erroSalvarLista);
       alert("Não conseguimos salvar a lista agora. Tente novamente.");
@@ -822,16 +854,16 @@ export default function Home() {
 
     if (alvos.length === 0) return;
 
-    if ((saldoCreditos ?? 0) < alvos.length) {
+    if ((saldoBuscador ?? 0) < alvos.length) {
       alert(
-        `Você tem ${saldoCreditos} crédito(s), mas precisa de ${alvos.length}.`
+        `Você tem ${saldoBuscador} crédito(s) de buscador, mas precisa de ${alvos.length}.`
       );
       setModalCompraAberto(true);
       return;
     }
 
     // Desbloqueio real, um por um: cada chamada debita no servidor.
-    let saldoFinal = saldoCreditos ?? 0;
+    let saldoFinal = saldoBuscador ?? 0;
 
     for (const alvo of alvos) {
       try {
@@ -850,8 +882,6 @@ export default function Home() {
 
         if (typeof dados.novoSaldo === "number") {
           saldoFinal = dados.novoSaldo;
-        } else if (dados.jaDesbloqueado) {
-          saldoFinal -= 0;
         }
 
         setEmpresasDesbloqueadas((atual) =>
@@ -863,7 +893,7 @@ export default function Home() {
       }
     }
 
-    setSaldoCreditos(Math.max(0, saldoFinal));
+    setSaldoBuscador(Math.max(0, saldoFinal));
   };
 
   const empresaEmEdicao = empresasEncontradas.find(
@@ -2981,8 +3011,13 @@ export default function Home() {
                       {empresasEncontradas.length} empresas encontradas
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold bg-pipe-lime/10 text-pipe-lime px-2 py-1 rounded-full">
-                        💰 {saldoCreditos ?? 0} créditos
+                      <span
+                        className="text-xs font-semibold bg-pipe-lime/10 text-pipe-lime px-2 py-1 rounded-full"
+                        title="💰 = créditos de lista · 🔓 = créditos de buscador (desbloqueio)"
+                      >
+                        💰 {saldoCreditos ?? 0} lista{(saldoCreditos ?? 0) === 1 ? "" : "s"}
+                        {" · "}
+                        🔓 {saldoBuscador ?? 0} buscador
                       </span>
                       <label className="flex items-center gap-2 text-xs text-pipe-muted cursor-pointer">
                       <input
