@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
-import { LIMITES_MENSAIS } from "../../../lib/avisos";
+import { LIMITES_MENSAIS, limitesEfetivos } from "../../../lib/avisos";
 
 export async function GET() {
   const supabase = await criarClienteSupabaseServidor();
@@ -49,10 +49,18 @@ export async function GET() {
     (usoApis ?? []).map((u) => [u.api, u.chamadas])
   );
 
+  const efetivos = await limitesEfetivos();
+
+  const { data: ajustes } = await admin
+    .from("limites_apis")
+    .select("api");
+  const ajustados = new Set((ajustes ?? []).map((a) => a.api));
+
   const apis = Object.keys(LIMITES_MENSAIS).map((api) => ({
     api,
     chamadas: mapaUso.get(api) ?? 0,
-    limite: LIMITES_MENSAIS[api],
+    limite: efetivos[api] ?? LIMITES_MENSAIS[api],
+    ajustado: ajustados.has(api),
   }));
 
   const { data: listaUsuarios } = await admin.auth.admin.listUsers({

@@ -135,7 +135,22 @@ export default async function Admin() {
 
   return (
     <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-12">
-      <p className="text-xs font-semibold text-pipe-blue tracking-widest uppercase">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Link
+          href="/prospeccao"
+          className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-white transition"
+        >
+          ← Voltar ao painel
+        </Link>
+        <Link
+          href="/admin/uso"
+          className="text-xs text-pipe-muted hover:text-white transition"
+        >
+          Painel de uso de APIs →
+        </Link>
+      </div>
+
+      <p className="text-xs font-semibold text-pipe-blue tracking-widest uppercase mt-6">
         Console interno
       </p>
       <h1 className="font-display text-4xl text-white mt-1">

@@ -8,6 +8,7 @@ type ApiUso = {
   api: string;
   chamadas: number;
   limite: number | null;
+  ajustado?: boolean;
 };
 
 type Moeda = {
@@ -36,35 +37,77 @@ export default function PaginaAdminUso() {
   const [mes, setMes] = useState("");
   const [apis, setApis] = useState<ApiUso[]>([]);
   const [moedas, setMoedas] = useState<Moeda[]>([]);
+  const [editandoApi, setEditandoApi] = useState<string | null>(null);
+  const [valorEdicao, setValorEdicao] = useState("");
+  const [salvandoLimite, setSalvandoLimite] = useState(false);
+
+  const carregarUso = async () => {
+    try {
+      const resposta = await fetch("/api/admin-uso");
+
+      if (resposta.status === 403) {
+        setRestrito(true);
+        return;
+      }
+
+      const dados = (await resposta.json()) as {
+        mes?: string;
+        apis?: ApiUso[];
+        moedas?: Moeda[];
+      };
+
+      setMes(dados.mes ?? "");
+      setApis(dados.apis ?? []);
+      setMoedas(dados.moedas ?? []);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarUso();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const salvarLimite = async (api: string) => {
+    const limite = Number(valorEdicao);
+
+    if (!Number.isInteger(limite) || limite < 1) {
+      alert("Informe um número inteiro maior que zero.");
+      return;
+    }
+
+    setSalvandoLimite(true);
+
+    try {
+      const resposta = await fetch("/api/admin-limites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api, limite }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(dados.erro ?? "Erro ao salvar limite");
+      }
+
+      setEditandoApi(null);
+      await carregarUso();
+    } catch (erro) {
+      alert(
+        erro instanceof Error
+          ? erro.message
+          : "Erro ao salvar limite"
+      );
+    } finally {
+      setSalvandoLimite(false);
+    }
+  };
 
   useEffect(() => {
     if (restrito) router.replace("/prospeccao");
   }, [restrito, router]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const resposta = await fetch("/api/admin-uso");
-
-        if (resposta.status === 403) {
-          setRestrito(true);
-          return;
-        }
-
-        const dados = (await resposta.json()) as {
-          mes?: string;
-          apis?: ApiUso[];
-          moedas?: Moeda[];
-        };
-
-        setMes(dados.mes ?? "");
-        setApis(dados.apis ?? []);
-        setMoedas(dados.moedas ?? []);
-      } finally {
-        setCarregando(false);
-      }
-    })();
-  }, []);
 
   if (restrito) {
     return (
@@ -77,14 +120,22 @@ export default function PaginaAdminUso() {
   return (
     <main className="min-h-screen bg-pipe-bg text-gray-200">
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <Link
-          href="/prospeccao"
-          className="text-xs text-pipe-muted hover:text-white transition"
-        >
-          ← voltar
-        </Link>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <Link
+            href="/prospeccao"
+            className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-white transition"
+          >
+            ← Voltar ao painel
+          </Link>
+          <Link
+            href="/admin"
+            className="text-xs text-pipe-muted hover:text-white transition"
+          >
+            Console de usuários →
+          </Link>
+        </div>
 
-        <h1 className="font-display text-3xl text-white mt-3">
+        <h1 className="font-display text-3xl text-white mt-6">
           Painel de uso 💰
         </h1>
         <p className="text-pipe-muted text-sm mt-1">
@@ -99,9 +150,13 @@ export default function PaginaAdminUso() {
         {/* APIS PAGAS */}
         {!carregando && apis.length > 0 && (
           <section className="mt-10">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-1">
               APIs pagas este mês
             </h2>
+            <p className="text-xs text-pipe-muted mb-4">
+              Limites refletem nossas contas nos provedores. Clique no ✏️
+              para ajustar quando trocarmos de plano.
+            </p>
 
             <div className="space-y-3">
               {apis.map((a) => {
@@ -109,6 +164,7 @@ export default function PaginaAdminUso() {
                   a.limite && a.limite > 0
                     ? Math.min(100, Math.round((a.chamadas / a.limite) * 100))
                     : 0;
+                const emEdicao = editandoApi === a.api;
 
                 return (
                   <div
@@ -118,27 +174,88 @@ export default function PaginaAdminUso() {
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <p className="text-sm font-semibold text-white">
                         {NOMES_APIS[a.api] ?? a.api}
-                      </p>
-                      <p className="text-sm text-gray-300">
-                        <span className="font-bold">{a.chamadas}</span>
-                        {a.limite ? ` / ${a.limite} chamadas` : " chamadas"}
-                        {a.limite ? (
+                        {a.ajustado && (
                           <span
-                            className={`ml-2 text-xs font-bold ${
-                              percentual >= 100
-                                ? "text-red-400"
-                                : percentual >= 75
-                                  ? "text-yellow-400"
-                                  : "text-pipe-lime"
-                            }`}
+                            className="ml-2 text-[10px] font-bold uppercase tracking-wide text-pipe-blue"
+                            title="Limite ajustado manualmente no console"
                           >
-                            {percentual}%
+                            · ajustado
                           </span>
-                        ) : null}
+                        )}
                       </p>
+
+                      <div className="flex items-center gap-3">
+                        {emEdicao ? (
+                          <>
+                            <input
+                              type="number"
+                              min={1}
+                              value={valorEdicao}
+                              onChange={(e) =>
+                                setValorEdicao(e.target.value)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  salvarLimite(a.api);
+                                if (e.key === "Escape")
+                                  setEditandoApi(null);
+                              }}
+                              autoFocus
+                              className="w-28 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-1.5 text-sm focus:border-pipe-blue focus:outline-none text-white"
+                            />
+                            <button
+                              onClick={() => salvarLimite(a.api)}
+                              disabled={salvandoLimite}
+                              className="text-xs font-bold bg-pipe-lime text-black rounded-md px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition"
+                            >
+                              ✓ Salvar
+                            </button>
+                            <button
+                              onClick={() => setEditandoApi(null)}
+                              className="text-xs text-pipe-muted hover:text-white transition"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-300">
+                              <span className="font-bold">
+                                {a.chamadas}
+                              </span>
+                              {a.limite
+                                ? ` / ${a.limite.toLocaleString("pt-BR")} chamadas`
+                                : " chamadas"}
+                              {a.limite ? (
+                                <span
+                                  className={`ml-2 text-xs font-bold ${
+                                    percentual >= 100
+                                      ? "text-red-400"
+                                      : percentual >= 75
+                                        ? "text-yellow-400"
+                                        : "text-pipe-lime"
+                                  }`}
+                                >
+                                  {percentual}%
+                                </span>
+                              ) : null}
+                            </p>
+                            <button
+                              onClick={() => {
+                                setEditandoApi(a.api);
+                                setValorEdicao(String(a.limite ?? ""));
+                              }}
+                              title="Ajustar limite (ex.: quando trocarmos o plano da conta)"
+                              className="text-xs text-pipe-muted hover:text-white border border-pipe-border rounded-md px-2 py-1 transition"
+                            >
+                              ✏️
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    {a.limite ? (
+                    {a.limite && !emEdicao ? (
                       <div className="mt-2 h-2 bg-pipe-dark rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
