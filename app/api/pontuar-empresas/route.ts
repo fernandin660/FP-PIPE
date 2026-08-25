@@ -6,7 +6,7 @@ import { exigirAcesso } from "../../../lib/gate";
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
 const MAX_EMPRESAS = 50;
-const TAMANHO_LOTE_OPENAI = 15;
+const TAMANHO_LOTE_OPENAI = 10;
 const CONCORRENCIA_ENRIQUECIMENTO = 5;
 
 type EmpresaEntrada = { cnpj: string; razaoSocial: string };
@@ -53,7 +53,7 @@ async function chamarOpenAI(
       ],
       response_format: { type: "json_object" },
       temperature: 0.4,
-      max_tokens: 2500,
+      max_tokens: 4000,
     }),
     signal: AbortSignal.timeout(120000),
   });
@@ -401,7 +401,25 @@ RESPONDA APENAS COM ESTE FORMATO JSON:
       lotes.push(enriquecidas.slice(i, i + TAMANHO_LOTE_OPENAI));
     }
 
-    await Promise.allSettled(lotes.map((lote) => avaliarLote(lote)));
+    const resultadosLotes = await Promise.allSettled(
+      lotes.map((lote) => avaliarLote(lote))
+    );
+
+    // Falha silenciosa aqui deixava TODOS os scores null sem aviso.
+    if (mapaAvaliacoes.size === 0 && enriquecidas.length > 0) {
+      const motivosFalha = resultadosLotes
+        .filter((r) => r.status === "rejected")
+        .map((r) => String((r as PromiseRejectedResult).reason ?? ""));
+
+      return NextResponse.json(
+        {
+          erro:
+            "A IA não conseguiu pontuar as empresas agora (serviço instável ou cota). Você ainda pode salvar os leads normalmente.",
+          detalhe: motivosFalha[0]?.slice(0, 140) ?? "lotes sem retorno",
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       avaliacoes: enriquecidas.map((e) => {

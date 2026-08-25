@@ -642,17 +642,14 @@ export default function Home() {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
 
-    // Seleção = leads marcados com score. Bloqueados entram também:
-    // o servidor debita o desbloqueio automaticamente ao salvar.
-    const selecionadasComScore = empresasEncontradas.filter(
-      (e) =>
-        empresasSelecionadas.has(e.cnpj) &&
-        typeof e.score === "number" &&
-        e.score !== null
+    // Seleção = leads marcados. Score é bônus, não requisito:
+    // se a IA falhar ou demorar, salvar continua funcionando.
+    const selecionadasComScore = empresasEncontradas.filter((e) =>
+      empresasSelecionadas.has(e.cnpj)
     );
 
     if (selecionadasComScore.length === 0) {
-      alert("Selecione pelo menos um lead com score para salvar.");
+      alert("Selecione pelo menos um lead para salvar.");
       return;
     }
 
@@ -1547,7 +1544,17 @@ export default function Home() {
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao pontuar empresas");
+        setErroEmpresas(
+          dados.erro ||
+            "A IA não conseguiu pontuar agora — você ainda pode salvar os leads normalmente."
+        );
+        return;
+      }
+
+      if ((dados.totalAvaliadas ?? 0) === 0) {
+        setErroEmpresas(
+          "⚠️ A IA não pontuou nenhuma empresa agora. Os leads continuam disponíveis para seleção e salvamento."
+        );
       }
 
       type Avaliacao = {
