@@ -30,6 +30,8 @@ export async function POST(req: Request) {
     );
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fp-pipe-psi.vercel.app";
+
   let corpo: { plano?: string; ciclo?: string };
   try {
     corpo = await req.json();
@@ -48,7 +50,6 @@ export async function POST(req: Request) {
   }
 
   const valor = precoDoPlano(plano, ciclo);
-  const origem = req.headers.get("origin") || new URL(req.url).origin;
 
   // Regras de pagamento:
   // - mensal: exclusivamente cartao de credito (cobranca recorrente)
@@ -95,12 +96,12 @@ export async function POST(req: Request) {
         ],
         payment_methods: metodosPagamento,
         back_urls: {
-          success: `${origem}/planos?status=sucesso`,
-          pending: `${origem}/planos?status=pendente`,
-          failure: `${origem}/planos?status=falhou`,
+          success: `${appUrl}/planos?status=sucesso`,
+          pending: `${appUrl}/planos?status=pendente`,
+          failure: `${appUrl}/planos?status=falhou`,
         },
         auto_return: "approved",
-        notification_url: `${origem}/api/webhooks/mercadopago`,
+        notification_url: `${appUrl}/api/webhooks/mercadopago`,
       }),
     }
   );

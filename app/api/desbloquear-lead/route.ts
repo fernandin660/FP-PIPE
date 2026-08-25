@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { verificarCreditosBaixos } from "../../../lib/avisos";
 
 // Desbloqueio REAL de contato: debita 1 crédito de lead e marca
 // a empresa como desbloqueada (companies.contato_desbloqueado_em).
@@ -122,6 +123,9 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  // Alerta assíncrono: não bloqueia a resposta
+  void verificarCreditosBaixos(orgId);
 
   return NextResponse.json({
     ok: true,

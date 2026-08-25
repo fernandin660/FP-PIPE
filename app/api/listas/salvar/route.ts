@@ -2,6 +2,7 @@
 
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { verificarCreditosBaixos } from "../../../../lib/avisos";
 
 const MAX_LEADS = 50;
 const CREDITOS_IA_POR_LEAD = 5;
@@ -171,6 +172,9 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Alerta assíncrono: não bloqueia a resposta
+    void verificarCreditosBaixos(orgId);
 
     return NextResponse.json({
       ok: true,

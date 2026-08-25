@@ -133,3 +133,68 @@ export async function registrarUso(api: string) {
     // Monitoramento nunca derruba o fluxo do usuario.
   }
 }
+
+// ============================================================
+// Alerta de créditos baixos: notifica quando saldo de qualquer
+// moeda interna (creditos, creditos_contatos, creditos_ia) cai
+// para 1 ou menos. Envia no máximo 1 e-mail por org por moeda.
+// ============================================================
+
+const TABELAS_CREDITOS = [
+  { tabela: "creditos", label: "Buscas (listas)" },
+  { tabela: "creditos_contatos", label: "Créditos de Lead" },
+  { tabela: "creditos_ia", label: "Créditos de IA" },
+] as const;
+
+export async function verificarCreditosBaixos(orgId: string) {
+  try {
+    const admin = criarClienteSupabaseAdmin();
+    if (!admin) return;
+
+    for (const { tabela, label } of TABELAS_CREDITOS) {
+      const { data } = await admin
+        .from(tabela)
+        .select("saldo")
+        .eq("organizacao_id", orgId)
+        .maybeSingle();
+
+      const saldo = data?.saldo ?? 0;
+      if (saldo > 1) continue;
+
+      // Verifica se já enviou aviso para esta org+moeda neste mês
+      const mes = new Date().toISOString().slice(0, 7);
+      const chaveAlerta = `${orgId}:${tabela}`;
+
+      const { data: jaAvisado } = await admin
+        .from("alertas_creditos")
+        .select("id")
+        .eq("chave", chaveAlerta)
+        .eq("mes", mes)
+        .maybeSingle();
+
+      if (jaAvisado) continue;
+
+      // Busca nome da organização
+      const { data: org } = await admin
+        .from("organizacoes")
+        .select("nome")
+        .eq("id", orgId)
+        .maybeSingle();
+
+      const nomeOrg = org?.nome ?? "Desconhecida";
+
+      await enviarAviso(
+        `🚨 FP Pipe: ${label} baixo — ${nomeOrg}`,
+        `A organização "${nomeOrg}" está com ${saldo} ${label.toLowerCase()} restante(s).\n\nTabela: ${tabela}\nSaldo: ${saldo}\n\nAção recomendada:\n- Verificar se o plano atual cobre a demanda\n- Considere upgrade em /planos\n- Verificar se há créditos extras disponíveis\n\nEste e-mail é automático e só dispara uma vez por mês por organização.`,
+      );
+
+      // Registra que já avisou (dedupe)
+      await admin
+        .from("alertas_creditos")
+        .insert({ chave: chaveAlerta, mes })
+        .select();
+    }
+  } catch {
+    // Alerta nunca derruba o fluxo do usuario.
+  }
+}
