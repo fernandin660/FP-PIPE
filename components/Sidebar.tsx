@@ -26,6 +26,8 @@ export default function Sidebar({
   const [temBuscador, setTemBuscador] = useState<boolean | null>(null);
   const [popupBuscadorAberto, setPopupBuscadorAberto] = useState(false);
   const [ehAdmin, setEhAdmin] = useState(false);
+  const [orgNome, setOrgNome] = useState<string | null>(null);
+  const [orgPapel, setOrgPapel] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -59,6 +61,18 @@ export default function Sidebar({
             plano === "gold_intl" ||
             plano === "platinum_intl")
       );
+
+      // Busca dados da organização
+      try {
+        const resOrg = await fetch("/api/org");
+        if (resOrg.ok) {
+          const dadosOrg = await resOrg.json();
+          if (dadosOrg.nome) setOrgNome(dadosOrg.nome);
+          if (dadosOrg.papel) setOrgPapel(dadosOrg.papel);
+        }
+      } catch {
+        // ignora
+      }
     })();
   }, []);
 
@@ -154,9 +168,27 @@ export default function Sidebar({
               <p className="text-sm font-bold text-white truncate">
                 {perfil?.nome_empresa || "Complete seu perfil"}
               </p>
-              <p className="text-[11px] text-pipe-muted truncate">
-                {perfil?.produtos_servicos ? "✏️ Editar perfil" : "⚠️ Perfil incompleto"}
-              </p>
+              {orgNome && orgNome !== perfil?.nome_empresa && (
+                <p className="text-[11px] text-pipe-muted truncate">
+                  🏢 {orgNome}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[11px] text-pipe-muted truncate">
+                  {perfil?.produtos_servicos ? "✏️ Editar perfil" : "⚠️ Perfil incompleto"}
+                </p>
+                {orgPapel && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      orgPapel === "admin"
+                        ? "bg-yellow-500/20 text-yellow-300"
+                        : "bg-blue-500/20 text-blue-300"
+                    }`}
+                  >
+                    {orgPapel === "admin" ? "Admin" : "Membro"}
+                  </span>
+                )}
+              </div>
             </div>
           </button>
 
@@ -178,6 +210,7 @@ export default function Sidebar({
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
+          {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
           {ehAdmin && (
             <>
               {item("/admin", "Admin · Usuários", "👑", pathname === "/admin")}

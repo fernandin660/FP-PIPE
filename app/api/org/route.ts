@@ -10,13 +10,16 @@ export async function GET() {
 
   const { supabase, orgId, papel, acesso } = ctx!;
 
-  const { data: org } = await supabase
-    .from("organizacoes")
-    .select("nome")
-    .eq("id", orgId)
-    .single();
+  const [{ data: org }, { data: membros }, totalMembros] = await Promise.all([
+    supabase.from("organizacoes").select("nome").eq("id", orgId).single(),
+    supabase
+      .from("organizacao_membros")
+      .select("id, usuario_id, papel, status, email_convite, criado_em")
+      .eq("organizacao_id", orgId)
+      .order("criado_em", { ascending: true }),
+    contarMembros(supabase, orgId),
+  ]);
 
-  const totalMembros = await contarMembros(supabase, orgId);
   const permiteConvidar =
     podeConvidar(acesso.def) && papel === "admin";
 
@@ -29,5 +32,6 @@ export async function GET() {
     permiteConvidar,
     plano: acesso.plano,
     planoNome: acesso.def.nome,
+    membros: membros ?? [],
   });
 }
