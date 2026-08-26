@@ -33,7 +33,9 @@ async function localizarContatoExistente(
 
 type CorpoBusca = {
   linkedinUrl?: unknown;
-  tipo?: unknown; // "email" | "telefone" | "both"
+  empresa?: unknown;
+  nome?: unknown;
+  tipo?: unknown;
 };
 
 type CorpoAtribuicao = {
@@ -139,13 +141,20 @@ export async function POST(requisicao: Request) {
     return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
   }
 
-  const linkedinNormalizado = normalizarLinkedin(
-    String(corpo.linkedinUrl ?? "").trim()
-  );
+  const linkedinInput = String(corpo.linkedinUrl ?? "").trim();
+  const empresaInput = String(corpo.empresa ?? "").trim();
+  const nomeInput = String(corpo.nome ?? "").trim();
 
-  if (!REGEX_LINKEDIN.test(linkedinNormalizado)) {
+  const linkedinNormalizado = linkedinInput
+    ? normalizarLinkedin(linkedinInput)
+    : "";
+
+  const temLinkedin = !!linkedinNormalizado && REGEX_LINKEDIN.test(linkedinNormalizado);
+  const temEmpresa = !!empresaInput;
+
+  if (!temLinkedin && !temEmpresa) {
     return NextResponse.json(
-      { erro: "Cole uma URL válida de perfil do LinkedIn." },
+      { erro: "Informe a URL do LinkedIn ou o nome da empresa." },
       { status: 400 }
     );
   }
@@ -172,127 +181,131 @@ export async function POST(requisicao: Request) {
   const deptoAtual =
     (perfilDepto?.departamento_uso as string | null)?.trim() || "";
 
-  const { data: cacheHit } = await admin
-    .from("emails_cache")
-    .select("email, nome, cargo, empresa")
-    .eq("linkedin_url", linkedinNormalizado)
-    .eq("departamento_uso", deptoAtual)
-    .maybeSingle();
-
-  if (cacheHit?.email) {
-    const { data: creditosCache } = await supabase
-      .from("creditos_contatos")
-      .select("saldo")
-      .eq("organizacao_id", orgId)
+  // Cache só funciona se tiver LinkedIn URL
+  if (temLinkedin) {
+    const { data: cacheHit } = await admin
+      .from("emails_cache")
+      .select("email, nome, cargo, empresa")
+      .eq("linkedin_url", linkedinNormalizado)
+      .eq("departamento_uso", deptoAtual)
       .maybeSingle();
 
-    let saldoCache = creditosCache?.saldo;
-
-    if (saldoCache === null || saldoCache === undefined) {
-      const { data: criada } = await supabase
+    if (cacheHit?.email) {
+      const { data: creditosCache } = await supabase
         .from("creditos_contatos")
-        .insert({ organizacao_id: orgId, saldo: 5 })
         .select("saldo")
-        .single();
-      saldoCache = criada?.saldo ?? 0;
-    }
+        .eq("organizacao_id", orgId)
+        .maybeSingle();
 
-    if (custoCredits > 0 && (saldoCache ?? 0) < custoCredits) {
-      return NextResponse.json(
-        { erro: "Créditos insuficientes para buscar telefone." },
-        { status: 402 }
+      let saldoCache = creditosCache?.saldo;
+
+      if (saldoCache === null || saldoCache === undefined) {
+        const { data: criada } = await supabase
+          .from("creditos_contatos")
+          .insert({ organizacao_id: orgId, saldo: 5 })
+          .select("saldo")
+          .single();
+        saldoCache = criada?.saldo ?? 0;
+      }
+
+      if (custoCredits > 0 && (saldoCache ?? 0) < custoCredits) {
+        return NextResponse.json(
+          { erro: "Créditos insuficientes para buscar telefone." },
+          { status: 402 }
+        );
+      }
+
+      let novoSaldoCache = saldoCache ?? 0;
+      if (custoCredits > 0) {
+        novoSaldoCache = Math.max(0, (saldoCache ?? 0) - custoCredits);
+        await admin
+          .from("creditos_contatos")
+          .update({ saldo: novoSaldoCache })
+          .eq("organizacao_id", orgId);
+      }
+
+      const contatoCache = {
+        linkedin_url: linkedinNormalizado,
+        nome: cacheHit.nome,
+        cargo: cacheHit.cargo,
+        empresa: cacheHit.empresa,
+        email: cacheHit.email,
+      };
+
+      const existenteCache = await localizarContatoExistente(
+        supabase,
+        usuarioId,
+        linkedinNormalizado
       );
+
+      let salvoCache = null;
+
+      if (existenteCache) {
+        const { data } = await supabase
+          .from("contatos")
+          .update({
+            email: contatoCache.email,
+            nome: contatoCache.nome,
+            cargo: contatoCache.cargo,
+            empresa: contatoCache.empresa,
+          })
+          .eq("id", existenteCache.id)
+          .select()
+          .single();
+        salvoCache = data;
+      } else {
+        const { data } = await supabase
+          .from("contatos")
+          .insert({
+            ...contatoCache,
+            usuario_id: usuarioId,
+            emails: [contatoCache.email],
+            telefones: [],
+          })
+          .select()
+          .single();
+        salvoCache = data;
+      }
+
+      let telefones: string[] = [];
+      let fontesTelefone: string[] = [];
+
+      if (tipo === "telefone" || tipo === "both") {
+        const enrich = await buscarContatoCompleto(
+          linkedinNormalizado,
+          contatoCache.empresa ?? "",
+          contatoCache.nome ?? ""
+        );
+        telefones = enrich.telefones;
+        fontesTelefone = enrich.fontesTelefone;
+      }
+
+      if (telefones.length > 0 && salvoCache?.id) {
+        await supabase
+          .from("contatos")
+          .update({ telefones })
+          .eq("id", salvoCache.id);
+      }
+
+      return NextResponse.json({
+        encontrado: true,
+        doCache: true,
+        contato:
+          salvoCache ?? {
+            ...contatoCache,
+            id: existenteCache?.id,
+            company_id: existenteCache?.company_id ?? null,
+            telefones,
+          },
+        emails: tipo !== "telefone" ? [contatoCache.email] : [],
+        telefones,
+        fontesTelefone,
+        saldoContatos: novoSaldoCache,
+      });
     }
-
-    let novoSaldoCache = saldoCache ?? 0;
-    if (custoCredits > 0) {
-      novoSaldoCache = Math.max(0, (saldoCache ?? 0) - custoCredits);
-      await admin
-        .from("creditos_contatos")
-        .update({ saldo: novoSaldoCache })
-        .eq("organizacao_id", orgId);
-    }
-
-    const contatoCache = {
-      linkedin_url: linkedinNormalizado,
-      nome: cacheHit.nome,
-      cargo: cacheHit.cargo,
-      empresa: cacheHit.empresa,
-      email: cacheHit.email,
-    };
-
-    const existenteCache = await localizarContatoExistente(
-      supabase,
-      usuarioId,
-      linkedinNormalizado
-    );
-
-    let salvoCache = null;
-
-    if (existenteCache) {
-      const { data } = await supabase
-        .from("contatos")
-        .update({
-          email: contatoCache.email,
-          nome: contatoCache.nome,
-          cargo: contatoCache.cargo,
-          empresa: contatoCache.empresa,
-        })
-        .eq("id", existenteCache.id)
-        .select()
-        .single();
-      salvoCache = data;
-    } else {
-      const { data } = await supabase
-        .from("contatos")
-        .insert({
-          ...contatoCache,
-          usuario_id: usuarioId,
-          emails: [contatoCache.email],
-          telefones: [],
-        })
-        .select()
-        .single();
-      salvoCache = data;
-    }
-
-    let telefones: string[] = [];
-    let fontesTelefone: string[] = [];
-
-    if (tipo === "telefone" || tipo === "both") {
-      const enrich = await buscarContatoCompleto(
-        linkedinNormalizado,
-        contatoCache.empresa ?? "",
-        contatoCache.nome ?? ""
-      );
-      telefones = enrich.telefones;
-      fontesTelefone = enrich.fontesTelefone;
-    }
-
-    if (telefones.length > 0 && salvoCache?.id) {
-      await supabase
-        .from("contatos")
-        .update({ telefones })
-        .eq("id", salvoCache.id);
-    }
-
-    return NextResponse.json({
-      encontrado: true,
-      doCache: true,
-      contato:
-        salvoCache ?? {
-          ...contatoCache,
-          id: existenteCache?.id,
-          company_id: existenteCache?.company_id ?? null,
-          telefones,
-        },
-      emails: tipo !== "telefone" ? [contatoCache.email] : [],
-      telefones,
-      fontesTelefone,
-      saldoContatos: novoSaldoCache,
-    });
   }
 
+  // Busca completa — com ou sem LinkedIn
   const { data: creditosAtuais } = await supabase
     .from("creditos_contatos")
     .select("saldo")
@@ -324,10 +337,11 @@ export async function POST(requisicao: Request) {
     );
   }
 
+  // Busca: LinkedIn URL + empresa + nome (o que tiver)
   const resultado = await buscarContatoCompleto(
     linkedinNormalizado,
-    "",
-    ""
+    empresaInput,
+    nomeInput
   );
 
   let novoSaldo = saldo ?? 0;
@@ -342,14 +356,15 @@ export async function POST(requisicao: Request) {
   }
 
   const contato = {
-    linkedin_url: linkedinNormalizado,
-    nome: null as string | null,
+    linkedin_url: linkedinNormalizado || null,
+    nome: nomeInput || null,
     cargo: null as string | null,
-    empresa: null as string | null,
+    empresa: empresaInput || null,
     email: resultado.emails[0] ?? null,
   };
 
-  if (admin) {
+  // Salva no cache global (só se tiver LinkedIn)
+  if (admin && temLinkedin) {
     await admin.from("emails_cache").upsert(
       {
         linkedin_url: linkedinNormalizado,
@@ -363,52 +378,54 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const existente = await localizarContatoExistente(
-    supabase,
-    usuarioId,
-    linkedinNormalizado
-  );
-
+  // Salva contato no banco
   let salvo = null;
 
-  if (existente) {
-    const { data } = await supabase
-      .from("contatos")
-      .update({
-        email: contato.email,
-        nome: contato.nome,
-        cargo: contato.cargo,
-        empresa: contato.empresa,
-        telefones: resultado.telefones.length > 0 ? resultado.telefones : undefined,
-      })
-      .eq("id", existente.id)
-      .select()
-      .single();
-    salvo = data;
-  } else {
-    const { data } = await supabase
-      .from("contatos")
-      .insert({
-        ...contato,
-        usuario_id: usuarioId,
-        emails: contato.email ? [contato.email] : [],
-        telefones: resultado.telefones,
-      })
-      .select()
-      .single();
-    salvo = data;
+  if (temLinkedin) {
+    const existente = await localizarContatoExistente(
+      supabase,
+      usuarioId,
+      linkedinNormalizado
+    );
+
+    if (existente) {
+      const { data } = await supabase
+        .from("contatos")
+        .update({
+          email: contato.email,
+          nome: contato.nome,
+          cargo: contato.cargo,
+          empresa: contato.empresa,
+          telefones: resultado.telefones.length > 0 ? resultado.telefones : undefined,
+        })
+        .eq("id", existente.id)
+        .select()
+        .single();
+      salvo = data;
+    } else {
+      const { data } = await supabase
+        .from("contatos")
+        .insert({
+          ...contato,
+          usuario_id: usuarioId,
+          emails: contato.email ? [contato.email] : [],
+          telefones: resultado.telefones,
+        })
+        .select()
+        .single();
+      salvo = data;
+    }
   }
 
   return NextResponse.json({
-    encontrado: true,
+    encontrado: Boolean(resultado.emails.length || resultado.telefones.length),
     doCache: false,
-    contato:
-      salvo ?? {
-        ...contato,
-        id: existente?.id,
-        company_id: existente?.company_id ?? null,
-        telefones: resultado.telefones,
-      },
+    contato: salvo ?? {
+      ...contato,
+      id: null,
+      company_id: null,
+      telefones: resultado.telefones,
+    },
     emails: tipo !== "telefone" ? resultado.emails : [],
     telefones: resultado.telefones,
     fontesEmail: resultado.fontesEmail,

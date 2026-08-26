@@ -341,6 +341,10 @@ function BuscadorContent() {
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
 
   const [urlLinkedin, setUrlLinkedin] = useState("");
+  const [empresaInput, setEmpresaInput] = useState("");
+  const [nomeInput, setNomeInput] = useState("");
+  const [leadSelecionado, setLeadSelecionado] = useState<string>("");
+  const [leads, setLeads] = useState<ContatoEncontrado[]>([]);
   const [tipoBusca, setTipoBusca] = useState<"email" | "telefone" | "both">("both");
   const [buscando, setBuscando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -444,6 +448,15 @@ function BuscadorContent() {
 
       setEmpresas((dadosEmpresas as EmpresaResumida[]) ?? []);
 
+      const { data: dadosLeads } = await supabase
+        .from("contatos")
+        .select("id, linkedin_url, nome, cargo, empresa, email")
+        .eq("usuario_id", user.id)
+        .order("criado_em", { ascending: false })
+        .limit(100);
+
+      setLeads((dadosLeads as ContatoEncontrado[]) ?? []);
+
       await carregarHistorico(user.id);
 
       setCarregando(false);
@@ -457,6 +470,24 @@ function BuscadorContent() {
 
     carregar();
   }, [router, carregarHistorico, urlDaExtensao]);
+
+  const selecionarLead = (leadId: string) => {
+    setLeadSelecionado(leadId);
+    if (!leadId) {
+      setUrlLinkedin("");
+      setEmpresaInput("");
+      setNomeInput("");
+      return;
+    }
+    const lead = leads.find((l) => l.id === leadId);
+    if (lead) {
+      setUrlLinkedin(lead.linkedin_url ?? "");
+      setEmpresaInput(lead.empresa ?? "");
+      setNomeInput(lead.nome ?? "");
+    }
+  };
+
+  const temInput = Boolean(urlLinkedin.trim() || empresaInput.trim());
 
   const buscar = async () => {
     const urlFinal = urlLinkedin.trim() || pendenteAutoBusca.current || "";
@@ -477,7 +508,12 @@ function BuscadorContent() {
       const resposta = await fetch("/api/buscar-contato", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedinUrl: urlFinal, tipo: tipoBusca }),
+        body: JSON.stringify({
+          linkedinUrl: urlFinal,
+          empresa: empresaInput.trim(),
+          nome: nomeInput.trim(),
+          tipo: tipoBusca,
+        }),
       });
 
       const dados = (await resposta.json()) as {
@@ -648,77 +684,127 @@ function BuscadorContent() {
           </div>
 
           <p className="text-pipe-muted mt-3 max-w-2xl">
-            Cole o link de um perfil do LinkedIn e receba o{" "}
-            <strong className="text-gray-200">e-mail sugerido</strong> +{" "}
-            <strong className="text-gray-200">telefone verificado</strong> da
-            pessoa. E-mail é sempre grátis. Telefone consome 3 créditos.
+            Selecione um lead da sua lista ou cole o link do LinkedIn. Receba{" "}
+            <strong className="text-gray-200">e-mails sugeridos</strong> (grátis) +{" "}
+            <strong className="text-gray-200">telefone verificado</strong> (3 créditos).
           </p>
 
-          <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6">
-            <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-              URL do perfil do LinkedIn
-            </label>
+          <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
+            {leads.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
+                  Selecionar lead da sua lista
+                </label>
+                <select
+                  value={leadSelecionado}
+                  onChange={(e) => selecionarLead(e.target.value)}
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  disabled={buscando}
+                >
+                  <option value="">Buscar por LinkedIn ou empresa...</option>
+                  {leads.map((lead) => (
+                    <option key={lead.id} value={lead.id ?? ""}>
+                      {lead.nome ?? "Sem nome"} — {lead.empresa ?? "Sem empresa"}
+                      {lead.linkedin_url ? " ✓ LinkedIn" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
+                URL do perfil do LinkedIn
+              </label>
               <input
                 type="url"
                 value={urlLinkedin}
                 onChange={(e) => setUrlLinkedin(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") buscar();
-                }}
                 placeholder="https://www.linkedin.com/in/nome-da-pessoa"
-                className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
                 disabled={buscando}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
+                  Nome da pessoa
+                </label>
+                <input
+                  type="text"
+                  value={nomeInput}
+                  onChange={(e) => setNomeInput(e.target.value)}
+                  placeholder="João Silva"
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  disabled={buscando}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
+                  Empresa
+                </label>
+                <input
+                  type="text"
+                  value={empresaInput}
+                  onChange={(e) => setEmpresaInput(e.target.value)}
+                  placeholder="Tech Solutions Ltda"
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  disabled={buscando}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="flex-1">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-pipe-muted">Tipo de busca:</span>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={tipoBusca === "email"}
+                      onChange={() => setTipoBusca("email")}
+                      className="accent-pipe-lime"
+                    />
+                    <span className="text-xs text-gray-300">
+                      📧 E-mail <span className="text-pipe-lime">(grátis)</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={tipoBusca === "telefone"}
+                      onChange={() => setTipoBusca("telefone")}
+                      className="accent-pipe-lime"
+                    />
+                    <span className="text-xs text-gray-300">
+                      📞 Telefone <span className="text-pipe-muted">(3 créditos)</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={tipoBusca === "both"}
+                      onChange={() => setTipoBusca("both")}
+                      className="accent-pipe-lime"
+                    />
+                    <span className="text-xs text-gray-300">
+                      📧📞 Ambos <span className="text-pipe-muted">(3 créditos)</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
 
               <button
                 onClick={buscar}
-                disabled={buscando || !urlLinkedin.trim()}
+                disabled={buscando || !temInput}
                 className="bg-pipe-lime text-black font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
               >
                 {buscando ? "🔍 Buscando..." : "🔎 Buscar contato"}
               </button>
-            </div>
-
-            <div className="flex items-center gap-4 mt-3">
-              <span className="text-xs text-pipe-muted">Tipo de busca:</span>
-
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={tipoBusca === "email"}
-                  onChange={() => setTipoBusca("email")}
-                  className="accent-pipe-lime"
-                />
-                <span className="text-xs text-gray-300">
-                  📧 E-mail <span className="text-pipe-lime">(grátis)</span>
-                </span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={tipoBusca === "telefone"}
-                  onChange={() => setTipoBusca("telefone")}
-                  className="accent-pipe-lime"
-                />
-                <span className="text-xs text-gray-300">
-                  📞 Telefone <span className="text-pipe-muted">(3 créditos)</span>
-                </span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={tipoBusca === "both"}
-                  onChange={() => setTipoBusca("both")}
-                  className="accent-pipe-lime"
-                />
-                <span className="text-xs text-gray-300">
-                  📧📞 Ambos <span className="text-pipe-muted">(3 créditos)</span>
-                </span>
-              </label>
             </div>
 
             {mensagem && (
