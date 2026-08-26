@@ -4,10 +4,8 @@ import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
-import { enriquecerTelefonesContato } from "../../../lib/enriquecimento";
+import { buscarContatoCompleto } from "../../../lib/enriquecimento";
 import { exigirRateLimit } from "../../../lib/rate-limit";
-
-const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
 const REGEX_LINKEDIN =
   /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9_%-]+\/?$/i;
@@ -16,8 +14,6 @@ function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
 }
 
-// Reutiliza a linha existente do mesmo perfil para nÃ£o duplicar contatos
-// e preservar a atribuiÃ§Ã£o anterior ao lead.
 async function localizarContatoExistente(
   supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
   usuarioId: string,
@@ -37,6 +33,7 @@ async function localizarContatoExistente(
 
 type CorpoBusca = {
   linkedinUrl?: unknown;
+  tipo?: unknown; // "email" | "telefone" | "both"
 };
 
 type CorpoAtribuicao = {
@@ -48,7 +45,7 @@ export async function PUT(requisicao: Request) {
   const supabase = await criarClienteSupabaseServidor();
   if (!supabase) {
     return NextResponse.json(
-      { erro: "AutenticaÃ§Ã£o nÃ£o configurada." },
+      { erro: "Autenticação não configurada." },
       { status: 503 }
     );
   }
@@ -58,14 +55,14 @@ export async function PUT(requisicao: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ erro: "FaÃ§a login novamente." }, { status: 401 });
+    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
   }
 
   let corpo: CorpoAtribuicao;
   try {
     corpo = (await requisicao.json()) as CorpoAtribuicao;
   } catch {
-    return NextResponse.json({ erro: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
+    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
   }
 
   const contatoId = String(corpo.contatoId ?? "");
@@ -90,7 +87,7 @@ export async function PUT(requisicao: Request) {
 
   if (!contato || !empresa) {
     return NextResponse.json(
-      { erro: "Contato ou lead nÃ£o encontrado." },
+      { erro: "Contato ou lead não encontrado." },
       { status: 404 }
     );
   }
@@ -100,7 +97,6 @@ export async function PUT(requisicao: Request) {
     .update({ company_id: companyId })
     .eq("id", contatoId);
 
-  // Preenche o campeÃ£o do lead sÃ³ se ele ainda nÃ£o tiver um.
   if (!empresa.campeao_email) {
     await supabase
       .from("companies")
@@ -117,13 +113,6 @@ export async function PUT(requisicao: Request) {
 }
 
 export async function POST(requisicao: Request) {
-  if (!CHAVE_ANYMAIL) {
-    return NextResponse.json(
-      { erro: "IntegraÃ§Ã£o de contatos ainda nÃ£o configurada." },
-      { status: 503 }
-    );
-  }
-
   const bloqueado = await exigirRateLimit(requisicao, "buscar-contato", 10, 60);
   if (bloqueado) return bloqueado;
 
@@ -136,7 +125,7 @@ export async function POST(requisicao: Request) {
     return NextResponse.json(
       {
         erro:
-          "O plano Silver nÃ£o inclui o Buscador de contatos. FaÃ§a upgrade para Gold ou Platinum em /planos.",
+          "O plano Silver não inclui o Buscador de contatos. Faça upgrade para Gold ou Platinum em /planos.",
         motivo: "sem_buscador",
       },
       { status: 403 }
@@ -147,7 +136,7 @@ export async function POST(requisicao: Request) {
   try {
     corpo = (await requisicao.json()) as CorpoBusca;
   } catch {
-    return NextResponse.json({ erro: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
+    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
   }
 
   const linkedinNormalizado = normalizarLinkedin(
@@ -156,13 +145,17 @@ export async function POST(requisicao: Request) {
 
   if (!REGEX_LINKEDIN.test(linkedinNormalizado)) {
     return NextResponse.json(
-      { erro: "Cole uma URL vÃ¡lida de perfil do LinkedIn." },
+      { erro: "Cole uma URL válida de perfil do LinkedIn." },
       { status: 400 }
     );
   }
 
-  // Cache global: perfil jÃ¡ buscado antes = nÃ£o gasta crÃ©dito do provedor,
-  // mas o usuÃ¡rio paga normalmente pela informaÃ§Ã£o.
+  const tipo = ["email", "telefone", "both"].includes(String(corpo.tipo))
+    ? String(corpo.tipo)
+    : "both";
+
+  const custoCredits = tipo === "email" ? 0 : 3;
+
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
     return NextResponse.json(
@@ -171,8 +164,6 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  // Departamento que o vendedor usa o produto: define qual contato
-  // do lead faz sentido para ele (TI p/ tecnologia, financeiro p/ contabilidade...).
   const { data: perfilDepto } = await supabase
     .from("perfil")
     .select("departamento_uso")
@@ -181,126 +172,127 @@ export async function POST(requisicao: Request) {
   const deptoAtual =
     (perfilDepto?.departamento_uso as string | null)?.trim() || "";
 
-  if (admin) {
-    const { data: cacheHit } = await admin
-      .from("emails_cache")
-      .select("email, nome, cargo, empresa")
-      .eq("linkedin_url", linkedinNormalizado)
-      .eq("departamento_uso", deptoAtual)
+  const { data: cacheHit } = await admin
+    .from("emails_cache")
+    .select("email, nome, cargo, empresa")
+    .eq("linkedin_url", linkedinNormalizado)
+    .eq("departamento_uso", deptoAtual)
+    .maybeSingle();
+
+  if (cacheHit?.email) {
+    const { data: creditosCache } = await supabase
+      .from("creditos_contatos")
+      .select("saldo")
+      .eq("organizacao_id", orgId)
       .maybeSingle();
 
-    if (cacheHit?.email) {
-      const { data: creditosCache } = await supabase
+    let saldoCache = creditosCache?.saldo;
+
+    if (saldoCache === null || saldoCache === undefined) {
+      const { data: criada } = await supabase
         .from("creditos_contatos")
+        .insert({ organizacao_id: orgId, saldo: 5 })
         .select("saldo")
-        .eq("organizacao_id", orgId)
-        .maybeSingle();
+        .single();
+      saldoCache = criada?.saldo ?? 0;
+    }
 
-      let saldoCache = creditosCache?.saldo;
+    if (custoCredits > 0 && (saldoCache ?? 0) < custoCredits) {
+      return NextResponse.json(
+        { erro: "Créditos insuficientes para buscar telefone." },
+        { status: 402 }
+      );
+    }
 
-      if (saldoCache === null || saldoCache === undefined) {
-        const { data: criada } = await supabase
-          .from("creditos_contatos")
-          .insert({ organizacao_id: orgId, saldo: 5 })
-          .select("saldo")
-          .single();
-
-        saldoCache = criada?.saldo ?? 0;
-      }
-
-      if ((saldoCache ?? 0) <= 0) {
-        return NextResponse.json(
-          { erro: "VocÃª estÃ¡ sem crÃ©ditos de contato." },
-          { status: 402 }
-        );
-      }
-
-      const novoSaldoCache = Math.max(0, (saldoCache ?? 0) - 1);
-
+    let novoSaldoCache = saldoCache ?? 0;
+    if (custoCredits > 0) {
+      novoSaldoCache = Math.max(0, (saldoCache ?? 0) - custoCredits);
       await admin
         .from("creditos_contatos")
         .update({ saldo: novoSaldoCache })
         .eq("organizacao_id", orgId);
+    }
 
-      const contatoCache = {
-        linkedin_url: linkedinNormalizado,
-        nome: cacheHit.nome,
-        cargo: cacheHit.cargo,
-        empresa: cacheHit.empresa,
-        email: cacheHit.email,
-      };
+    const contatoCache = {
+      linkedin_url: linkedinNormalizado,
+      nome: cacheHit.nome,
+      cargo: cacheHit.cargo,
+      empresa: cacheHit.empresa,
+      email: cacheHit.email,
+    };
 
-      const existenteCache = await localizarContatoExistente(
-        supabase,
-        usuarioId,
-        linkedinNormalizado
-      );
+    const existenteCache = await localizarContatoExistente(
+      supabase,
+      usuarioId,
+      linkedinNormalizado
+    );
 
-      let salvoCache = null;
+    let salvoCache = null;
 
-      if (existenteCache) {
-        const { data } = await supabase
-          .from("contatos")
-          .update({
-            email: contatoCache.email,
-            nome: contatoCache.nome,
-            cargo: contatoCache.cargo,
-            empresa: contatoCache.empresa,
-          })
-          .eq("id", existenteCache.id)
-          .select()
-          .single();
+    if (existenteCache) {
+      const { data } = await supabase
+        .from("contatos")
+        .update({
+          email: contatoCache.email,
+          nome: contatoCache.nome,
+          cargo: contatoCache.cargo,
+          empresa: contatoCache.empresa,
+        })
+        .eq("id", existenteCache.id)
+        .select()
+        .single();
+      salvoCache = data;
+    } else {
+      const { data } = await supabase
+        .from("contatos")
+        .insert({
+          ...contatoCache,
+          usuario_id: usuarioId,
+          emails: [contatoCache.email],
+          telefones: [],
+        })
+        .select()
+        .single();
+      salvoCache = data;
+    }
 
-        salvoCache = data;
-      } else {
-        const { data } = await supabase
-          .from("contatos")
-          .insert({
-            ...contatoCache,
-            usuario_id: usuarioId,
-            emails: [contatoCache.email],
-            telefones: [],
-          })
-          .select()
-          .single();
+    let telefones: string[] = [];
+    let fontesTelefone: string[] = [];
 
-        salvoCache = data;
-      }
-
-      // Enriquecimento: tenta encontrar telefone/website da empresa
-      const enrichCache = await enriquecerTelefonesContato(
+    if (tipo === "telefone" || tipo === "both") {
+      const enrich = await buscarContatoCompleto(
         linkedinNormalizado,
         contatoCache.empresa ?? "",
         contatoCache.nome ?? ""
       );
-
-      // Atualiza contato com telefones encontrados
-      if (enrichCache.telefones.length > 0 && salvoCache?.id) {
-        await supabase
-          .from("contatos")
-          .update({ telefones: enrichCache.telefones })
-          .eq("id", salvoCache.id);
-      }
-
-      return NextResponse.json({
-        encontrado: true,
-        doCache: true,
-        contato:
-          salvoCache ?? {
-            ...contatoCache,
-            id: existenteCache?.id,
-            company_id: existenteCache?.company_id ?? null,
-            telefones: enrichCache.telefones,
-          },
-        telefones: enrichCache.telefones,
-        website: enrichCache.website,
-        fontes: enrichCache.fontes,
-        saldoContatos: novoSaldoCache,
-      });
+      telefones = enrich.telefones;
+      fontesTelefone = enrich.fontesTelefone;
     }
+
+    if (telefones.length > 0 && salvoCache?.id) {
+      await supabase
+        .from("contatos")
+        .update({ telefones })
+        .eq("id", salvoCache.id);
+    }
+
+    return NextResponse.json({
+      encontrado: true,
+      doCache: true,
+      contato:
+        salvoCache ?? {
+          ...contatoCache,
+          id: existenteCache?.id,
+          company_id: existenteCache?.company_id ?? null,
+          telefones,
+        },
+      emails: tipo !== "telefone" ? [contatoCache.email] : [],
+      telefones,
+      fontesTelefone,
+      saldoContatos: novoSaldoCache,
+    });
   }
 
-  // CrÃ©ditos de contato: primeira busca cria a linha com saldo de boas-vindas.
   const { data: creditosAtuais } = await supabase
     .from("creditos_contatos")
     .select("saldo")
@@ -318,91 +310,45 @@ export async function POST(requisicao: Request) {
 
     if (erroCriar || !criada) {
       return NextResponse.json(
-        { erro: "NÃ£o foi possÃ­vel preparar seus crÃ©ditos." },
+        { erro: "Não foi possível preparar seus créditos." },
         { status: 500 }
       );
     }
     saldo = criada.saldo;
   }
 
-  if ((saldo ?? 0) <= 0) {
+  if (custoCredits > 0 && (saldo ?? 0) < custoCredits) {
     return NextResponse.json(
-      { erro: "VocÃª estÃ¡ sem crÃ©ditos de contato." },
+      { erro: "Créditos insuficientes para buscar telefone." },
       { status: 402 }
     );
   }
 
-  void registrarUso("anymail");
-
-  const respostaAnymail = await fetch(
-    "https://api.anymailfinder.com/v5.1/find-email/linkedin-url",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${CHAVE_ANYMAIL}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ linkedin_url: linkedinNormalizado }),
-    }
+  const resultado = await buscarContatoCompleto(
+    linkedinNormalizado,
+    "",
+    ""
   );
 
-  const dados = (await respostaAnymail.json().catch(() => ({}))) as {
-    email?: string;
-    valid_email?: string | null;
-    email_status?: string;
-    full_name?: string;
-    person_full_name?: string;
-    job_title?: string;
-    person_job_title?: string;
-    company_name?: string;
-    company?: string;
-    person_company_name?: string;
-    credits_charged?: number;
-  };
+  let novoSaldo = saldo ?? 0;
+  if (custoCredits > 0) {
+    novoSaldo = Math.max(0, (saldo ?? 0) - custoCredits);
+    await admin
+      .from("creditos_contatos")
+      .update({ saldo: novoSaldo })
+      .eq("organizacao_id", orgId);
 
-  if (!respostaAnymail.ok) {
-    return NextResponse.json(
-      { erro: "O provedor nÃ£o conseguiu processar essa busca agora." },
-      { status: 502 }
-    );
+    void registrarUso("buscador_contatos");
   }
-
-  const emailVerificado = dados.valid_email || dados.email;
-
-  if (!emailVerificado || dados.email_status !== "valid") {
-    return NextResponse.json({
-      encontrado: false,
-      mensagem:
-        "Nenhum e-mail verificado encontrado para esse perfil (vocÃª nÃ£o foi cobrado).",
-    });
-  }
-
-  const cobrado = typeof dados.credits_charged === "number" ? dados.credits_charged : 1;
-  const novoSaldo = Math.max(0, (saldo ?? 0) - cobrado);
-
-  await admin
-    .from("creditos_contatos")
-    .update({ saldo: novoSaldo })
-    .eq("organizacao_id", orgId);
 
   const contato = {
     linkedin_url: linkedinNormalizado,
-    nome: dados.person_full_name || dados.full_name || null,
-    cargo: dados.person_job_title || dados.job_title || null,
-    empresa:
-      dados.person_company_name || dados.company_name || dados.company || null,
-    email: emailVerificado,
+    nome: null as string | null,
+    cargo: null as string | null,
+    empresa: null as string | null,
+    email: resultado.emails[0] ?? null,
   };
 
-  // Enriquecimento: tenta encontrar telefone/website da empresa
-  const enrich = await enriquecerTelefonesContato(
-    linkedinNormalizado,
-    contato.empresa ?? "",
-    contato.nome ?? ""
-  );
-
-  // Guarda no cache global para futuras buscas do mesmo perfil,
-  // amarrado ao departamento de uso do vendedor que buscou.
   if (admin) {
     await admin.from("emails_cache").upsert(
       {
@@ -433,12 +379,11 @@ export async function POST(requisicao: Request) {
         nome: contato.nome,
         cargo: contato.cargo,
         empresa: contato.empresa,
-        telefones: enrich.telefones.length > 0 ? enrich.telefones : undefined,
+        telefones: resultado.telefones.length > 0 ? resultado.telefones : undefined,
       })
       .eq("id", existente.id)
       .select()
       .single();
-
     salvo = data;
   } else {
     const { data } = await supabase
@@ -446,12 +391,11 @@ export async function POST(requisicao: Request) {
       .insert({
         ...contato,
         usuario_id: usuarioId,
-        emails: [contato.email],
-        telefones: enrich.telefones,
+        emails: contato.email ? [contato.email] : [],
+        telefones: resultado.telefones,
       })
       .select()
       .single();
-
     salvo = data;
   }
 
@@ -463,12 +407,12 @@ export async function POST(requisicao: Request) {
         ...contato,
         id: existente?.id,
         company_id: existente?.company_id ?? null,
-        telefones: enrich.telefones,
+        telefones: resultado.telefones,
       },
-    telefones: enrich.telefones,
-    website: enrich.website,
-    fontes: enrich.fontes,
+    emails: tipo !== "telefone" ? resultado.emails : [],
+    telefones: resultado.telefones,
+    fontesEmail: resultado.fontesEmail,
+    fontesTelefone: resultado.fontesTelefone,
     saldoContatos: novoSaldo,
   });
 }
-

@@ -2,6 +2,7 @@ import { criarClienteSupabaseAdmin } from "./supabase/admin";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 const CHAVE_SERPER = process.env.SERPER_API_KEY ?? "";
+const CHAVE_MILLIONPHONES = process.env.MILLIONPHONES_API_KEY ?? "";
 
 // ============================================================
 // 1. Google Search via Serper — busca telefone nos resultados
@@ -220,7 +221,175 @@ export async function buscarCnpjPorEmpresa(
 }
 
 // ============================================================
-// 5. Cache de enriquecimento — não re-busca o que já temos
+// 6. MillionPhones — telefone via LinkedIn URL
+// ============================================================
+
+type MillionPhonesResposta = {
+  status?: string;
+  data?: {
+    phone_numbers?: string[];
+    emails?: string[];
+  };
+};
+
+export async function buscarTelefoneMillionPhones(
+  linkedinUrl: string
+): Promise<{ telefone?: string }> {
+  if (!CHAVE_MILLIONPHONES || !linkedinUrl) return {};
+
+  try {
+    const resposta = await fetch(
+      `https://api.millionphones.com/v1/phone?social_url=${encodeURIComponent(linkedinUrl)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${CHAVE_MILLIONPHONES}`,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!resposta.ok) return {};
+
+    const dados = (await resposta.json()) as MillionPhonesResposta;
+    const telefones = dados.data?.phone_numbers ?? [];
+
+    if (telefones.length > 0 && telefones[0]) {
+      return { telefone: telefones[0] };
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+// ============================================================
+// 7. Geração de e-mails — sugestões via IA + padrões
+// ============================================================
+
+function normalizarNome(nome: string): string {
+  return nome
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function extrairPartesNome(nome: string): { primeiro: string; ultimo: string; inicial: string } {
+  const partes = normalizarNome(nome).split(/\s+/).filter(Boolean);
+  const primeiro = partes[0] ?? "";
+  const ultimo = partes[partes.length - 1] ?? "";
+  const inicial = primeiro[0] ?? "";
+  return { primeiro, ultimo, inicial };
+}
+
+export function sugerirEmails(nome: string, dominio: string): string[] {
+  if (!nome || !dominio) return [];
+
+  const { primeiro, ultimo, inicial } = extrairPartesNome(nome);
+  if (!primeiro || !ultimo) return [];
+
+  const dominioLimpo = dominio.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+
+  const sugestoes = [
+    `${primeiro}.${ultimo}@${dominioLimpo}`,
+    `${primeiro}@${dominioLimpo}`,
+    `${inicial}${ultimo}@${dominioLimpo}`,
+    `${primeiro}${ultimo}@${dominioLimpo}`,
+    `${ultimo}.${primeiro}@${dominioLimpo}`,
+    `${primeiro}_${ultimo}@${dominioLimpo}`,
+    `${inicial}.${ultimo}@${dominioLimpo}`,
+  ];
+
+  return [...new Set(sugestoes)];
+}
+
+// ============================================================
+// 8. Buscar domínio do site da empresa (Casa dos Dados)
+// ============================================================
+
+export async function buscarDominioEmpresa(
+  nomeEmpresa: string
+): Promise<{ dominio?: string; cnpj?: string }> {
+  if (!nomeEmpresa) return {};
+
+  try {
+    const resposta = await fetch(
+      "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: { termo_buscado: [nomeEmpresa] },
+          extras: { somente_mei: false, com_email: false, inativar: false },
+          page: 1,
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+
+    if (!resposta.ok) return {};
+
+    const dados = (await resposta.json()) as CasaDosDadosResposta;
+    const item = (dados.data?.cnpj_faces ?? [])[0];
+
+    // Casa dos Dados não retorna website diretamente, mas retorna CNPJ
+    // que pode ser usado na Brasil API para achar o site
+    return {
+      cnpj: item?.cnpj ?? undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+// ============================================================
+// 9. Buscar website via Brasil API (com CNPJ)
+// ============================================================
+
+type BrasilApiSite = {
+  cnpj: string;
+  situacao_cadastral: string;
+  nome_fantasia?: string;
+  razao_social?: string;
+  // Brasil API não retorna website diretamente,
+  // mas retorna dados que ajudam a montar o domínio
+};
+
+export async function buscarWebsitePorCnpj(
+  cnpj: string
+): Promise<{ website?: string; dominio?: string }> {
+  const cnpjLimpo = cnpj.replace(/\D/g, "");
+  if (cnpjLimpo.length !== 14) return {};
+
+  try {
+    const resposta = await fetch(
+      `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+
+    if (!resposta.ok) return {};
+
+    const dados = (await resposta.json()) as BrasilApiSite;
+
+    // Se tem nome fantasia, tenta montar o domínio
+    const fantasia = dados.nome_fantasia;
+    if (fantasia) {
+      const slug = normalizarNome(fantasia)
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, "");
+      return { dominio: `${slug}.com.br` };
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+// ============================================================
+// 10. Cache de enriquecimento — não re-busca o que já temos
 // ============================================================
 
 export async function buscarCacheEnriquecimento(
@@ -260,7 +429,7 @@ export async function salvarCacheEnriquecimento(
 }
 
 // ============================================================
-// 6. Helper: normalizar telefone BR (remover formatação)
+// 11. Helper: normalizar telefone BR (remover formatação)
 // ============================================================
 
 function normalizarTel(tel: string): string {
@@ -280,7 +449,7 @@ function adicionarSeNovo(telefones: string[], novo: string, fontes: string[], fo
 }
 
 // ============================================================
-// 7. Orquestrador — cascade completa
+// 12. Orquestrador — cascade completa (telefone)
 //
 //  Fluxo:
 //  1. Cache → se tem telefone, retorna (zero custo)
@@ -288,7 +457,8 @@ function adicionarSeNovo(telefones: string[], novo: string, fontes: string[], fo
 //  3. Maps → telefone + website da empresa
 //  4. Casa dos Dados → acha CNPJ pelo nome
 //  5. Brasil API → telefone do responsável legal
-//  6. Salva no cache
+//  6. MillionPhones → telefone via LinkedIn (pago, 10 créditos)
+//  7. Salva no cache
 // ============================================================
 
 export async function enriquecerTelefonesContato(
@@ -335,29 +505,100 @@ export async function enriquecerTelefonesContato(
   // 4+5. CNPJ → Brasil API
   let cnpjEncontrado = cnpj;
 
-  // Se não tem CNPJ, tenta achar pela Casa dos Dados
   if (!cnpjEncontrado && nomeEmpresa) {
     const casa = await buscarCnpjPorEmpresa(nomeEmpresa);
     if (casa.cnpj) {
       cnpjEncontrado = casa.cnpj;
-      // Casa dos Dados já retorna telefone
       if (casa.telefone) {
         adicionarSeNovo(telefones, casa.telefone, fontes, "casa_dos_dados");
       }
     }
   }
 
-  // Brasil API com o CNPJ encontrado
   if (cnpjEncontrado) {
     const brasil = await buscarDadosCnpj(cnpjEncontrado);
     adicionarSeNovo(telefones, brasil.telefone ?? "", fontes, "brasil_api");
     adicionarSeNovo(telefones, brasil.telefone2 ?? "", fontes, "brasil_api");
   }
 
-  // 6. Salva no cache
+  // 6. MillionPhones — telefone via LinkedIn (pago)
+  if (telefones.length === 0 && linkedinUrl) {
+    const mp = await buscarTelefoneMillionPhones(linkedinUrl);
+    if (mp.telefone) {
+      adicionarSeNovo(telefones, mp.telefone, fontes, "millionphones");
+    }
+  }
+
+  // 7. Salva no cache
   if (telefones.length > 0 || website) {
     void salvarCacheEnriquecimento(linkedinUrl, telefones, website);
   }
 
   return { telefones, website, fontes };
+}
+
+// ============================================================
+// 13. Orquestrador — busca de contato completo
+//
+//  Retorna: emails sugeridos + telefone verificado
+// ============================================================
+
+export async function buscarContatoCompleto(
+  linkedinUrl: string,
+  nomeEmpresa: string,
+  nomePessoa?: string,
+  cidade?: string,
+  uf?: string,
+  cnpj?: string
+): Promise<{
+  emails: string[];
+  telefones: string[];
+  website?: string;
+  fontesEmail: string[];
+  fontesTelefone: string[];
+}> {
+  // Buscar telefone (cascade completa)
+  const telefoneResult = await enriquecerTelefonesContato(
+    linkedinUrl,
+    nomeEmpresa,
+    nomePessoa,
+    cidade,
+    uf,
+    cnpj
+  );
+
+  // Buscar domínio para gerar emails
+  let dominio: string | undefined;
+  let cnpjEncontrado = cnpj;
+
+  if (!cnpjEncontrado && nomeEmpresa) {
+    const dominioResult = await buscarDominioEmpresa(nomeEmpresa);
+    cnpjEncontrado = dominioResult.cnpj;
+  }
+
+  if (cnpjEncontrado) {
+    const websiteResult = await buscarWebsitePorCnpj(cnpjEncontrado);
+    dominio = websiteResult.dominio;
+  }
+
+  // Se não achou domínio pelo CNPJ, tenta pelo website do Maps
+  if (!dominio && telefoneResult.website) {
+    dominio = telefoneResult.website
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0];
+  }
+
+  // Gerar sugestões de email
+  const emails = nomePessoa && dominio
+    ? sugerirEmails(nomePessoa, dominio)
+    : [];
+
+  return {
+    emails,
+    telefones: telefoneResult.telefones,
+    website: telefoneResult.website,
+    fontesEmail: dominio ? ["ia_padrao"] : [],
+    fontesTelefone: telefoneResult.fontes,
+  };
 }

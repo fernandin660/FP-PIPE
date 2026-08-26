@@ -18,6 +18,8 @@ type ContatoEncontrado = {
   cargo: string | null;
   empresa: string | null;
   email: string;
+  emails?: string[];
+  telefones?: string[];
 };
 
 type EmpresaResumida = {
@@ -337,10 +339,13 @@ export default function PaginaBuscador() {
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
 
   const [urlLinkedin, setUrlLinkedin] = useState("");
+  const [tipoBusca, setTipoBusca] = useState<"email" | "telefone" | "both">("both");
   const [buscando, setBuscando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erroMensagem, setErroMensagem] = useState(false);
   const [resultado, setResultado] = useState<ContatoEncontrado | null>(null);
+  const [emailsEncontrados, setEmailsEncontrados] = useState<string[]>([]);
+  const [telefonesEncontrados, setTelefonesEncontrados] = useState<string[]>([]);
   const [copiado, setCopiado] = useState(false);
   const [historico, setHistorico] = useState<ContatoEncontrado[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaResumida[]>([]);
@@ -459,13 +464,15 @@ export default function PaginaBuscador() {
       const resposta = await fetch("/api/buscar-contato", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedinUrl: urlLinkedin.trim() }),
+        body: JSON.stringify({ linkedinUrl: urlLinkedin.trim(), tipo: tipoBusca }),
       });
 
       const dados = (await resposta.json()) as {
         encontrado?: boolean;
         doCache?: boolean;
         contato?: ContatoEncontrado;
+        emails?: string[];
+        telefones?: string[];
         saldoContatos?: number;
         mensagem?: string;
         erro?: string;
@@ -481,6 +488,8 @@ export default function PaginaBuscador() {
         setResultado(dados.contato);
         setSaldoContatos(dados.saldoContatos ?? null);
         setVeioDoCache(Boolean(dados.doCache));
+        setEmailsEncontrados(dados.emails ?? []);
+        setTelefonesEncontrados(dados.telefones ?? []);
         setUrlLinkedin("");
 
         const supabase = criarClienteSupabase();
@@ -627,9 +636,9 @@ export default function PaginaBuscador() {
 
           <p className="text-pipe-muted mt-3 max-w-2xl">
             Cole o link de um perfil do LinkedIn e receba o{" "}
-            <strong className="text-gray-200">e-mail verificado</strong> da
-            pessoa. Cada busca bem-sucedida consome 1 crédito — busca sem
-            resultado não cobra nada.
+            <strong className="text-gray-200">e-mail sugerido</strong> +{" "}
+            <strong className="text-gray-200">telefone verificado</strong> da
+            pessoa. E-mail é sempre grátis. Telefone consome 3 créditos.
           </p>
 
           <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6">
@@ -657,6 +666,46 @@ export default function PaginaBuscador() {
               >
                 {buscando ? "🔍 Buscando..." : "🔎 Buscar contato"}
               </button>
+            </div>
+
+            <div className="flex items-center gap-4 mt-3">
+              <span className="text-xs text-pipe-muted">Tipo de busca:</span>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={tipoBusca === "email"}
+                  onChange={() => setTipoBusca("email")}
+                  className="accent-pipe-lime"
+                />
+                <span className="text-xs text-gray-300">
+                  📧 E-mail <span className="text-pipe-lime">(grátis)</span>
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={tipoBusca === "telefone"}
+                  onChange={() => setTipoBusca("telefone")}
+                  className="accent-pipe-lime"
+                />
+                <span className="text-xs text-gray-300">
+                  📞 Telefone <span className="text-pipe-muted">(3 créditos)</span>
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={tipoBusca === "both"}
+                  onChange={() => setTipoBusca("both")}
+                  className="accent-pipe-lime"
+                />
+                <span className="text-xs text-gray-300">
+                  📧📞 Ambos <span className="text-pipe-muted">(3 créditos)</span>
+                </span>
+              </label>
             </div>
 
             {mensagem && (
@@ -688,21 +737,86 @@ export default function PaginaBuscador() {
                         .join(" · ") || "—"}
                     </p>
                   </div>
-
-                  <button
-                    onClick={copiarEmail}
-                    className="border border-pipe-border text-gray-300 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
-                  >
-                    {copiado ? "✅ Copiado!" : "📋 Copiar e-mail"}
-                  </button>
                 </div>
 
-                <a
-                  href={`mailto:${resultado.email}`}
-                  className="mt-4 inline-block text-pipe-lime font-semibold break-all hover:underline"
-                >
-                  ✉️ {resultado.email}
-                </a>
+                {emailsEncontrados.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                      📧 E-mails sugeridos
+                    </p>
+                    <div className="space-y-1">
+                      {emailsEncontrados.map((email: string, i: number) => (
+                        <div
+                          key={email}
+                          className="flex items-center gap-2"
+                        >
+                          <a
+                            href={`mailto:${email}`}
+                            className="text-pipe-lime font-semibold break-all hover:underline text-sm"
+                          >
+                            {i + 1}. {email}
+                          </a>
+                          <button
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(email);
+                            }}
+                            className="text-xs text-pipe-muted hover:text-white transition"
+                            title="Copiar"
+                          >
+                            📋
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-pipe-muted mt-1 italic">
+                      ⚠️ Sugeridos — confira antes de usar
+                    </p>
+                  </div>
+                )}
+
+                {telefonesEncontrados.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                      📞 Telefone verificado
+                    </p>
+                    <div className="space-y-1">
+                      {telefonesEncontrados.map((tel: string) => (
+                        <div
+                          key={tel}
+                          className="flex items-center gap-2"
+                        >
+                          <a
+                            href={`tel:${tel}`}
+                            className="text-pipe-lime font-semibold hover:underline text-sm"
+                          >
+                            {tel}
+                          </a>
+                          <span className="text-[10px] text-pipe-muted">✅ MillionPhones</span>
+                          <button
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(tel);
+                            }}
+                            className="text-xs text-pipe-muted hover:text-white transition"
+                            title="Copiar"
+                          >
+                            📋
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!emailsEncontrados.length && !telefonesEncontrados.length && resultado.email && (
+                  <div className="mt-4">
+                    <a
+                      href={`mailto:${resultado.email}`}
+                      className="text-pipe-lime font-semibold break-all hover:underline"
+                    >
+                      ✉️ {resultado.email}
+                    </a>
+                  </div>
+                )}
 
                 {(resultado.company_id || resultado.id) && (
                   <div className="mt-3 flex justify-end gap-2 flex-wrap items-center">
