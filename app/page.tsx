@@ -18,7 +18,7 @@ const passos = [
     numero: "3",
     titulo: "Ache o decisor e ataque",
     descricao:
-      "A lista vem priorizada por score — e cada lead recebe e-mail institucional da Receita, telefone do Google Maps e o e-mail VERIFICADO do decisor direto do LinkedIn.",
+      "A lista vem priorizada por score — e cada lead recebe e-mails sugeridos pela IA (grátis) e o telefone pessoal verificado do decisor direto do LinkedIn.",
   },
 ];
 
@@ -159,8 +159,8 @@ export default function Inicio() {
 
         <p className="text-pipe-muted text-lg mt-6 max-w-2xl mx-auto">
           Empresas priorizadas por score de aderência, o primeiro e-mail já
-          personalizado e o <span className="text-white font-semibold">e-mail
-          verificado do decisor</span> direto do LinkedIn. Prospecção B2B sem
+          personalizado e os <span className="text-white font-semibold">e-mails sugeridos
+          pela IA</span> + <span className="text-white font-semibold">telefone verificado do decisor</span> direto do LinkedIn. Prospecção B2B sem
           trabalho manual.
         </p>
 
@@ -216,7 +216,7 @@ export default function Inicio() {
               <p>🎯 Influenciador: Gerente de Qualidade</p>
             </div>
             <span className="inline-block mt-3 text-xs font-semibold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-3 py-1">
-              ✉️ E-mail pronto
+              📧 E-mail sugerido
             </span>
           </div>
 
@@ -265,10 +265,10 @@ export default function Inicio() {
             </p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
-                ✓ e-mail verificado
+                ✓ e-mail sugerido pela IA
               </span>
               <span className="text-[10px] font-bold uppercase text-black bg-pipe-blue rounded-full px-2 py-0.5 animate-pulse">
-                ⚡ instantâneo
+                ⚡ grátis
               </span>
             </div>
           </div>
@@ -296,8 +296,8 @@ export default function Inicio() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
             ["70M+", "de empresas"],
-            ["3 fontes", "de caça ao contato"],
-            ["R$ 0,39", "por lead com e-mail pronto"],
+            ["5 fontes", "de caça ao contato"],
+            ["R$ 0", "por e-mail sugerido (grátis)"],
             ["4 canais", "de abordagem gerados por IA"],
           ].map(([valor, rotulo]) => (
             <div
@@ -463,10 +463,10 @@ export default function Inicio() {
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
               <li>✓ Até <span className="text-white font-semibold">250 empresas/mês</span> em listas</li>
               <li>✓ Score de IA priorizando seu ICP</li>
-              <li>✓ Primeiro e-mail personalizado pronto</li>
+              <li>✓ E-mails sugeridos pela IA (grátis)</li>
               <li>✓ Modelos de abordagem que aprendem</li>
               <li>✓ Exportação CSV pro CRM</li>
-              <li className="text-pipe-muted">— Sem busca de e-mail do decisor</li>
+              <li className="text-pipe-muted">— Sem busca de telefone do decisor</li>
             </ul>
 
             <Link
@@ -501,8 +501,8 @@ export default function Inicio() {
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
               <li>✓ Até <span className="text-white font-semibold">400 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">400 buscas de e-mail verificado/mês</span></li>
-              <li>✓ Telefone institucional (Receita + Maps)</li>
+              <li>✓ <span className="text-white font-semibold">E-mails sugeridos ilimitados</span> (grátis)</li>
+              <li>✓ <span className="text-white font-semibold">50 buscas de telefone verificado/mês</span></li>
               <li>✓ Dossiê multi-contato por lead</li>
               <li>✓ E-mail personalizado + modelos de IA</li>
             </ul>
@@ -535,10 +535,10 @@ export default function Inicio() {
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
               <li>✓ Até <span className="text-white font-semibold">1.000 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">1.000 buscas de e-mail verificado/mês</span></li>
-              <li>✓ Melhor custo por lead: R$ 0,39</li>
-              <li>✓ Telefone institucional (Receita + Maps)</li>
+              <li>✓ <span className="text-white font-semibold">E-mails sugeridos ilimitados</span> (grátis)</li>
+              <li>✓ <span className="text-white font-semibold">50 buscas de telefone verificado/mês</span></li>
               <li>✓ Prioridade na fila das buscas</li>
+              <li>✓ Suporte prioritário</li>
             </ul>
 
             <Link
@@ -594,8 +594,8 @@ export default function Inicio() {
               <tr className="text-pipe-muted text-left">
                 <th className="pb-3 font-medium">Tipo de plataforma</th>
                 <th className="pb-3 font-medium">Custo por lead</th>
-                <th className="pb-3 font-medium">E-mail escrito?</th>
-                <th className="pb-3 font-medium">Contato verificado?</th>
+                <th className="pb-3 font-medium">E-mail do decisor?</th>
+                <th className="pb-3 font-medium">Telefone verificado?</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-pipe-border">
@@ -617,25 +617,26 @@ export default function Inicio() {
               </tr>
               <tr className="bg-pipe-blue/5">
                 <td className="py-3 font-semibold text-pipe-blue">
-                  FP Pipe · plano Platinum
+                  FP Pipe · plano Gold
                 </td>
                 <td className="py-3 font-semibold text-white">
-                  R$ 0,39 por lead
+                  R$ 0 por e-mail · R$ 2 por telefone
                 </td>
                 <td className="py-3 font-semibold text-pipe-lime">
-                  ✓ Personalizado por empresa
+                  ✓ Sugeridos pela IA (grátis)
                 </td>
                 <td className="py-3 font-semibold text-pipe-lime">
-                  ✓ Receita + Maps + LinkedIn
+                  ✓ 50 buscas/mês (LinkedIn)
                 </td>
               </tr>
             </tbody>
           </table>
 
           <p className="text-pipe-muted/70 text-xs mt-6">
-            Faixas de preço baseadas em valores públicos de plataformas do
-            segmento, verificados em ago/2026. Custo por lead do plano
-            Platinum: R$ 387 ÷ até 1.000 contatos mensais.
+            E-mails são gerados pela IA com base no nome + domínio da empresa —
+            grátis e ilimitados. Telefones são verificados via MillionPhones a
+            partir do LinkedIn. 50 buscas/mês compartilhadas entre todos os
+            usuários dos planos Gold+.
           </p>
         </div>
       </section>
@@ -650,8 +651,8 @@ export default function Inicio() {
 
         <p className="text-pipe-muted mt-4 max-w-xl mx-auto text-lg">
           Cada dia sem prospecção é um cliente que seu concorrente atendeu
-          primeiro. Aqui, sua lista, o e-mail e o contato do decisor saem no
-          mesmo dia.
+          primeiro. Aqui, sua lista, os e-mails sugeridos pela IA e o telefone
+          do decisor saem no mesmo dia.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-9">
