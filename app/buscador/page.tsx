@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
@@ -329,8 +329,10 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
   );
 }
 
-export default function PaginaBuscador() {
+function BuscadorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlDaExtensao = searchParams.get("url") ?? "";
 
   const [carregando, setCarregando] = useState(true);
   const [perfil, setPerfil] = useState<PerfilVendedor | null>(null);
@@ -362,6 +364,8 @@ export default function PaginaBuscador() {
   } | null>(null);
   const [copiadoAbordagem, setCopiadoAbordagem] = useState(false);
   const [veioDoCache, setVeioDoCache] = useState(false);
+  const autoBuscouRef = useRef(false);
+  const pendenteAutoBusca = useRef<string | null>(null);
 
   const carregarHistorico = useCallback(
     async (idUsuario?: string) => {
@@ -443,13 +447,22 @@ export default function PaginaBuscador() {
       await carregarHistorico(user.id);
 
       setCarregando(false);
+
+      if (urlDaExtensao && !autoBuscouRef.current) {
+        autoBuscouRef.current = true;
+        pendenteAutoBusca.current = urlDaExtensao;
+        setUrlLinkedin(urlDaExtensao);
+      }
     }
 
     carregar();
-  }, [router, carregarHistorico]);
+  }, [router, carregarHistorico, urlDaExtensao]);
 
   const buscar = async () => {
-    if (buscando || !urlLinkedin.trim()) return;
+    const urlFinal = urlLinkedin.trim() || pendenteAutoBusca.current || "";
+    pendenteAutoBusca.current = null;
+
+    if (buscando || !urlFinal) return;
 
     setBuscando(true);
     setMensagem("");
@@ -464,7 +477,7 @@ export default function PaginaBuscador() {
       const resposta = await fetch("/api/buscar-contato", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedinUrl: urlLinkedin.trim(), tipo: tipoBusca }),
+        body: JSON.stringify({ linkedinUrl: urlFinal, tipo: tipoBusca }),
       });
 
       const dados = (await resposta.json()) as {
@@ -998,5 +1011,19 @@ export default function PaginaBuscador() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function PaginaBuscador() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex-1 flex items-center justify-center py-24">
+          <p className="text-gray-400">Carregando...</p>
+        </main>
+      }
+    >
+      <BuscadorContent />
+    </Suspense>
   );
 }
