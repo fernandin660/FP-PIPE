@@ -20,6 +20,7 @@ type ContatoEncontrado = {
   email: string;
   emails?: string[];
   telefones?: string[];
+  origem?: "lista" | "contato";
 };
 
 type EmpresaResumida = {
@@ -345,6 +346,12 @@ function BuscadorContent() {
   const [nomeInput, setNomeInput] = useState("");
   const [leadSelecionado, setLeadSelecionado] = useState<string>("");
   const [leads, setLeads] = useState<ContatoEncontrado[]>([]);
+  const [resultadosBusca, setResultadosBusca] = useState<ContatoEncontrado[]>([]);
+  const [buscandoLead, setBuscandoLead] = useState(false);
+  const [mostrarResultados, setMostrarResultados] = useState(false);
+  const [termoBusca, setTermoBusca] = useState("");
+  const [leadNaoEncontrado, setLeadNaoEncontrado] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tipoBusca, setTipoBusca] = useState<"email" | "telefone" | "both">("both");
   const [buscando, setBuscando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -473,21 +480,64 @@ function BuscadorContent() {
 
   const selecionarLead = (leadId: string) => {
     setLeadSelecionado(leadId);
+    setMostrarResultados(false);
+    setLeadNaoEncontrado(false);
     if (!leadId) {
       setUrlLinkedin("");
       setEmpresaInput("");
       setNomeInput("");
       return;
     }
-    const lead = leads.find((l) => l.id === leadId);
+    const lead = leads.find((l) => l.id === leadId)
+      ?? resultadosBusca.find((l) => l.id === leadId);
     if (lead) {
       setUrlLinkedin(lead.linkedin_url ?? "");
       setEmpresaInput(lead.empresa ?? "");
       setNomeInput(lead.nome ?? "");
+      setTermoBusca("");
     }
   };
 
-  const temInput = Boolean(urlLinkedin.trim() || empresaInput.trim());
+  const buscarLeads = useCallback(async (termo: string) => {
+    if (termo.length < 2) {
+      setResultadosBusca([]);
+      setMostrarResultados(false);
+      setLeadNaoEncontrado(false);
+      return;
+    }
+
+    setBuscandoLead(true);
+    try {
+      const res = await fetch(`/api/buscar-lead?q=${encodeURIComponent(termo)}`);
+      const dados = (await res.json()) as { resultados?: ContatoEncontrado[] };
+      const resultados = dados.resultados ?? [];
+      setResultadosBusca(resultados);
+      setMostrarResultados(true);
+      setLeadNaoEncontrado(resultados.length === 0);
+    } catch {
+      setResultadosBusca([]);
+      setMostrarResultados(true);
+      setLeadNaoEncontrado(true);
+    } finally {
+      setBuscandoLead(false);
+    }
+  }, []);
+
+  const aoDigitarBusca = (valor: string) => {
+    setTermoBusca(valor);
+    setLeadSelecionado("");
+    setLeadNaoEncontrado(false);
+    setUrlLinkedin("");
+    setEmpresaInput("");
+    setNomeInput("");
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void buscarLeads(valor);
+    }, 300);
+  };
+
+  const temInput = Boolean(urlLinkedin.trim() || empresaInput.trim() || nomeInput.trim());
 
   const buscar = async () => {
     const urlFinal = urlLinkedin.trim() || pendenteAutoBusca.current || "";
@@ -690,27 +740,54 @@ function BuscadorContent() {
           </p>
 
           <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
-            {leads.length > 0 && (
-              <div>
-                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-                  Selecionar lead da sua lista
-                </label>
-                <select
-                  value={leadSelecionado}
-                  onChange={(e) => selecionarLead(e.target.value)}
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                  disabled={buscando}
-                >
-                  <option value="">Buscar por LinkedIn ou empresa...</option>
-                  {leads.map((lead) => (
-                    <option key={lead.id} value={lead.id ?? ""}>
-                      {lead.nome ?? "Sem nome"} — {lead.empresa ?? "Sem empresa"}
-                      {lead.linkedin_url ? " ✓ LinkedIn" : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="relative">
+              <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
+                Buscar lead
+              </label>
+              <input
+                type="text"
+                value={termoBusca}
+                onChange={(e) => aoDigitarBusca(e.target.value)}
+                onFocus={() => termoBusca.length >= 2 && setMostrarResultados(true)}
+                placeholder="Digite o nome da empresa ou pessoa..."
+                className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                disabled={buscando}
+              />
+
+              {mostrarResultados && termoBusca.length >= 2 && (
+                <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-pipe-card border border-pipe-border rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                  {buscandoLead ? (
+                    <p className="text-xs text-pipe-muted px-4 py-3">Buscando...</p>
+                  ) : resultadosBusca.length > 0 ? (
+                    resultadosBusca.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => selecionarLead(r.id ?? "")}
+                        className="w-full text-left px-4 py-3 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
+                      >
+                        <p className="text-sm font-semibold text-white">
+                          {r.nome || r.empresa || "Sem nome"}
+                        </p>
+                        <p className="text-xs text-pipe-muted">
+                          {r.nome && r.empresa ? `${r.empresa}` : ""}
+                          {r.cargo ? ` · ${r.cargo}` : ""}
+                          {r.origem === "contato" ? " · 📋 Salvo" : " · 🏢 Lista"}
+                        </p>
+                      </button>
+                    ))
+                  ) : leadNaoEncontrado ? (
+                    <div className="px-4 py-3">
+                      <p className="text-xs text-amber-400">
+                        Lead não está nas suas listas.
+                      </p>
+                      <p className="text-xs text-pipe-muted mt-1">
+                        Preencha os campos abaixo para buscar no banco de dados.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
