@@ -351,7 +351,14 @@ function BuscadorContent() {
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [termoBusca, setTermoBusca] = useState("");
   const [leadNaoEncontrado, setLeadNaoEncontrado] = useState(false);
+  const [resultadosEmpresa, setResultadosEmpresa] = useState<{ id: string; nome: string; cnpj: string | null }[]>([]);
+  const [resultadosEmpresaWeb, setResultadosEmpresaWeb] = useState<{ cnpj: string; razao_social: string; nome_fantasia: string }[]>([]);
+  const [buscandoEmpresa, setBuscandoEmpresa] = useState(false);
+  const [buscandoEmpresaWeb, setBuscandoEmpresaWeb] = useState(false);
+  const [mostrarResultadosEmpresa, setMostrarResultadosEmpresa] = useState(false);
+  const [empresaWebBuscada, setEmpresaWebBuscada] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceEmpresaRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tipoBusca, setTipoBusca] = useState<"email" | "telefone" | "both">("both");
   const [buscando, setBuscando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -537,13 +544,99 @@ function BuscadorContent() {
     }, 300);
   };
 
+  const buscarEmpresas = useCallback(async (termo: string) => {
+    if (termo.length < 2) {
+      setResultadosEmpresa([]);
+      setResultadosEmpresaWeb([]);
+      setMostrarResultadosEmpresa(false);
+      setEmpresaWebBuscada(false);
+      return;
+    }
+    setBuscandoEmpresa(true);
+    setEmpresaWebBuscada(false);
+    setResultadosEmpresaWeb([]);
+    try {
+      const cli = criarClienteSupabase();
+      if (!cli) return;
+
+      const termoLower = `%${termo}%`;
+      const { data: userAuth } = await cli.auth.getUser();
+      if (!userAuth.user) return;
+
+      const { data: orgData } = await cli
+        .from("organizacao_membros")
+        .select("organizacao_id")
+        .eq("usuario_id", userAuth.user.id)
+        .single();
+
+      if (!orgData) return;
+
+      const { data } = await cli
+        .from("companies")
+        .select("id, nome_fantasia, razao_social, cnpj")
+        .eq("organizacao_id", orgData.organizacao_id)
+        .or(`nome_fantasia.ilike.${termoLower},razao_social.ilike.${termoLower}`)
+        .order("nome_fantasia")
+        .limit(8);
+
+      const resultados = (data ?? []).map((e: { id: string; nome_fantasia: string | null; razao_social: string | null; cnpj: string | null }) => ({
+        id: e.id,
+        nome: e.nome_fantasia || e.razao_social || "",
+        cnpj: e.cnpj ?? null,
+      }));
+      setResultadosEmpresa(resultados);
+      setMostrarResultadosEmpresa(true);
+    } catch {
+      setResultadosEmpresa([]);
+    } finally {
+      setBuscandoEmpresa(false);
+    }
+  }, []);
+
+  const buscarEmpresaWeb = async (termo: string) => {
+    if (termo.length < 2) return;
+    setBuscandoEmpresaWeb(true);
+    setEmpresaWebBuscada(true);
+    try {
+      const res = await fetch(`/api/buscar-empresa-web?q=${encodeURIComponent(termo)}`);
+      const dados = (await res.json()) as {
+        resultados?: { cnpj: string; razao_social: string; nome_fantasia: string }[];
+      };
+      setResultadosEmpresaWeb(dados.resultados ?? []);
+      setMostrarResultadosEmpresa(true);
+    } catch {
+      setResultadosEmpresaWeb([]);
+    } finally {
+      setBuscandoEmpresaWeb(false);
+    }
+  };
+
+  const aoDigitarEmpresa = (valor: string) => {
+    setEmpresaInput(valor);
+    setMostrarResultadosEmpresa(false);
+    setResultadosEmpresaWeb([]);
+    setEmpresaWebBuscada(false);
+    if (debounceEmpresaRef.current) clearTimeout(debounceEmpresaRef.current);
+    debounceEmpresaRef.current = setTimeout(() => {
+      void buscarEmpresas(valor);
+    }, 300);
+  };
+
+  const selecionarEmpresa = (nome: string) => {
+    setEmpresaInput(nome);
+    setMostrarResultadosEmpresa(false);
+    setResultadosEmpresaWeb([]);
+    setEmpresaWebBuscada(false);
+  };
+
   const temInput = Boolean(urlLinkedin.trim() || empresaInput.trim() || nomeInput.trim());
 
   const buscar = async () => {
     const urlFinal = urlLinkedin.trim() || pendenteAutoBusca.current || "";
     pendenteAutoBusca.current = null;
 
-    if (buscando || !urlFinal) return;
+    if (buscando) return;
+    if (!urlFinal && !empresaInput.trim()) return;
 
     setBuscando(true);
     setMensagem("");
@@ -817,18 +910,75 @@ function BuscadorContent() {
                   disabled={buscando}
                 />
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
                   Empresa
                 </label>
                 <input
                   type="text"
                   value={empresaInput}
-                  onChange={(e) => setEmpresaInput(e.target.value)}
+                  onChange={(e) => aoDigitarEmpresa(e.target.value)}
+                  onFocus={() => empresaInput.length >= 2 && setMostrarResultadosEmpresa(true)}
+                  onBlur={() => setTimeout(() => setMostrarResultadosEmpresa(false), 200)}
                   placeholder="Tech Solutions Ltda"
                   className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
                   disabled={buscando}
                 />
+
+                {mostrarResultadosEmpresa && empresaInput.length >= 2 && (
+                  <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-pipe-card border border-pipe-border rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                    {buscandoEmpresa ? (
+                      <p className="text-xs text-pipe-muted px-4 py-3">Buscando nas suas listas...</p>
+                    ) : resultadosEmpresa.length > 0 ? (
+                      <>
+                        <p className="text-[10px] text-pipe-muted px-4 pt-2 pb-1 uppercase tracking-wide">Suas empresas</p>
+                        {resultadosEmpresa.map((e) => (
+                          <button
+                            key={e.id}
+                            onMouseDown={() => selecionarEmpresa(e.nome)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
+                          >
+                            <p className="text-sm text-white">{e.nome}</p>
+                            {e.cnpj && (
+                              <p className="text-xs text-pipe-muted">CNPJ: {e.cnpj}</p>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    ) : !empresaWebBuscada ? (
+                      <div className="px-4 py-3">
+                        <p className="text-xs text-pipe-muted mb-2">Não encontrada nas suas listas.</p>
+                        <button
+                          onMouseDown={() => void buscarEmpresaWeb(empresaInput)}
+                          className="w-full text-left text-xs text-pipe-lime hover:underline font-semibold"
+                        >
+                          🔎 Buscar "{empresaInput}" na web
+                        </button>
+                      </div>
+                    ) : buscandoEmpresaWeb ? (
+                      <p className="text-xs text-pipe-muted px-4 py-3">Buscando na web...</p>
+                    ) : resultadosEmpresaWeb.length > 0 ? (
+                      <>
+                        <p className="text-[10px] text-pipe-muted px-4 pt-2 pb-1 uppercase tracking-wide">Resultados da web</p>
+                        {resultadosEmpresaWeb.map((e) => (
+                          <button
+                            key={e.cnpj}
+                            onMouseDown={() => selecionarEmpresa(e.nome_fantasia || e.razao_social)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
+                          >
+                            <p className="text-sm text-white">{e.nome_fantasia || e.razao_social}</p>
+                            <p className="text-xs text-pipe-muted">
+                              {e.razao_social !== e.nome_fantasia ? `${e.razao_social} · ` : ""}
+                              CNPJ: {e.cnpj}
+                            </p>
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <p className="text-xs text-pipe-muted px-4 py-3">Nenhum resultado encontrado na web.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
