@@ -270,7 +270,8 @@ export async function POST(requisicao: Request) {
       // Enriquecimento: tenta encontrar telefone/website da empresa
       const enrichCache = await enriquecerTelefonesContato(
         linkedinNormalizado,
-        contatoCache.empresa ?? ""
+        contatoCache.empresa ?? "",
+        contatoCache.nome ?? ""
       );
 
       // Atualiza contato com telefones encontrados
@@ -396,7 +397,8 @@ export async function POST(requisicao: Request) {
   // Enriquecimento: tenta encontrar telefone/website da empresa
   const enrich = await enriquecerTelefonesContato(
     linkedinNormalizado,
-    contato.empresa ?? ""
+    contato.empresa ?? "",
+    contato.nome ?? ""
   );
 
   // Guarda no cache global para futuras buscas do mesmo perfil,
