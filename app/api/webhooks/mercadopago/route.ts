@@ -7,12 +7,13 @@ import {
   type Ciclo,
   type PlanoChave,
 } from "../../../../lib/planos";
+import { enviarAvisoRenovacao } from "../../../../lib/avisos";
 
 import crypto from "crypto";
 
 function validarAssinaturaMp(req: Request, dataId: string): boolean {
   const segredo = process.env.MP_WEBHOOK_SECRET;
-  if (!segredo) return true; // Sem segredo configurado, não bloqueia (log abaixo).
+  if (!segredo) return true;
 
   const assinatura = req.headers.get("x-signature") || "";
   const requestId = req.headers.get("x-request-id") || "";
@@ -50,7 +51,6 @@ export async function POST(req: Request) {
   const tipo = corpo.type || corpo.action || "";
   const idPagamento = String(corpo.data?.id || "");
   if (!idPagamento || !tipo.includes("payment")) {
-    // Assinaturas recorrentes e outros eventos: ignorar por enquanto.
     return NextResponse.json({ ok: true, ignorado: tipo });
   }
 
@@ -120,21 +120,32 @@ export async function POST(req: Request) {
   const agora = new Date();
   const renovaEm = new Date(agora.getTime() + duracaoDias(ciclo) * 86400000);
 
+  // Verifica se já existe assinatura ativa pra esta org → é RENOVAÇÃO
+  const { data: assinaturaExistente } = await admin
+    .from("assinaturas")
+    .select("plano, status, renova_em")
+    .eq("organizacao_id", orgId)
+    .maybeSingle();
+
+  const isRenovacao = assinaturaExistente?.status === "ativa";
+
+  // 1. Grava/atualiza assinatura (usa organizacao_id, não usuario_id)
   const { error: erroAssinatura } = await admin
     .from("assinaturas")
     .upsert(
       {
         usuario_id: usuarioId,
+        organizacao_id: orgId,
         plano,
         status: "ativa",
         ciclo,
         origem: "mercadopago",
         mp_payment_id: idPagamento,
-        inicio: agora.toISOString(),
+        inicio: isRenovacao ? assinaturaExistente?.renova_em ?? agora.toISOString() : agora.toISOString(),
         renova_em: renovaEm.toISOString(),
         atualizado_em: agora.toISOString(),
       },
-      { onConflict: "usuario_id" }
+      { onConflict: "organizacao_id" }
     );
 
   if (erroAssinatura) {
@@ -142,11 +153,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "Persistência falhou." }, { status: 500 });
   }
 
+  // 2. Recarrega créditos de CONTATOS (usa organizacao_id)
   if (definicao.buscasMes && definicao.buscasMes > 0) {
     const { data: atual } = await admin
       .from("creditos_contatos")
       .select("saldo")
-      .eq("usuario_id", usuarioId)
+      .eq("organizacao_id", orgId)
       .maybeSingle();
 
     if (atual) {
@@ -156,20 +168,20 @@ export async function POST(req: Request) {
           saldo: atual.saldo + definicao.buscasMes,
           atualizado_em: agora.toISOString(),
         })
-        .eq("usuario_id", usuarioId);
+        .eq("organizacao_id", orgId);
     } else {
       await admin
         .from("creditos_contatos")
-        .insert({ usuario_id: usuarioId, saldo: definicao.buscasMes });
+        .insert({ organizacao_id: orgId, saldo: definicao.buscasMes });
     }
   }
 
-  // Moeda de listas: recarrega o saldo mensal do plano a cada ciclo pago.
+  // 3. Recarrega créditos de LISTAS (usa organizacao_id)
   if (definicao.listasMes > 0) {
     const { data: listaAtual } = await admin
       .from("creditos")
       .select("saldo")
-      .eq("usuario_id", usuarioId)
+      .eq("organizacao_id", orgId)
       .maybeSingle();
 
     if (listaAtual) {
@@ -179,13 +191,23 @@ export async function POST(req: Request) {
           saldo: listaAtual.saldo + definicao.listasMes,
           atualizado_em: agora.toISOString(),
         })
-        .eq("usuario_id", usuarioId);
+        .eq("organizacao_id", orgId);
     } else {
       await admin
         .from("creditos")
-        .insert({ usuario_id: usuarioId, saldo: definicao.listasMes });
+        .insert({ organizacao_id: orgId, saldo: definicao.listasMes });
     }
   }
 
-  return NextResponse.json({ ok: true, plano, ciclo });
+  // 4. Se é renovação, envia e-mail de confirmação
+  if (isRenovacao) {
+    void enviarAvisoRenovacao(orgId, plano, ciclo, renovaEm);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    plano,
+    ciclo,
+    renovacao: isRenovacao,
+  });
 }

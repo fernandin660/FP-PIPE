@@ -1,4 +1,5 @@
 import { criarClienteSupabaseAdmin } from "./supabase/admin";
+import { DEFINICAO_PLANOS } from "./planos";
 
 const EMAIL_DESTINO =
   process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
@@ -423,5 +424,163 @@ FP Pipe`;
       .select();
   } catch {
     // Upsell nunca derruba o fluxo do usuario.
+  }
+}
+
+// ============================================================
+// Aviso de renovação: enviado quando o pagamento recorrente
+// é processado com sucesso. Informa ao admin que a assinatura
+// foi renovada e os créditos foram recarregados.
+// ============================================================
+
+export async function enviarAvisoRenovacao(
+  orgId: string,
+  plano: string,
+  ciclo: string,
+  renovaEm: Date
+) {
+  try {
+    const admin = criarClienteSupabaseAdmin();
+    if (!admin) return;
+
+    // Busca dados da organização e do dono
+    const { data: org } = await admin
+      .from("organizacoes")
+      .select("nome, dono_id")
+      .eq("id", orgId)
+      .maybeSingle();
+
+    if (!org?.dono_id) return;
+
+    const { data: dono } = await admin.auth.admin.getUserById(org.dono_id);
+    const emailDono = dono?.user?.email;
+    if (!emailDono) return;
+
+    const nomeOrg = (org.nome ?? "sua empresa").replace(/[<>"'&]/g, "");
+    const nomePlano = DEFINICAO_PLANOS[plano as keyof typeof DEFINICAO_PLANOS]?.nome ?? plano;
+    const dataRenovacao = renovaEm.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding:0 0 32px;text-align:center;">
+              <span style="font-size:28px;font-weight:800;color:#ffffff;font-family:monospace;">FP <span style="color:#7fff00;">Pipe</span></span>
+            </td>
+          </tr>
+
+          <!-- Card principal -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:16px;padding:40px 36px;border:1px solid #2a2a4a;">
+
+              <!-- Ícone -->
+              <tr>
+                <td style="padding:0 0 24px;text-align:center;font-size:48px;">
+                  ✅
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
+                    Assinatura renovada!
+                  </h1>
+                  <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;text-align:center;">
+                    A assinatura <strong style="color:#7fff00;">${nomePlano}</strong> da <strong style="color:#7fff00;">${nomeOrg}</strong> foi renovada com sucesso.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Divider -->
+              <tr>
+                <td style="padding:0 0 24px;">
+                  <div style="height:1px;background:linear-gradient(90deg,transparent,#334155,transparent);"></div>
+                </td>
+              </tr>
+
+              <!-- Detalhes -->
+              <tr>
+                <td>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                    <tr>
+                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Plano</td>
+                      <td style="padding:0 0 8px;font-size:14px;color:#e2e8f0;font-weight:600;">${nomePlano} (${ciclo})</td>
+                    </tr>
+                    <tr>
+                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Próxima cobrança</td>
+                      <td style="padding:0 0 8px;font-size:14px;color:#e2e8f0;font-weight:600;">${dataRenovacao}</td>
+                    </tr>
+                    <tr>
+                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Créditos</td>
+                      <td style="padding:0 0 8px;font-size:14px;color:#7fff00;font-weight:600;">Recarregados automaticamente</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- CTA -->
+              <tr>
+                <td style="text-align:center;">
+                  <a href="${URL_APP}/prospeccao" style="display:inline-block;background:#7fff00;color:#0a0a0a;font-size:16px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:12px;letter-spacing:0.5px;">
+                    Continuar prospectando →
+                  </a>
+                </td>
+              </tr>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:32px 0 0;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#475569;">
+                Este e-mail foi enviado automaticamente pelo FP Pipe.
+              </p>
+              <p style="margin:0;font-size:12px;color:#475569;">
+                <a href="${URL_APP}" style="color:#64748b;text-decoration:underline;">fp-pipe.com.br</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const textoFallback = `Assinatura renovada com sucesso!
+
+Plano: ${nomePlano} (${ciclo})
+Próxima cobrança: ${dataRenovacao}
+Créditos: Recarregados automaticamente
+
+Continuar prospectando: ${URL_APP}/prospeccao
+
+FP Pipe`;
+
+    await enviarEmailHtml(
+      [emailDono],
+      `Assinatura ${nomePlano} renovada — FP Pipe`,
+      html,
+      textoFallback
+    );
+  } catch {
+    // Aviso de renovação nunca derruba o fluxo.
   }
 }
