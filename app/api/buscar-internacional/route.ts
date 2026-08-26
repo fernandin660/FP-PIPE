@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, usuarioId, acesso } = gate.ctx!;
+    const { supabase, orgId, acesso } = gate.ctx!;
 
     // Busca internacional é exclusiva dos planos Internacionais.
     if (!acesso.def.internacional) {
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       const { data: creditosLista } = await admin
         .from("creditos")
         .select("saldo")
-        .eq("usuario_id", usuarioId)
+        .eq("organizacao_id", orgId)
         .maybeSingle();
       saldoListas = creditosLista?.saldo ?? 0;
 
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     const { data: uso } = await supabase
       .from("uso_mensal")
       .select("empresas_geradas")
-      .eq("usuario_id", usuarioId)
+      .eq("organizacao_id", orgId)
       .eq("mes", mes)
       .maybeSingle();
 
@@ -409,19 +409,19 @@ export async function POST(request: Request) {
       const totalAcumulado = empresasUsadas + empresasFinais.length;
       await admin.from("uso_mensal").upsert(
         {
-          usuario_id: usuarioId,
+          organizacao_id: orgId,
           mes,
           empresas_geradas: totalAcumulado,
           atualizado_em: new Date().toISOString(),
         },
-        { onConflict: "usuario_id,mes" }
+        { onConflict: "organizacao_id,mes" }
       );
 
       if (acesso.def.listasMes > 0) {
         await admin
           .from("creditos")
           .update({ saldo: Math.max(0, saldoListas - 1) })
-          .eq("usuario_id", usuarioId);
+          .eq("organizacao_id", orgId);
       }
     }
 

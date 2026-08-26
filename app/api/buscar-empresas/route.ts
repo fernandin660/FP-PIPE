@@ -5,9 +5,9 @@ import {
   formatarCnpj,
 } from "@/lib/conhecimento-cnae";
 
-import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
-import { avaliarAcesso, mesAtual } from "../../../lib/planos";
+import { mesAtual } from "../../../lib/planos";
 import { registrarUso } from "../../../lib/avisos";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 
@@ -128,35 +128,11 @@ export async function POST(request: Request) {
   if (bloqueado) return bloqueado;
 
   try {
-    const supabase = await criarClienteSupabaseServidor();
-    if (!supabase) {
-      return NextResponse.json(
-        { erro: "Autenticação não configurada." },
-        { status: 503 }
-      );
+    const gate = await exigirAcesso();
+    if (gate.resposta) {
+      return gate.resposta;
     }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json(
-        { erro: "Faça login para gerar listas.", motivo: "sem_login" },
-        { status: 401 }
-      );
-    }
-
-    const acesso = await avaliarAcesso(supabase, user.id);
-    if (acesso.expirada) {
-      return NextResponse.json(
-        {
-          erro:
-            "Seu plano expirou. Assine ou renove em /planos para continuar gerando listas.",
-          motivo: "plano_expirado",
-        },
-        { status: 403 }
-      );
-    }
+    const { supabase, orgId, acesso } = gate.ctx!;
 
     const mes = mesAtual();
     const admin = criarClienteSupabaseAdmin();
@@ -173,7 +149,7 @@ export async function POST(request: Request) {
       const { data: creditosLista } = await admin
         .from("creditos")
         .select("saldo")
-        .eq("usuario_id", user.id)
+        .eq("organizacao_id", orgId)
         .maybeSingle();
       saldoListas = creditosLista?.saldo ?? 0;
 
@@ -191,7 +167,7 @@ export async function POST(request: Request) {
     const { data: uso } = await supabase
       .from("uso_mensal")
       .select("empresas_geradas")
-      .eq("usuario_id", user.id)
+      .eq("organizacao_id", orgId)
       .eq("mes", mes)
       .maybeSingle();
 
@@ -323,19 +299,19 @@ export async function POST(request: Request) {
       // pode manipular seu próprio consumo via RLS.
       await admin.from("uso_mensal").upsert(
         {
-          usuario_id: user.id,
+          organizacao_id: orgId,
           mes,
           empresas_geradas: totalAcumulado,
           atualizado_em: new Date().toISOString(),
         },
-        { onConflict: "usuario_id,mes" }
+        { onConflict: "organizacao_id,mes" }
       );
 
       if (acesso.def.listasMes > 0) {
         await admin
           .from("creditos")
           .update({ saldo: Math.max(0, saldoListas - 1) })
-          .eq("usuario_id", user.id);
+          .eq("organizacao_id", orgId);
       }
     }
 
