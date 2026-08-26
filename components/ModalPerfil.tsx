@@ -333,8 +333,8 @@ export default function ModalPerfil({
   }
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center px-6 overflow-y-auto py-8">
-      <div className="w-full max-w-lg bg-pipe-card border border-pipe-border rounded-xl p-8 relative">
+    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-start justify-center px-6 py-8 overflow-y-auto">
+      <div className="w-full max-w-lg bg-pipe-card border border-pipe-border rounded-xl p-8 relative max-h-[90vh] overflow-y-auto my-auto">
         {!obrigatorio && (
           <button
             onClick={aoFechar}
