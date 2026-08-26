@@ -9,6 +9,7 @@ import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { avaliarAcesso, mesAtual } from "../../../lib/planos";
 import { registrarUso } from "../../../lib/avisos";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
@@ -123,6 +124,9 @@ async function pesquisarRecorte(
 }
 
 export async function POST(request: Request) {
+  const bloqueado = await exigirRateLimit(request, "buscar-empresas", 10, 60);
+  if (bloqueado) return bloqueado;
+
   try {
     const supabase = await criarClienteSupabaseServidor();
     if (!supabase) {

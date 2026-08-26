@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { chamarIa } from "../../../lib/ia";
 import { registrarUso } from "../../../lib/avisos";
 import { exigirAcesso } from "../../../lib/gate";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
@@ -254,7 +255,11 @@ function pontuarHeuristico(
   };
 }
 
-export async function POST(request: Request) {  try {
+export async function POST(request: Request) {
+  const bloqueado = await exigirRateLimit(request, "pontuar-empresas", 20, 60);
+  if (bloqueado) return bloqueado;
+
+  try {
     const gate = await exigirAcesso();
     if (gate.resposta) {
       return gate.resposta;

@@ -5,11 +5,15 @@ import { contarMembros } from "../../../../lib/org";
 import { podeConvidar } from "../../../../lib/planos";
 import { registrarUso } from "../../../../lib/avisos";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 
 const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
 const URL_APP = process.env.NEXT_PUBLIC_APP_URL ?? "https://fp-pipe-psi.vercel.app";
 
 export async function POST(request: Request) {
+  const bloqueado = await exigirRateLimit(request, "org-convite", 5, 60);
+  if (bloqueado) return bloqueado;
+
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 

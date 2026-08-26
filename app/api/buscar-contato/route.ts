@@ -5,6 +5,7 @@ import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
 import { enriquecerTelefonesContato } from "../../../lib/enriquecimento";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 
 const CHAVE_ANYMAIL = process.env.ANYMAIL_FINDER_API_KEY ?? "";
 
@@ -122,6 +123,9 @@ export async function POST(requisicao: Request) {
       { status: 503 }
     );
   }
+
+  const bloqueado = await exigirRateLimit(requisicao, "buscar-contato", 10, 60);
+  if (bloqueado) return bloqueado;
 
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;

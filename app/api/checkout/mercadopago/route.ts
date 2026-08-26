@@ -8,8 +8,12 @@ import {
   type PlanoChave,
 } from "../../../../lib/planos";
 import { exigirAcesso } from "../../../../lib/gate";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 
 export async function POST(req: Request) {
+  const bloqueado = await exigirRateLimit(req, "checkout", 5, 60);
+  if (bloqueado) return bloqueado;
+
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 

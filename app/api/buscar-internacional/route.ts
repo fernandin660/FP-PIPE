@@ -5,6 +5,7 @@ import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { mesAtual } from "../../../lib/planos";
 import { registrarUso } from "../../../lib/avisos";
 import { formatarCnpj } from "@/lib/conhecimento-cnae";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -129,6 +130,9 @@ out center ${LIMITE_TOTAL_EMPRESAS * 4};`;
 }
 
 export async function POST(request: Request) {
+  const bloqueado = await exigirRateLimit(request, "buscar-internacional", 10, 60);
+  if (bloqueado) return bloqueado;
+
   try {
     const gate = await exigirAcesso();
     if (gate.resposta) {
