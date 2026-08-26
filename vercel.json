@@ -1,9 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/verificar-renovacoes",
-      "schedule": "0 8 * * *"
-    }
-  ]
-}
-{ "crons": [{ "path": "/api/cron/verificar-renovacoes", "schedule": "0 8 * * *" }] }
