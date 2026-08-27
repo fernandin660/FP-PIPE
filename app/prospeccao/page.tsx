@@ -1379,6 +1379,16 @@ export default function Home() {
             );
 
             if (erroEmpresas) throw erroEmpresas;
+
+            // Enriquece os leads em segundo plano para a lista já nascer com
+            // website, telefones e e-mails públicos quando existirem.
+            void fetch("/api/enriquecer-lista", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cnpjs: empresas.map((empresa) => empresa.cnpj) }),
+            }).catch((erroEnriquecimento) => {
+              console.error("Não foi possível iniciar enriquecimento da lista:", erroEnriquecimento);
+            });
           }
         }
       } catch (erroSalvamento) {

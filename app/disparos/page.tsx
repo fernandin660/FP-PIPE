@@ -84,6 +84,13 @@ export default function PaginaDisparos() {
       if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível carregar a campanha.");
       setCampanha(dados.campanha ?? null);
       setDestinatarios(dados.destinatarios?.length ?? 0);
+      if (dados.campanha?.id) {
+        const sincronizacao = await fetch("/api/campanhas/sincronizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: dados.campanha.id }) });
+        if (sincronizacao.ok) {
+          const dadosSincronizacao = await sincronizacao.json();
+          setDestinatarios(dadosSincronizacao.destinatarios ?? dados.destinatarios?.length ?? 0);
+        }
+      }
       setAssunto(dados.campanha?.assunto ?? "");
       setCorpo(dados.campanha?.corpo ?? "");
     } catch (erroBusca) {
