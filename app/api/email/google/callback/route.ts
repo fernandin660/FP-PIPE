@@ -4,7 +4,8 @@ import { criptografarToken, assinarEstado } from "../../../../../lib/email-oauth
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
-  const origem = new URL(request.url).origin;
+  const origem = (process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_ENV === "production" ? "https://www.fppipe.com.br" : new URL(request.url).origin)).replace(/\/$/, "");
   const url = new URL(request.url);
   const estadoBruto = url.searchParams.get("state") ?? "";
   const [estadoCodificado, assinatura] = estadoBruto.split(".");
@@ -24,7 +25,10 @@ export async function GET(request: Request) {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" }),
   });
-  if (!tokenResposta.ok) return NextResponse.redirect(`${origem}/disparos?email=erro_token`);
+  if (!tokenResposta.ok) {
+    console.error("Erro na troca do token Google:", await tokenResposta.text());
+    return NextResponse.redirect(`${origem}/disparos?email=erro_token`);
+  }
   const tokens = await tokenResposta.json() as { access_token?: string; refresh_token?: string; scope?: string };
   if (!tokens.refresh_token) return NextResponse.redirect(`${origem}/disparos?email=sem_refresh_token`);
   const perfilResposta = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token ?? ""}` } });
