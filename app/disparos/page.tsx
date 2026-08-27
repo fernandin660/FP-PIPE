@@ -179,6 +179,17 @@ export default function PaginaDisparos() {
     }
   }
 
+  async function desconectarEmail() {
+    if (!confirm(`Desconectar ${conexao?.email ?? "esta conta"}?`)) return;
+    const resposta = await fetch("/api/email/conexao", { method: "DELETE" });
+    if (!resposta.ok) {
+      setErro("Não foi possível desconectar a conta de e-mail.");
+      return;
+    }
+    setConexao(null);
+    setMensagem("Conta de e-mail desconectada. Você pode conectar outra.");
+  }
+
   if (carregando) return <main className="flex min-h-screen items-center justify-center bg-pipe-dark text-gray-400">Carregando...</main>;
 
   return (
@@ -216,8 +227,8 @@ export default function PaginaDisparos() {
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
-          {destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Esta lista não possui e-mails válidos para envio. Enriqueça os contatos ou adicione e-mails aos leads antes de criar a campanha.</div>}
-          {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Gmail conectado: {conexao.email}</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span>Conecte o Gmail para liberar o envio.</span><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Conectar Gmail</a></div>}
+          {destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Esta lista possui empresas, mas nenhum e-mail válido armazenado. Enriqueça os contatos ou adicione e-mails antes de enviar.</div>}
+          {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Gmail conectado: {conexao.email}</span><div className="flex gap-2"><button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-lime/40 px-3 py-2 text-xs font-semibold hover:bg-pipe-lime/10">Desconectar</button><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div></div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span>Conecte Gmail, Outlook ou Zoho para liberar o envio.</span><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Conectar Gmail</a></div>}
         </section>}
 
         {mensagem && <p className="mt-4 text-sm text-pipe-lime">{mensagem}</p>}
