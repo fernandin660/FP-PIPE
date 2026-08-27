@@ -819,7 +819,7 @@ function BuscadorContent() {
     setDrawerPessoa(false);
 
     try {
-      const nomeEmpresa = fichaEmpresa?.nome ?? "";
+      const nomeEmpresa = fichaEmpresa?.nome ?? nomePessoaInput.trim();
 
       const [resPessoa, resEmpresa] = await Promise.all([
         fetch("/api/buscar-contato", {
@@ -832,10 +832,24 @@ function BuscadorContent() {
             tipo: "telefone",
           }),
         }),
-        !fichaEmpresa && nomeEmpresa
+        nomeEmpresa
           ? fetch(`/api/buscar-empresa?q=${encodeURIComponent(nomeEmpresa)}`)
           : Promise.resolve(null),
       ]);
+
+      let empresaDados: typeof fichaEmpresa = null;
+
+      if (resEmpresa) {
+        const dadosEmpresa = (await resEmpresa.json()) as {
+          empresa?: typeof fichaEmpresa;
+        };
+        if (dadosEmpresa.empresa) {
+          empresaDados = dadosEmpresa.empresa;
+          setFichaEmpresa(dadosEmpresa.empresa);
+        }
+      } else {
+        empresaDados = fichaEmpresa;
+      }
 
       const dados = (await resPessoa.json()) as {
         encontrado?: boolean;
@@ -857,14 +871,7 @@ function BuscadorContent() {
         return;
       }
 
-      if (resEmpresa) {
-        const dadosEmpresa = (await resEmpresa.json()) as {
-          empresa?: typeof fichaEmpresa;
-        };
-        if (dadosEmpresa.empresa) {
-          setFichaEmpresa(dadosEmpresa.empresa);
-        }
-      }
+      const empresaNome = empresaDados?.nome ?? dados.contato?.empresa ?? nomeEmpresa;
 
       if (dados.encontrado && dados.contato) {
         setResultadoPessoa({
@@ -872,7 +879,7 @@ function BuscadorContent() {
           nome: dados.contato.nome ?? null,
           email: dados.contato.email ?? null,
           cargo: dados.contato.cargo ?? null,
-          empresa: dados.contato.empresa ?? fichaEmpresa?.nome ?? null,
+          empresa: dados.contato.empresa ?? empresaNome ?? null,
           linkedin_url: dados.contato.linkedin_url ?? linkedinPessoa.trim(),
           telefones: dados.telefones ?? [],
           emails: dados.emails ?? [],
@@ -888,7 +895,7 @@ function BuscadorContent() {
           nome: nomePessoaInput.trim() || null,
           email: null,
           cargo: null,
-          empresa: fichaEmpresa?.nome ?? null,
+          empresa: empresaNome ?? null,
           linkedin_url: linkedinPessoa.trim() || null,
           telefones: [],
           emails: [],
