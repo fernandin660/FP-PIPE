@@ -164,9 +164,9 @@ export async function POST(requisicao: Request) {
       .join(" ");
   }
 
-  if (!temLinkedin && !temEmpresa) {
+  if (!temLinkedin && !temEmpresa && !nomeInput) {
     return NextResponse.json(
-      { erro: "Informe a URL do LinkedIn ou o nome da empresa." },
+      { erro: "Informe a URL do LinkedIn, o nome da empresa ou o nome da pessoa." },
       { status: 400 }
     );
   }
