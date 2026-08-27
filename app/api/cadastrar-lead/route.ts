@@ -384,7 +384,7 @@ export async function POST(req: NextRequest) {
   if (!listaFinalId && novaListaNome) {
     const { data: listaCriada } = await supabase
       .from("listas")
-      .insert({ usuario_id: user.id, nome: novaListaNome })
+      .insert({ usuario_id: user.id, organizacao_id: orgId, nome: novaListaNome })
       .select("id, nome")
       .single();
 
@@ -405,7 +405,7 @@ export async function POST(req: NextRequest) {
   if (listaFinalId) {
     await supabase
       .from("lista_empresas")
-      .insert({ lista_id: listaFinalId, company_id: leadCriado.id });
+      .insert({ lista_id: listaFinalId, company_id: leadCriado.id, organizacao_id: orgId });
   }
 
   return NextResponse.json({

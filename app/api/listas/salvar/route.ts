@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     const { data: listaCriada, error: erroLista } = await supabase
       .from("listas")
       .insert({
+        usuario_id: usuarioId,
         organizacao_id: orgId,
         nome,
         segmentos,
@@ -174,13 +175,20 @@ export async function POST(request: Request) {
     }
 
     // 3. Vincula TODAS as empresas selecionadas (agora desbloqueadas).
-    await supabase.from("lista_empresas").insert(
+    const { error: erroVinculos } = await supabase.from("lista_empresas").insert(
       todas.map((linha: { id: string }) => ({
         lista_id: listaCriada.id,
         company_id: linha.id,
         organizacao_id: orgId,
       }))
     );
+
+    if (erroVinculos) {
+      return NextResponse.json(
+        { erro: "A lista foi criada, mas não conseguimos vincular os leads. Tente novamente." },
+        { status: 500 }
+      );
+    }
 
     // 4. Bônus: 5 Créditos de IA por lead salvo (escrita via admin).
     const ganhoIa = todas.length * CREDITOS_IA_POR_LEAD;
@@ -218,7 +226,8 @@ export async function POST(request: Request) {
       creditosIaGanhos: ganhoIa,
       desbloqueadosAgora,
     });
-  } catch {
+  } catch (erro) {
+    console.error("Erro ao salvar lista:", erro);
     return NextResponse.json(
       { erro: "NÃ£o conseguimos salvar a lista agora." },
       { status: 500 }
