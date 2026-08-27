@@ -143,7 +143,7 @@ export async function POST(requisicao: Request) {
 
   const linkedinInput = String(corpo.linkedinUrl ?? "").trim();
   const empresaInput = String(corpo.empresa ?? "").trim();
-  const nomeInput = String(corpo.nome ?? "").trim();
+  let nomeInput = String(corpo.nome ?? "").trim();
 
   const linkedinNormalizado = linkedinInput
     ? normalizarLinkedin(linkedinInput)
@@ -151,6 +151,17 @@ export async function POST(requisicao: Request) {
 
   const temLinkedin = !!linkedinNormalizado && REGEX_LINKEDIN.test(linkedinNormalizado);
   const temEmpresa = !!empresaInput;
+
+  // Extrair nome da pessoa da URL do LinkedIn se não foi informado
+  if (!nomeInput && temLinkedin) {
+    const partes = linkedinNormalizado.split("/").filter(Boolean);
+    const slug = partes[partes.length - 1] ?? "";
+    nomeInput = slug
+      .replace(/-\d+$/, "")
+      .split("-")
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+  }
 
   if (!temLinkedin && !temEmpresa) {
     return NextResponse.json(
@@ -395,7 +406,12 @@ export async function POST(requisicao: Request) {
   }
 
   return NextResponse.json({
-    encontrado: Boolean(resultado.emails.length || resultado.telefones.length),
+    encontrado: Boolean(
+      resultado.emails.length ||
+      resultado.telefones.length ||
+      contato.nome ||
+      contato.email
+    ),
     doCache: false,
     contato: salvo ?? {
       ...contato,
@@ -403,7 +419,7 @@ export async function POST(requisicao: Request) {
       company_id: null,
       telefones: resultado.telefones,
     },
-    emails: tipo !== "telefone" ? resultado.emails : [],
+    emails: resultado.emails,
     telefones: resultado.telefones,
     fontesEmail: resultado.fontesEmail,
     fontesTelefone: resultado.fontesTelefone,

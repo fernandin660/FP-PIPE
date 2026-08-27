@@ -848,7 +848,7 @@ function BuscadorContent() {
           setSaldoTelefones(dados.saldoTelefones);
         }
       } else {
-        setErroPessoa("Nenhum telefone pessoal encontrado para este perfil.");
+        setErroPessoa("Não foi possível encontrar dados para este perfil. Verifique o link do LinkedIn.");
       }
     } catch {
       setErroPessoa("Falha de conexão. Tente novamente.");
