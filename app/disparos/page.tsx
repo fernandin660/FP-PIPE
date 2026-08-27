@@ -30,6 +30,7 @@ export default function PaginaDisparos() {
   const [saldoIa, setSaldoIa] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [carregandoCampanha, setCarregandoCampanha] = useState(false);
+  const [enriquecendo, setEnriquecendo] = useState(false);
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
@@ -84,9 +85,14 @@ export default function PaginaDisparos() {
       if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível carregar a campanha.");
       setCampanha(dados.campanha ?? null);
       setDestinatarios(dados.destinatarios?.length ?? 0);
-      if (dados.campanha?.id) {
+      setEnriquecendo(true);
+      try {
         const enriquecimento = await fetch("/api/enriquecer-lista", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listaId: id }) });
         if (!enriquecimento.ok) setMensagem("Lista carregada. Alguns dados podem ainda não estar enriquecidos.");
+      } finally {
+        setEnriquecendo(false);
+      }
+      if (dados.campanha?.id) {
         const sincronizacao = await fetch("/api/campanhas/sincronizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: dados.campanha.id }) });
         if (sincronizacao.ok) {
           const dadosSincronizacao = await sincronizacao.json();
@@ -236,7 +242,7 @@ export default function PaginaDisparos() {
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
-          {destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Esta lista possui empresas, mas nenhum e-mail válido armazenado. Enriqueça os contatos ou adicione e-mails antes de enviar.</div>}
+          {enriquecendo ? <div className="rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue">🔎 Enriquecendo e-mails, telefones e sites das empresas... aguarde o carregamento dos destinatários.</div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
           {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Gmail conectado: {conexao.email}</span><div className="flex gap-2"><button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-lime/40 px-3 py-2 text-xs font-semibold hover:bg-pipe-lime/10">Desconectar</button><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div></div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span>Conecte Gmail, Outlook ou Zoho para liberar o envio.</span><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Conectar Gmail</a></div>}
         </section>}
 

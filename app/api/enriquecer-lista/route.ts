@@ -86,8 +86,9 @@ export async function POST(request: Request) {
     .in("cnpj", cnpjs);
 
   let enriquecidas = 0;
-  for (let inicio = 0; inicio < (empresas ?? []).length; inicio += 3) {
-    const lote = (empresas ?? []).slice(inicio, inicio + 3);
+  const pendentes = (empresas ?? []).filter((empresa) => !empresa.website || !empresa.email);
+  for (let inicio = 0; inicio < pendentes.length; inicio += 3) {
+    const lote = pendentes.slice(inicio, inicio + 3);
     await Promise.all(lote.map(async (empresa) => {
       await enriquecerEmpresa(empresa as Empresa, admin);
       enriquecidas += 1;
