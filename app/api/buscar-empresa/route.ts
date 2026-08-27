@@ -20,18 +20,13 @@ type EmpresaFicha = {
   origem: "banco" | "web";
 };
 
-async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha & { _debug?: Record<string, unknown> }> {
+async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
   const nome = ficha.nome;
-  const debug: Record<string, unknown> = {};
 
-  const t0 = Date.now();
   const [casaResultado, mapsResultado] = await Promise.all([
-    buscarCnpjPorEmpresa(nome).catch((e) => ({ erro: String(e) } as Awaited<ReturnType<typeof buscarCnpjPorEmpresa>>)),
-    buscarTelefoneMaps(nome).catch((e) => ({ erro: String(e) } as Awaited<ReturnType<typeof buscarTelefoneMaps>>)),
+    buscarCnpjPorEmpresa(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarCnpjPorEmpresa>>)),
+    buscarTelefoneMaps(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarTelefoneMaps>>)),
   ]);
-  debug.fontes1_ms = Date.now() - t0;
-  debug.casa = { cnpj: casaResultado.cnpj, tel: casaResultado.telefone, razao: casaResultado.razao_social };
-  debug.maps = { tel: mapsResultado.telefone, website: mapsResultado.website };
 
   if (casaResultado.cnpj && !ficha.cnpj) {
     ficha.cnpj = casaResultado.cnpj;
@@ -62,23 +57,13 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha & { _d
   }
 
   if (ficha.cnpj) {
-    const t1 = Date.now();
-    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj).catch((e) => {
-      debug.brasil_err = String(e);
-      return null;
-    });
-    debug.brasil_ms = Date.now() - t1;
-    debug.brasil = dadosBrasil ? { tel: dadosBrasil.telefone, tel2: dadosBrasil.telefone2, razao: dadosBrasil.razaoSocial, email: dadosBrasil.email } : null;
+    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj).catch(() => null);
     if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
       ficha.razao_social = dadosBrasil.razaoSocial;
     }
     if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
       ficha.telefone_empresa = dadosBrasil.telefone;
       ficha.fontes.push("brasil_api");
-    }
-    if (dadosBrasil?.telefone2 && !ficha.telefone_empresa) {
-      ficha.telefone_empresa = dadosBrasil.telefone2;
-      ficha.fontes.push("brasil_api_tel2");
     }
   }
 
@@ -94,7 +79,6 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha & { _d
     ficha.emails_genericos = sugerirEmailsEmpresa(`${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`);
   }
 
-  (ficha as Record<string, unknown>)._debug = debug;
   return ficha;
 }
 
@@ -178,15 +162,6 @@ export async function GET(requisicao: Request) {
     fontes: [],
     origem: "web",
   };
-
-  const debug = url.searchParams.get("debug") === "1";
-
-  if (debug) {
-    const t0 = Date.now();
-    const enriquecida = await enriquecerFicha(empresa);
-    const elapsed = Date.now() - t0;
-    return NextResponse.json({ empresa: enriquecida, _debug: { elapsed } });
-  }
 
   const enriquecida = await enriquecerFicha(empresa);
   return NextResponse.json({ empresa: enriquecida });
