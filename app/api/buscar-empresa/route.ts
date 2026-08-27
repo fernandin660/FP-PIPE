@@ -133,7 +133,7 @@ export async function GET(requisicao: Request) {
     const termoLower = `%${q}%`;
     const { data: empresas } = await supabase
       .from("companies")
-      .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website")
+      .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website, campeao_linkedin")
       .eq("organizacao_id", orgId)
       .or(`nome_fantasia.ilike.${termoLower},razao_social.ilike.${termoLower},cnpj.ilike.${termoLower}`)
       .order("nome_fantasia")
@@ -154,7 +154,7 @@ export async function GET(requisicao: Request) {
         endereco: e.endereco ?? null,
         telefone_empresa: e.telefone ?? null,
         website: e.website ?? null,
-        linkedin_url: null,
+        linkedin_url: (e as Record<string, unknown>).campeao_linkedin as string | null ?? null,
         emails_genericos: dominio ? sugerirEmailsEmpresa(dominio) : [],
         fontes: ["banco"],
         origem: "banco",
