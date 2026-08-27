@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { exigirAcesso } from "../../../../../lib/gate";
 import { criptografarToken, assinarEstado } from "../../../../../lib/email-oauth";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
-  const gate = await exigirAcesso();
   const origem = new URL(request.url).origin;
-  if (gate.resposta) return NextResponse.redirect(`${origem}/disparos?email=erro`);
   const url = new URL(request.url);
   const estadoBruto = url.searchParams.get("state") ?? "";
   const [estadoCodificado, assinatura] = estadoBruto.split(".");
   let estado = "";
   try { estado = Buffer.from(estadoCodificado, "base64url").toString("utf8"); } catch {}
-  if (!estado || assinarEstado(estado) !== assinatura || !estado.startsWith(`${gate.ctx!.usuarioId}.`)) {
+  const [usuarioId, orgId] = estado.split(".");
+  if (!usuarioId || !orgId || assinarEstado(estado) !== assinatura) {
     return NextResponse.redirect(`${origem}/disparos?email=estado_invalido`);
   }
 
@@ -33,6 +31,19 @@ export async function GET(request: Request) {
   const perfil = await perfilResposta.json() as { email?: string };
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.redirect(`${origem}/disparos?email=erro_banco`);
-  await admin.from("email_conexoes").upsert({ usuario_id: gate.ctx!.usuarioId, organizacao_id: gate.ctx!.orgId, provedor: "google", email: perfil.email ?? "Google conectado", refresh_token_criptografado: criptografarToken(tokens.refresh_token), escopos: (tokens.scope ?? "").split(" ").filter(Boolean), atualizado_em: new Date().toISOString() }, { onConflict: "usuario_id" });
+  const { data: membro } = await admin
+    .from("organizacao_membros")
+    .select("usuario_id")
+    .eq("usuario_id", usuarioId)
+    .eq("organizacao_id", orgId)
+    .eq("status", "ativo")
+    .maybeSingle();
+  if (!membro) return NextResponse.redirect(`${origem}/disparos?email=organizacao_invalida`);
+
+  const { error } = await admin.from("email_conexoes").upsert({ usuario_id: usuarioId, organizacao_id: orgId, provedor: "google", email: perfil.email ?? "Google conectado", refresh_token_criptografado: criptografarToken(tokens.refresh_token), escopos: (tokens.scope ?? "").split(" ").filter(Boolean), atualizado_em: new Date().toISOString() }, { onConflict: "usuario_id" });
+  if (error) {
+    console.error("Erro ao salvar conexão Google:", error);
+    return NextResponse.redirect(`${origem}/disparos?email=erro_salvar`);
+  }
   return NextResponse.redirect(`${origem}/disparos?email=conectado`);
 }

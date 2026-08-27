@@ -58,6 +58,9 @@ export default function PaginaDisparos() {
         const conexaoDados = await conexaoResposta.json();
         setConexao(conexaoDados.conexao ?? null);
       }
+      const resultadoEmail = new URLSearchParams(window.location.search).get("email");
+      if (resultadoEmail === "conectado") setMensagem("Gmail conectado com sucesso.");
+      if (resultadoEmail && resultadoEmail !== "conectado") setErro(`Não foi possível concluir a conexão Gmail (${resultadoEmail}).`);
       setCarregando(false);
     }
     void carregar();

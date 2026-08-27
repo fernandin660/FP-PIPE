@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   if (!clientId) return NextResponse.json({ erro: "Integração Gmail ainda não configurada." }, { status: 503 });
 
   const nonce = crypto.randomBytes(18).toString("hex");
-  const estado = `${gate.ctx!.usuarioId}.${nonce}`;
+  const estado = `${gate.ctx!.usuarioId}.${gate.ctx!.orgId}.${nonce}`;
   const assinatura = assinarEstado(estado);
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", clientId);
