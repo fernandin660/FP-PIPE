@@ -401,6 +401,7 @@ function BuscadorContent() {
   const [linkedinPessoa, setLinkedinPessoa] = useState("");
   const [nomePessoaInput, setNomePessoaInput] = useState("");
   const [expandidoPessoa, setExpandidoPessoa] = useState(false);
+  const [drawerPessoa, setDrawerPessoa] = useState(false);
   const [buscandoPessoa, setBuscandoPessoa] = useState(false);
   const [resultadoPessoa, setResultadoPessoa] = useState<{
     id: string | null;
@@ -1167,131 +1168,250 @@ function BuscadorContent() {
                 )}
 
                 {resultadoPessoa && (
-                  <div className="mt-4 bg-pipe-dark border border-pipe-lime/30 rounded-lg overflow-hidden">
+                  <>
                     <button
-                      onClick={() => setExpandidoPessoa((v) => !v)}
-                      className="w-full flex items-start justify-between gap-3 p-4 text-left hover:bg-white/[0.02] transition"
+                      onClick={() => setDrawerPessoa(true)}
+                      className="mt-4 w-full bg-pipe-dark border border-pipe-lime/30 rounded-lg p-4 text-left hover:bg-white/[0.03] transition group"
                     >
-                      <div className="min-w-0">
-                        {resultadoPessoa.nome && (
-                          <p className="text-base font-bold text-white truncate">{resultadoPessoa.nome}</p>
-                        )}
-                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                          {resultadoPessoa.cargo && (
-                            <span className="text-xs text-pipe-muted">{resultadoPessoa.cargo}</span>
-                          )}
-                          {resultadoPessoa.empresa && (
-                            <>
-                              <span className="text-pipe-muted">·</span>
-                              <span className="text-xs text-pipe-muted">{resultadoPessoa.empresa}</span>
-                            </>
-                          )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-base font-bold text-white truncate group-hover:text-pipe-lime transition">
+                            {resultadoPessoa.nome || fichaEmpresa?.nome || "Contato"}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {resultadoPessoa.cargo && (
+                              <span className="text-xs text-pipe-muted">{resultadoPessoa.cargo}</span>
+                            )}
+                            {(resultadoPessoa.empresa || fichaEmpresa?.nome) && (
+                              <>
+                                <span className="text-pipe-muted">·</span>
+                                <span className="text-xs text-pipe-muted">{resultadoPessoa.empresa || fichaEmpresa?.nome}</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            {fichaEmpresa?.telefone_empresa && (
+                              <span className="text-xs text-pipe-muted">📞 empresa</span>
+                            )}
+                            {resultadoPessoa.telefones.length > 0 && (
+                              <span className="text-xs text-pipe-lime font-semibold">
+                                📞 pessoal ({resultadoPessoa.telefones.length})
+                              </span>
+                            )}
+                            {(resultadoPessoa.emails.length > 0 || fichaEmpresa?.emails_genericos?.length) && (
+                              <span className="text-xs text-pipe-lime font-semibold">
+                                ✉️ {resultadoPessoa.emails.length + (fichaEmpresa?.emails_genericos?.length ?? 0)} e-mail(s)
+                              </span>
+                            )}
+                            {resultadoPessoa.id && (
+                              <span className="text-[10px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded px-1.5 py-0.5">
+                                ✅ Salvo
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-2 flex-wrap">
-                          {resultadoPessoa.telefones.length > 0 && (
-                            <span className="text-xs text-pipe-lime font-semibold">
-                              📞 {resultadoPessoa.telefones.length} telefone(s)
-                            </span>
+                        <div className="flex items-center gap-2 shrink-0 pt-1">
+                          {!resultadoPessoa.id && (
+                            <CadastrarComoLead
+                              contato={{
+                                id: resultadoPessoa.id ?? undefined,
+                                company_id: null,
+                                nome: resultadoPessoa.nome,
+                                cargo: resultadoPessoa.cargo,
+                                empresa: resultadoPessoa.empresa,
+                                email: resultadoPessoa.email ?? resultadoPessoa.emails[0] ?? "",
+                                linkedin_url: resultadoPessoa.linkedin_url,
+                              }}
+                            />
                           )}
-                          {resultadoPessoa.emails.length > 0 && (
-                            <span className="text-xs text-pipe-lime font-semibold">
-                              ✉️ {resultadoPessoa.emails.length} e-mail(s)
-                            </span>
-                          )}
-                          {resultadoPessoa.id && (
-                            <span className="text-[10px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded px-1.5 py-0.5">
-                              ✅ Salvo
-                            </span>
-                          )}
+                          <span className="text-xs text-pipe-muted group-hover:text-white transition">Ver mais →</span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 pt-1">
-                        {!resultadoPessoa.id && (
-                          <CadastrarComoLead
-                            contato={{
-                              id: resultadoPessoa.id ?? undefined,
-                              company_id: null,
-                              nome: resultadoPessoa.nome,
-                              cargo: resultadoPessoa.cargo,
-                              empresa: resultadoPessoa.empresa,
-                              email: resultadoPessoa.email ?? resultadoPessoa.emails[0] ?? "",
-                              linkedin_url: resultadoPessoa.linkedin_url,
-                            }}
-                          />
-                        )}
-                        <span className="text-xs text-pipe-muted">
-                          {expandidoPessoa ? "▲" : "▼"}
-                        </span>
                       </div>
                     </button>
 
-                    {expandidoPessoa && (
-                      <div className="px-4 pb-4 space-y-3 border-t border-pipe-border pt-3">
-                        {resultadoPessoa.linkedin_url && (
-                          <a
-                            href={resultadoPessoa.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
-                          >
-                            💼 Abrir LinkedIn
-                          </a>
-                        )}
-
-                        {resultadoPessoa.telefones.length > 0 && (
-                          <div>
-                            <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">Telefone pessoal</p>
-                            {resultadoPessoa.telefones.map((tel) => (
-                              <div key={tel} className="flex items-center gap-2">
-                                <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline text-sm">
-                                  📞 {tel}
-                                </a>
-                                <span className="text-[10px] text-pipe-muted">
-                                  {resultadoPessoa.fontesTelefone.includes("millionphones") ? "MillionPhones" : "Web"}
-                                </span>
-                                <button
-                                  onClick={async () => { await navigator.clipboard.writeText(tel); }}
-                                  className="text-xs text-pipe-muted hover:text-white transition"
-                                  title="Copiar"
-                                >
-                                  📋
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {resultadoPessoa.emails.length > 0 && (
-                          <div>
-                            <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">E-mails sugeridos</p>
-                            <div className="space-y-1">
-                              {resultadoPessoa.emails.map((email) => (
-                                <div key={email} className="flex items-center gap-2">
-                                  <a href={`mailto:${email}`} className="text-pipe-lime text-sm hover:underline">
-                                    {email}
-                                  </a>
-                                  <button
-                                    onClick={async () => { await navigator.clipboard.writeText(email); }}
-                                    className="text-xs text-pipe-muted hover:text-white transition"
-                                    title="Copiar"
-                                  >
-                                    📋
-                                  </button>
-                                </div>
-                              ))}
+                    {drawerPessoa && (
+                      <div className="fixed inset-0 z-50">
+                        <div
+                          className="absolute inset-0 bg-black/60"
+                          onClick={() => setDrawerPessoa(false)}
+                        />
+                        <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-pipe-card border-l border-pipe-border overflow-y-auto shadow-2xl">
+                          <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <h2 className="font-bold text-lg text-white leading-snug">
+                                {resultadoPessoa.nome || fichaEmpresa?.nome || "Contato"}
+                              </h2>
+                              {(resultadoPessoa.cargo || resultadoPessoa.empresa || fichaEmpresa?.nome) && (
+                                <p className="text-xs text-pipe-muted mt-0.5">
+                                  {[resultadoPessoa.cargo, resultadoPessoa.empresa || fichaEmpresa?.nome].filter(Boolean).join(" · ")}
+                                </p>
+                              )}
                             </div>
-                            <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ Sugeridos — confira antes de usar</p>
+                            <button
+                              onClick={() => setDrawerPessoa(false)}
+                              className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
+                            >
+                              ✕
+                            </button>
                           </div>
-                        )}
 
-                        {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && (
-                          <p className="text-xs text-amber-400">
-                            Nenhum telefone ou e-mail encontrado. Tente informar o LinkedIn para melhorar a busca.
-                          </p>
-                        )}
+                          <div className="px-6 py-5 space-y-5">
+                            {resultadoPessoa.id && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-2.5 py-1 font-semibold">
+                                  ✅ Salvo nos contatos
+                                </span>
+                                {!resultadoPessoa.id && (
+                                  <CadastrarComoLead
+                                    contato={{
+                                      id: resultadoPessoa.id ?? undefined,
+                                      company_id: null,
+                                      nome: resultadoPessoa.nome,
+                                      cargo: resultadoPessoa.cargo,
+                                      empresa: resultadoPessoa.empresa,
+                                      email: resultadoPessoa.email ?? resultadoPessoa.emails[0] ?? "",
+                                      linkedin_url: resultadoPessoa.linkedin_url,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )}
+
+                            {resultadoPessoa.linkedin_url && (
+                              <a
+                                href={resultadoPessoa.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline"
+                              >
+                                💼 Abrir LinkedIn
+                              </a>
+                            )}
+
+                            <section>
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                🏢 Empresa
+                              </p>
+                              <dl className="space-y-1.5 text-sm">
+                                {fichaEmpresa?.cnpj && (
+                                  <div className="flex gap-2">
+                                    <dt className="text-pipe-muted w-28 shrink-0">CNPJ</dt>
+                                    <dd className="text-gray-200 font-mono">{fichaEmpresa.cnpj}</dd>
+                                  </div>
+                                )}
+                                {fichaEmpresa?.razao_social && fichaEmpresa.razao_social !== fichaEmpresa.nome && (
+                                  <div className="flex gap-2">
+                                    <dt className="text-pipe-muted w-28 shrink-0">Razão social</dt>
+                                    <dd className="text-gray-200">{fichaEmpresa.razao_social}</dd>
+                                  </div>
+                                )}
+                                {fichaEmpresa?.endereco && (
+                                  <div className="flex gap-2">
+                                    <dt className="text-pipe-muted w-28 shrink-0">Endereço</dt>
+                                    <dd className="text-gray-200">{fichaEmpresa.endereco}</dd>
+                                  </div>
+                                )}
+                                {fichaEmpresa?.website && (
+                                  <div className="flex gap-2">
+                                    <dt className="text-pipe-muted w-28 shrink-0">Website</dt>
+                                    <dd>
+                                      <a href={fichaEmpresa.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
+                                        {fichaEmpresa.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                                      </a>
+                                    </dd>
+                                  </div>
+                                )}
+                              </dl>
+                            </section>
+
+                            {(fichaEmpresa?.telefone_empresa || fichaEmpresa?.emails_genericos?.length) && (
+                              <section className="border-t border-pipe-border pt-4">
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                  📞 Contato da empresa (grátis)
+                                </p>
+                                <div className="space-y-1.5 text-sm">
+                                  {fichaEmpresa?.telefone_empresa && (
+                                    <div className="flex items-center gap-2">
+                                      <a href={`tel:${fichaEmpresa.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline">
+                                        📞 {fichaEmpresa.telefone_empresa}
+                                      </a>
+                                      <button
+                                        onClick={async () => { await navigator.clipboard.writeText(fichaEmpresa.telefone_empresa!); }}
+                                        className="text-xs text-pipe-muted hover:text-white transition"
+                                      >
+                                        📋
+                                      </button>
+                                    </div>
+                                  )}
+                                  {fichaEmpresa?.emails_genericos?.map((email) => (
+                                    <div key={email} className="flex items-center gap-2">
+                                      <a href={`mailto:${email}`} className="text-pipe-lime hover:underline break-all">
+                                        ✉️ {email}
+                                      </a>
+                                      <button
+                                        onClick={async () => { await navigator.clipboard.writeText(email); }}
+                                        className="text-xs text-pipe-muted hover:text-white transition shrink-0"
+                                      >
+                                        📋
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </section>
+                            )}
+
+                            {(resultadoPessoa.telefones.length > 0 || resultadoPessoa.emails.length > 0) && (
+                              <section className="border-t border-pipe-border pt-4">
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                  👤 Contato pessoal
+                                </p>
+                                <div className="space-y-1.5 text-sm">
+                                  {resultadoPessoa.telefones.map((tel) => (
+                                    <div key={tel} className="flex items-center gap-2">
+                                      <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
+                                        📞 {tel}
+                                      </a>
+                                      <span className="text-[10px] text-pipe-muted">
+                                        {resultadoPessoa.fontesTelefone.includes("millionphones") ? "MillionPhones" : "Web"}
+                                      </span>
+                                      <button
+                                        onClick={async () => { await navigator.clipboard.writeText(tel); }}
+                                        className="text-xs text-pipe-muted hover:text-white transition"
+                                      >
+                                        📋
+                                      </button>
+                                    </div>
+                                  ))}
+                                  {resultadoPessoa.emails.map((email) => (
+                                    <div key={email} className="flex items-center gap-2">
+                                      <a href={`mailto:${email}`} className="text-pipe-lime hover:underline break-all">
+                                        ✉️ {email}
+                                      </a>
+                                      <button
+                                        onClick={async () => { await navigator.clipboard.writeText(email); }}
+                                        className="text-xs text-pipe-muted hover:text-white transition shrink-0"
+                                      >
+                                        📋
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                {resultadoPessoa.emails.length > 0 && (
+                                  <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ E-mails sugeridos — confira antes de usar</p>
+                                )}
+                              </section>
+                            )}
+
+                            {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && !fichaEmpresa?.telefone_empresa && !fichaEmpresa?.emails_genericos?.length && (
+                              <p className="text-xs text-amber-400 border-t border-pipe-border pt-4">
+                                Nenhum telefone ou e-mail encontrado. Tente informar o LinkedIn para melhorar a busca.
+                              </p>
+                            )}
+                          </div>
+                        </aside>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
