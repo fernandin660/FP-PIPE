@@ -24,8 +24,8 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
   const nome = ficha.nome;
 
   const [casaResultado, mapsResultado] = await Promise.all([
-    buscarCnpjPorEmpresa(nome),
-    buscarTelefoneMaps(nome),
+    buscarCnpjPorEmpresa(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarCnpjPorEmpresa>>)),
+    buscarTelefoneMaps(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarTelefoneMaps>>)),
   ]);
 
   if (casaResultado.cnpj && !ficha.cnpj) {
@@ -48,14 +48,12 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
 
   if (ficha.cnpj) {
     const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
-    if (dadosBrasil) {
-      if (dadosBrasil.razaoSocial && !ficha.razao_social) {
-        ficha.razao_social = dadosBrasil.razaoSocial;
-      }
-      if (dadosBrasil.telefone && !ficha.telefone_empresa) {
-        ficha.telefone_empresa = dadosBrasil.telefone;
-        ficha.fontes.push("brasil_api");
-      }
+    if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
+      ficha.razao_social = dadosBrasil.razaoSocial;
+    }
+    if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
+      ficha.telefone_empresa = dadosBrasil.telefone;
+      ficha.fontes.push("brasil_api");
     }
   }
 
@@ -77,13 +75,24 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
     ficha.emails_genericos = sugerirEmailsEmpresa(dominio);
   }
 
-  if (!ficha.website && ficha.emails_genericos.length === 0 && ficha.cnpj) {
+  if (!ficha.telefone_empresa && ficha.cnpj) {
     const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
-    if (dadosBrasil?.telefone) {
-      if (!ficha.telefone_empresa) {
-        ficha.telefone_empresa = dadosBrasil.telefone;
-        ficha.fontes.push("brasil_api_tel");
-      }
+    if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
+      ficha.telefone_empresa = dadosBrasil.telefone;
+      ficha.fontes.push("brasil_api_retry");
+    }
+    if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
+      ficha.razao_social = dadosBrasil.razaoSocial;
+    }
+  }
+
+  if (ficha.cnpj) {
+    const dominio = ficha.website
+      ?.replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0];
+    if (!dominio && ficha.emails_genericos.length === 0) {
+      ficha.emails_genericos = sugerirEmailsEmpresa(`${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`);
     }
   }
 

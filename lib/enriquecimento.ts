@@ -142,29 +142,45 @@ export async function buscarDadosCnpj(
   razaoSocial?: string;
   socios?: string[];
 }> {
-  const cnpjLimpo = cnpj.replace(/\D/g, "");
+    const cnpjLimpo = cnpj.replace(/\D/g, "");
   if (cnpjLimpo.length !== 14) return {};
 
-  try {
-    const resposta = await fetch(
-      `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    try {
+      const resposta = await fetch(
+        `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
+        { signal: AbortSignal.timeout(12000) }
+      );
 
-    if (!resposta.ok) return {};
+      if (!resposta.ok) {
+        if (resposta.status === 429 && tentativa === 0) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        return {};
+      }
 
-    const dados = (await resposta.json()) as RespostaBrasilApi;
+      const dados = (await resposta.json()) as RespostaBrasilApi;
 
-    return {
-      telefone: dados.ddd_telefone_1 ?? undefined,
-      telefone2: dados.ddd_telefone_2 ?? undefined,
-      email: dados.email ?? undefined,
-      razaoSocial: dados.nome ?? undefined,
-      socios: dados.qsa?.map((s) => s.nome_socio) ?? [],
-    };
-  } catch {
-    return {};
+      const tel1 = typeof dados.ddd_telefone_1 === "string" ? dados.ddd_telefone_1.trim() : "";
+      const tel2 = typeof dados.ddd_telefone_2 === "string" ? dados.ddd_telefone_2.trim() : "";
+
+      return {
+        telefone: tel1 || undefined,
+        telefone2: tel2 || undefined,
+        email: dados.email ?? undefined,
+        razaoSocial: dados.nome ?? undefined,
+        socios: dados.qsa?.map((s) => s.nome_socio) ?? [],
+      };
+    } catch {
+      if (tentativa === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      return {};
+    }
   }
+  return {};
 }
 
 // ============================================================
