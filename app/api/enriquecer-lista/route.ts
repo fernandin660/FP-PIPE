@@ -68,10 +68,16 @@ export async function POST(request: Request) {
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.json({ erro: "Banco indisponível." }, { status: 503 });
 
-  const corpo = (await request.json().catch(() => null)) as { cnpjs?: unknown } | null;
-  const cnpjs = Array.isArray(corpo?.cnpjs)
+  const corpo = (await request.json().catch(() => null)) as { cnpjs?: unknown; listaId?: unknown } | null;
+  let cnpjs = Array.isArray(corpo?.cnpjs)
     ? [...new Set(corpo.cnpjs.filter((valor): valor is string => typeof valor === "string").map((valor) => valor.replace(/\D/g, "")).filter((valor) => valor.length === 14))].slice(0, 50)
     : [];
+  if (cnpjs.length === 0 && typeof corpo?.listaId === "string") {
+    const { data: vinculos } = await admin.from("lista_empresas").select("company_id").eq("lista_id", corpo.listaId).eq("organizacao_id", orgId);
+    const ids = [...new Set((vinculos ?? []).map((v) => v.company_id))];
+    const { data: empresasDaLista } = await admin.from("companies").select("cnpj").in("id", ids);
+    cnpjs = [...new Set((empresasDaLista ?? []).map((empresa) => empresa.cnpj?.replace(/\D/g, "")).filter((cnpj): cnpj is string => Boolean(cnpj && cnpj.length === 14)))].slice(0, 50);
+  }
   if (cnpjs.length === 0) return NextResponse.json({ enriquecidas: 0 });
 
   const { data: empresas } = await admin.from("companies")

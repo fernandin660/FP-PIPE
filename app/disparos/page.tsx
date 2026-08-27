@@ -85,6 +85,8 @@ export default function PaginaDisparos() {
       setCampanha(dados.campanha ?? null);
       setDestinatarios(dados.destinatarios?.length ?? 0);
       if (dados.campanha?.id) {
+        const enriquecimento = await fetch("/api/enriquecer-lista", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listaId: id }) });
+        if (!enriquecimento.ok) setMensagem("Lista carregada. Alguns dados podem ainda não estar enriquecidos.");
         const sincronizacao = await fetch("/api/campanhas/sincronizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: dados.campanha.id }) });
         if (sincronizacao.ok) {
           const dadosSincronizacao = await sincronizacao.json();
