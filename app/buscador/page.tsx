@@ -865,6 +865,21 @@ function BuscadorContent() {
         if (dados.saldoTelefones !== undefined) {
           setSaldoTelefones(dados.saldoTelefones);
         }
+
+        const nomeEmpresa = dados.contato.empresa ?? fichaEmpresa?.nome;
+        if (nomeEmpresa && !fichaEmpresa) {
+          try {
+            const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(nomeEmpresa)}`);
+            const dadosEmpresa = (await resEmpresa.json()) as {
+              empresa?: typeof fichaEmpresa;
+            };
+            if (dadosEmpresa.empresa) {
+              setFichaEmpresa(dadosEmpresa.empresa);
+            }
+          } catch {
+            // Silencioso — drawer mostra só dados da pessoa
+          }
+        }
       } else {
         setErroPessoa("Não foi possível encontrar dados para este perfil. Tente informar o LinkedIn para melhorar a precisão.");
       }
