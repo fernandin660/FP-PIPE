@@ -145,42 +145,29 @@ export async function buscarDadosCnpj(
     const cnpjLimpo = cnpj.replace(/\D/g, "");
   if (cnpjLimpo.length !== 14) return {};
 
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
-    try {
-      const resposta = await fetch(
-        `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
-        { signal: AbortSignal.timeout(12000) }
-      );
+  try {
+    const resposta = await fetch(
+      `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
 
-      if (!resposta.ok) {
-        if (resposta.status === 429 && tentativa === 0) {
-          await new Promise((r) => setTimeout(r, 2000));
-          continue;
-        }
-        return {};
-      }
+    if (!resposta.ok) return {};
 
-      const dados = (await resposta.json()) as RespostaBrasilApi;
+    const dados = (await resposta.json()) as RespostaBrasilApi;
 
-      const tel1 = typeof dados.ddd_telefone_1 === "string" ? dados.ddd_telefone_1.trim() : "";
-      const tel2 = typeof dados.ddd_telefone_2 === "string" ? dados.ddd_telefone_2.trim() : "";
+    const tel1 = typeof dados.ddd_telefone_1 === "string" ? dados.ddd_telefone_1.trim() : "";
+    const tel2 = typeof dados.ddd_telefone_2 === "string" ? dados.ddd_telefone_2.trim() : "";
 
-      return {
-        telefone: tel1 || undefined,
-        telefone2: tel2 || undefined,
-        email: dados.email ?? undefined,
-        razaoSocial: dados.nome ?? undefined,
-        socios: dados.qsa?.map((s) => s.nome_socio) ?? [],
-      };
-    } catch {
-      if (tentativa === 0) {
-        await new Promise((r) => setTimeout(r, 1000));
-        continue;
-      }
-      return {};
-    }
+    return {
+      telefone: tel1 || undefined,
+      telefone2: tel2 || undefined,
+      email: dados.email ?? undefined,
+      razaoSocial: dados.nome ?? undefined,
+      socios: dados.qsa?.map((s) => s.nome_socio) ?? [],
+    };
+  } catch {
+    return {};
   }
-  return {};
 }
 
 // ============================================================

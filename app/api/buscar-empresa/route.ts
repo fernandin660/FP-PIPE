@@ -46,17 +46,6 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
     ficha.fontes.push("casa_dados_tel");
   }
 
-  if (ficha.cnpj) {
-    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
-    if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
-      ficha.razao_social = dadosBrasil.razaoSocial;
-    }
-    if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
-      ficha.telefone_empresa = dadosBrasil.telefone;
-      ficha.fontes.push("brasil_api");
-    }
-  }
-
   if (mapsResultado.telefone && !ficha.telefone_empresa) {
     ficha.telefone_empresa = mapsResultado.telefone;
     ficha.fontes.push("maps");
@@ -67,6 +56,23 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
     ficha.fontes.push("maps_website");
   }
 
+  if (ficha.cnpj) {
+    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj).catch(() => null);
+    if (dadosBrasil) {
+      if (dadosBrasil.razaoSocial && !ficha.razao_social) {
+        ficha.razao_social = dadosBrasil.razaoSocial;
+      }
+      if (dadosBrasil.telefone && !ficha.telefone_empresa) {
+        ficha.telefone_empresa = dadosBrasil.telefone;
+        ficha.fontes.push("brasil_api");
+      }
+      if (dadosBrasil.telefone2 && !ficha.telefone_empresa) {
+        ficha.telefone_empresa = dadosBrasil.telefone2;
+        ficha.fontes.push("brasil_api_tel2");
+      }
+    }
+  }
+
   if (ficha.website && ficha.emails_genericos.length === 0) {
     const dominio = ficha.website
       .replace(/^https?:\/\//, "")
@@ -75,25 +81,8 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
     ficha.emails_genericos = sugerirEmailsEmpresa(dominio);
   }
 
-  if (!ficha.telefone_empresa && ficha.cnpj) {
-    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
-    if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
-      ficha.telefone_empresa = dadosBrasil.telefone;
-      ficha.fontes.push("brasil_api_retry");
-    }
-    if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
-      ficha.razao_social = dadosBrasil.razaoSocial;
-    }
-  }
-
-  if (ficha.cnpj) {
-    const dominio = ficha.website
-      ?.replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .split("/")[0];
-    if (!dominio && ficha.emails_genericos.length === 0) {
-      ficha.emails_genericos = sugerirEmailsEmpresa(`${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`);
-    }
+  if (ficha.cnpj && ficha.emails_genericos.length === 0) {
+    ficha.emails_genericos = sugerirEmailsEmpresa(`${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`);
   }
 
   return ficha;
