@@ -872,15 +872,15 @@ function BuscadorContent() {
         emails_genericos: string[];
       } | null = null;
 
-      if (fichaEmpresa && empresaNome && fichaEmpresa.nome.toLowerCase() === empresaNome.toLowerCase()) {
-        empresaDados = fichaEmpresa;
-      } else if (empresaNome) {
+      if (empresaNome) {
         try {
           const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(empresaNome)}`);
           const dadosEmpresa = (await resEmpresa.json()) as { empresa?: typeof empresaDados; erro?: string };
-          if (dadosEmpresa.empresa) {
+          if (resEmpresa.ok && dadosEmpresa.empresa) {
             empresaDados = dadosEmpresa.empresa;
             setFichaEmpresa(dadosEmpresa.empresa);
+          } else {
+            empresaDados = fichaEmpresa;
           }
         } catch {
           empresaDados = fichaEmpresa;

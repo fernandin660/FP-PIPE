@@ -102,33 +102,34 @@ export async function GET(requisicao: Request) {
   }
 
   const supabase = await criarClienteSupabaseServidor();
-  if (!supabase) {
-    return NextResponse.json(
-      { erro: "Serviço indisponível." },
-      { status: 503 }
-    );
+  let userId: string | null = null;
+  let orgId: string | null = null;
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      userId = user.id;
+      const { data: orgData } = await supabase
+        .from("organizacao_membros")
+        .select("organizacao_id")
+        .eq("usuario_id", user.id)
+        .single();
+
+      if (orgData) {
+        orgId = orgData.organizacao_id;
+      }
+    }
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
-  }
-
-  const { data: orgData } = await supabase
-    .from("organizacao_membros")
-    .select("organizacao_id")
-    .eq("usuario_id", user.id)
-    .single();
-
-  if (orgData) {
+  if (supabase && orgId) {
     const termoLower = `%${q}%`;
     const { data: empresas } = await supabase
       .from("companies")
       .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website")
-      .eq("organizacao_id", orgData.organizacao_id)
+      .eq("organizacao_id", orgId)
       .or(`nome_fantasia.ilike.${termoLower},razao_social.ilike.${termoLower},cnpj.ilike.${termoLower}`)
       .order("nome_fantasia")
       .limit(1);
