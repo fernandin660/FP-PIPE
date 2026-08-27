@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { criptografarToken, assinarEstado } from "../../../../../lib/email-oauth";
+import { criptografarToken, assinarEstado, limparVariavelOAuth } from "../../../../../lib/email-oauth";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
 
   const code = url.searchParams.get("code");
   if (!code) return NextResponse.redirect(`${origem}/disparos?email=cancelado`);
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? "";
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "";
+  const clientId = limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_ID);
+  const clientSecret = limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
   const redirectUri = `${origem}/api/email/google/callback`;
   const tokenResposta = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },

@@ -2,6 +2,10 @@ import crypto from "node:crypto";
 
 const segredo = process.env.EMAIL_OAUTH_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
+export function limparVariavelOAuth(valor: string | undefined): string {
+  return (valor ?? "").trim().replace(/^['"]|['"]$/g, "");
+}
+
 function chave(): Buffer {
   return crypto.createHash("sha256").update(segredo).digest();
 }

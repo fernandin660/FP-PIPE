@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 
 import { exigirAcesso } from "../../../../../lib/gate";
-import { assinarEstado } from "../../../../../lib/email-oauth";
+import { assinarEstado, limparVariavelOAuth } from "../../../../../lib/email-oauth";
 
 export async function GET(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? "";
+  const clientId = limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_ID);
   if (!clientId) return NextResponse.json({ erro: "Integração Gmail ainda não configurada." }, { status: 503 });
 
   const nonce = crypto.randomBytes(18).toString("hex");

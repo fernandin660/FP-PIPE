@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
-import { descriptografarToken } from "../../../../lib/email-oauth";
+import { descriptografarToken, limparVariavelOAuth } from "../../../../lib/email-oauth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,7 +17,7 @@ function substituir(template: string, alvo: { nome?: string | null; empresa?: st
 async function obterToken(refreshToken: string): Promise<string> {
   const resposta = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "", refresh_token: refreshToken, grant_type: "refresh_token" }),
+    body: new URLSearchParams({ client_id: limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_ID), client_secret: limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_SECRET), refresh_token: refreshToken, grant_type: "refresh_token" }),
   });
   if (!resposta.ok) throw new Error("Não foi possível renovar a conexão Gmail.");
   const dados = await resposta.json() as { access_token?: string };
