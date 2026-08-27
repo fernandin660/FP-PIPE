@@ -202,9 +202,9 @@ export async function buscarCnpjPorEmpresa(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
         },
         body: JSON.stringify({
-          query: { nome_empresa: [nomeEmpresa] },
-          extras: { somente_mei: false, com_email: false, inativar: false },
-          page: 1,
+          nome_empresa: [nomeEmpresa.toLowerCase()],
+          situacao_cadastral: ["ATIVA"],
+          limite: 1,
         }),
         signal: AbortSignal.timeout(8000),
       }
@@ -414,9 +414,9 @@ export async function buscarDominioEmpresa(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: { termo_buscado: [nomeEmpresa] },
-          extras: { somente_mei: false, com_email: false, inativar: false },
-          page: 1,
+          nome_empresa: [nomeEmpresa.toLowerCase()],
+          situacao_cadastral: ["ATIVA"],
+          limite: 1,
         }),
         signal: AbortSignal.timeout(8000),
       }
