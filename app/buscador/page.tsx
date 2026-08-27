@@ -827,37 +827,18 @@ function BuscadorContent() {
     setDrawerPessoa(false);
 
     try {
-      const nomeEmpresa = fichaEmpresa?.nome ?? nomePessoaInput.trim();
+      const nomeEmpresa = fichaEmpresa?.nome ?? "";
 
-      const [resPessoa, resEmpresa] = await Promise.all([
-        fetch("/api/buscar-contato", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            linkedinUrl: linkedinPessoa.trim() || undefined,
-            empresa: nomeEmpresa,
-            nome: nomePessoaInput.trim(),
-            tipo: "telefone",
-          }),
+      const resPessoa = await fetch("/api/buscar-contato", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedinUrl: linkedinPessoa.trim() || undefined,
+          empresa: nomeEmpresa,
+          nome: nomePessoaInput.trim(),
+          tipo: "telefone",
         }),
-        nomeEmpresa
-          ? fetch(`/api/buscar-empresa?q=${encodeURIComponent(nomeEmpresa)}`)
-          : Promise.resolve(null),
-      ]);
-
-      let empresaDados: typeof fichaEmpresa = null;
-
-      if (resEmpresa) {
-        const dadosEmpresa = (await resEmpresa.json()) as {
-          empresa?: typeof fichaEmpresa;
-        };
-        if (dadosEmpresa.empresa) {
-          empresaDados = dadosEmpresa.empresa;
-          setFichaEmpresa(dadosEmpresa.empresa);
-        }
-      } else {
-        empresaDados = fichaEmpresa;
-      }
+      });
 
       const dados = (await resPessoa.json()) as {
         encontrado?: boolean;
@@ -879,7 +860,32 @@ function BuscadorContent() {
         return;
       }
 
-      const empresaNome = empresaDados?.nome ?? dados.contato?.empresa ?? nomeEmpresa;
+      const empresaNome = dados.contato?.empresa ?? fichaEmpresa?.nome ?? nomeEmpresa ?? null;
+
+      let empresaDados: {
+        nome: string;
+        cnpj: string | null;
+        razao_social: string | null;
+        endereco: string | null;
+        telefone_empresa: string | null;
+        website: string | null;
+        emails_genericos: string[];
+      } | null = null;
+
+      if (empresaNome) {
+        try {
+          const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(empresaNome)}`);
+          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: typeof empresaDados };
+          if (dadosEmpresa.empresa) {
+            empresaDados = dadosEmpresa.empresa;
+            setFichaEmpresa(dadosEmpresa.empresa);
+          }
+        } catch {
+          empresaDados = fichaEmpresa;
+        }
+      } else {
+        empresaDados = fichaEmpresa;
+      }
 
       const empresaDetalhes = empresaDados ? {
         cnpj: empresaDados.cnpj ?? null,
@@ -913,7 +919,7 @@ function BuscadorContent() {
           nome: nomePessoaInput.trim() || null,
           email: null,
           cargo: null,
-          empresa: empresaNome ?? null,
+          empresa: empresaNome,
           linkedin_url: linkedinPessoa.trim() || null,
           telefones: [],
           emails: [],
@@ -1253,7 +1259,7 @@ function BuscadorContent() {
                                 📞 pessoal ({resultadoPessoa.telefones.length})
                               </span>
                             )}
-                            {(resultadoPessoa.emails.length > 0 || fichaEmpresa?.emails_genericos?.length) && (
+                            {!!(resultadoPessoa.emails.length > 0 || fichaEmpresa?.emails_genericos?.length) && (
                               <span className="text-xs text-pipe-lime font-semibold">
                                 ✉️ {resultadoPessoa.emails.length + (fichaEmpresa?.emails_genericos?.length ?? 0)} e-mail(s)
                               </span>
@@ -1379,7 +1385,7 @@ function BuscadorContent() {
                               </dl>
                             </section>
 
-                            {(resultadoPessoa.empresaDetalhes?.telefone_empresa || resultadoPessoa.empresaDetalhes?.emails_genericos?.length) && (
+                            {!!(resultadoPessoa.empresaDetalhes?.telefone_empresa || resultadoPessoa.empresaDetalhes?.emails_genericos?.length) && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
                                   📞 Contato da empresa (grátis)
