@@ -23,12 +23,16 @@ export async function resolverOrg(
   supabase: ClienteServidor,
   usuarioId: string
 ): Promise<ContextoOrg> {
-  // Busca membership existente
+  // Busca membership existente. Prefere a organização onde o usuário é
+  // admin (a própria empresa) para que frontend e backend sempre resolvam
+  // a MESMA organização - evita divergência de créditos entre telas e API.
   const { data: membro } = await supabase
     .from("organizacao_membros")
     .select("organizacao_id, papel")
     .eq("usuario_id", usuarioId)
     .eq("status", "ativo")
+    .order("papel", { ascending: false })
+    .order("criado_em", { ascending: true })
     .limit(1)
     .maybeSingle();
 

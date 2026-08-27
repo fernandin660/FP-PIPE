@@ -35,15 +35,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "CNPJ inválido." }, { status: 400 });
   }
 
-  // A empresa precisa existir na conta do usuário.
-  const { data: empresa } = await admin
+  // ============================================================
+  // Localização da empresa
+  // ============================================================
+  // A empresa pode estar salva sob a organização atual OU sob a linha
+  // legada do próprio usuário (antes da migração por equipe). Busca
+  // nas duas e usa a mais recente - evita "lead não encontrado".
+  const { data: empOrg } = await admin
     .from("companies")
-    .select("id, contato_desbloqueado_em")
+    .select("id, contato_desbloqueado_em, criado_em")
     .eq("organizacao_id", orgId)
     .eq("cnpj", cnpj)
+    .not("criado_em", "is", null)
     .order("criado_em", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  let empresa = empOrg;
+
+  if (!empresa) {
+    const { data: empUsuario } = await admin
+      .from("companies")
+      .select("id, contato_desbloqueado_em, criado_em")
+      .eq("usuario_id", usuarioId)
+      .eq("cnpj", cnpj)
+      .not("criado_em", "is", null)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    empresa = empUsuario;
+  }
 
   if (!empresa) {
     return NextResponse.json(
@@ -57,24 +78,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, jaDesbloqueado: true });
   }
 
-  const mes = new Date().toISOString().slice(0, 7);
-
-  const { data: linhasCredito } = await admin
-    .from("creditos_contatos")
-    .select("id, usuario_id, organizacao_id, saldo")
-    .eq("organizacao_id", orgId)
-    .order("saldo", { ascending: false });
-
-  let credito = (linhasCredito ?? [])[0] ?? null;
-
-  if (!credito) {
-    const { data: legado } = await admin
+  // ============================================================
+  // Localização dos créditos de lead
+  // ============================================================
+  // A tela mostra o saldo (ex.: 1294) que pode estar em uma linha da
+  // organização ou em uma linha antiga do usuário com outra org.
+  // Junta TODAS as candidatas e escolhe a com maior saldo disponível.
+  const [orgCreditos, userCreditos] = await Promise.all([
+    admin
+      .from("creditos_contatos")
+      .select("id, usuario_id, organizacao_id, saldo")
+      .eq("organizacao_id", orgId)
+      .order("saldo", { ascending: false })
+      .then((r) => r.data ?? []),
+    admin
       .from("creditos_contatos")
       .select("id, usuario_id, organizacao_id, saldo")
       .eq("usuario_id", usuarioId)
-      .is("organizacao_id", null)
-      .limit(1)
-      .maybeSingle();
+      .order("saldo", { ascending: false })
+      .then((r) => r.data ?? []),
+  ]);
+
+  const candidatas = Array.from(
+    new Map(
+      [...orgCreditos, ...userCreditos].map((c) => [c.id, c])
+    ).values()
+  ).sort((a, b) => (b.saldo ?? 0) - (a.saldo ?? 0));
+
+  const melhorCredito = candidatas[0] ?? null;
+
+  let creditoFinal = melhorCredito;
+
+  if (!creditoFinal || (creditoFinal.saldo ?? 0) <= 0) {
+    // Se a única linha com saldo é a antiga do usuário (outra org),
+    // realinha para a organização atual antes de debitar.
+    const legado = userCreditos?.find((c) => (c.saldo ?? 0) > 0);
 
     if (legado) {
       const { data: migrado } = await admin
@@ -83,16 +121,16 @@ export async function POST(request: Request) {
         .eq("id", legado.id)
         .select("id, usuario_id, organizacao_id, saldo")
         .single();
-      credito = migrado ?? legado;
+      creditoFinal = migrado ?? legado;
     }
   }
 
-  const saldoAtual = credito?.saldo ?? 0;
+  const saldoAtual = creditoFinal?.saldo ?? 0;
 
-  if (saldoAtual <= 0) {
+  if (!creditoFinal || saldoAtual <= 0) {
     return NextResponse.json(
       {
-        erro: `O servidor identificou ${saldoAtual} crédito(s) de lead disponíveis. Recarregue a página e tente novamente.`,
+        erro: `O servidor não encontrou crédito de lead disponível (saldo: ${saldoAtual}).`,
         motivo: "limite_creditos",
         saldoServidor: saldoAtual,
       },
@@ -102,15 +140,16 @@ export async function POST(request: Request) {
 
   const agora = new Date().toISOString();
 
+  // ============================================================
   // Débito atômico: uma única query que só debita se saldo > 0.
-  // Evita race condition (requests simultâneos drenando saldo negativo).
+  // ============================================================
   const { data: novoSaldo } = await admin
     .from("creditos_contatos")
     .update({
       saldo: saldoAtual - 1,
       atualizado_em: agora,
     })
-    .eq("id", credito?.id ?? "")
+    .eq("id", creditoFinal.id)
     .gt("saldo", 0)
     .select("saldo")
     .maybeSingle();
@@ -137,7 +176,7 @@ export async function POST(request: Request) {
     await admin
       .from("creditos_contatos")
       .update({ saldo: saldoAtual, atualizado_em: agora })
-      .eq("id", credito?.id ?? "");
+      .eq("id", creditoFinal.id);
 
     return NextResponse.json(
       {

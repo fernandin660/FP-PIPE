@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, orgId } = gate.ctx!;
+    const { supabase, orgId, usuarioId } = gate.ctx!;
 
     const corpo = await request.json();
 
@@ -63,17 +63,30 @@ export async function POST(request: Request) {
     // 2. Leads que ainda estão borrados são DESBLOQUEADOS AGORA:
     //    o salvamento debita os créditos de lead automaticamente
     //    (com verificação de saldo) e marca contato_desbloqueado_em.
-    const { data: linhasEmpresas } = await supabase
-      .from("companies")
-      .select("id, cnpj, contato_desbloqueado_em, criado_em")
-      .eq("organizacao_id", orgId)
-      .in("cnpj", leadsUnicos);
+
+    // Empresas podem estar salvas na organização atual OU na linha legada
+    // do usuário; buscamos nas duas para não perder leads da rodada.
+    const [{ data: empresasOrg }, { data: empresasUser }] = await Promise.all([
+      supabase
+        .from("companies")
+        .select("id, cnpj, contato_desbloqueado_em, criado_em")
+        .eq("organizacao_id", orgId)
+        .in("cnpj", leadsUnicos),
+      supabase
+        .from("companies")
+        .select("id, cnpj, contato_desbloqueado_em, criado_em")
+        .eq("usuario_id", usuarioId)
+        .in("cnpj", leadsUnicos),
+    ]);
 
     // A constraint legada é por usuario_id + CNPJ. Por isso, uma equipe
     // pode ter mais de uma linha para o mesmo CNPJ; a lista deve usar uma só.
-    const todas = [...(linhasEmpresas ?? [])]
-      .sort((a, b) => String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? "")))
-      .filter((empresa, indice, lista) => lista.findIndex((item) => item.cnpj === empresa.cnpj) === indice);
+    const todas = [...(empresasOrg ?? []), ...(empresasUser ?? [])]
+      .filter(
+        (empresa, indice, lista) =>
+          lista.findIndex((item) => item.cnpj === empresa.cnpj) === indice
+      )
+      .sort((a, b) => String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? "")));
 
     if (todas.length === 0) {
       return NextResponse.json(
@@ -98,13 +111,31 @@ export async function POST(request: Request) {
         );
       }
 
-      const { data: creditos } = await admin
-        .from("creditos_contatos")
-        .select("saldo")
-        .eq("organizacao_id", orgId)
-        .maybeSingle();
+      // Saldo na organização OU na linha do usuário - usa a maior, igual ao
+      // desbloqueio individual, para nunca divergir do valor exibido na tela.
+      const [{ data: creditosOrg }, { data: creditosUser }] = await Promise.all([
+        admin
+          .from("creditos_contatos")
+          .select("id, saldo")
+          .eq("organizacao_id", orgId)
+          .order("saldo", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("creditos_contatos")
+          .select("id, saldo")
+          .eq("usuario_id", usuarioId)
+          .order("saldo", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-      const saldoBuscador = creditos?.saldo ?? 0;
+      const creditoAlvo = [creditosOrg, creditosUser]
+        .filter((c) => c && (c.saldo ?? 0) > 0)
+        .sort((a, b) => (b!.saldo ?? 0) - (a!.saldo ?? 0))[0];
+
+      const saldoBuscador = creditoAlvo?.saldo ?? 0;
+      const creditoId = creditoAlvo?.id ?? "";
 
       const agora = new Date().toISOString();
 
@@ -116,7 +147,7 @@ export async function POST(request: Request) {
           saldo: saldoBuscador - bloqueadas.length,
           atualizado_em: agora,
         })
-        .eq("organizacao_id", orgId)
+        .eq("id", creditoId)
         .gte("saldo", bloqueadas.length)
         .select("saldo")
         .maybeSingle();
@@ -126,6 +157,7 @@ export async function POST(request: Request) {
           {
             erro: `Para salvar esta lista faltam ${bloqueadas.length} desbloqueio(s), mas você tem só ${saldoBuscador} crédito(s) de lead. Compre mais em /planos ou desmarque alguns leads.`,
             motivo: "limite_creditos",
+            saldoServidor: saldoBuscador,
           },
           { status: 403 }
         );

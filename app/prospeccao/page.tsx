@@ -363,7 +363,7 @@ export default function Home() {
         }
       }
 
-      const [{ data: listas }, { data: contatos }] = await Promise.all([
+      const [{ data: listas }, contatosOrg, contatosUser] = await Promise.all([
         supabase
           .from("creditos")
           .select("saldo")
@@ -372,14 +372,30 @@ export default function Home() {
         supabase
           .from("creditos_contatos")
           .select("saldo")
-          .eq(org ? "organizacao_id" : "usuario_id", org ?? usuarioId)
+          .eq("organizacao_id", org ?? "")
           .order("saldo", { ascending: false })
           .limit(1)
-          .maybeSingle(),
+          .maybeSingle()
+          .then((r) => r.data ?? null),
+        supabase
+          .from("creditos_contatos")
+          .select("saldo")
+          .eq("usuario_id", usuarioId)
+          .order("saldo", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then((r) => r.data ?? null),
       ]);
 
+      // Usa a maior linha disponível, igual ao servidor, para exibir o saldo real.
+      const saldosContatos = [
+        contatosOrg?.saldo ?? 0,
+        contatosUser?.saldo ?? 0,
+      ];
+      const maiorSaldoContato = Math.max(...saldosContatos);
+
       setSaldoCreditos(listas?.saldo ?? 0);
-      setSaldoBuscador(contatos?.saldo ?? 0);
+      setSaldoBuscador(maiorSaldoContato);
     } catch {
       setSaldoCreditos(0);
       setSaldoBuscador(0);
