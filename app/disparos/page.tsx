@@ -33,6 +33,8 @@ export default function PaginaDisparos() {
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [conexao, setConexao] = useState<{ provedor: string; email: string } | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -51,6 +53,11 @@ export default function PaginaDisparos() {
       setListas((listasData as Lista[]) ?? []);
       setPerfil((perfilData as PerfilVendedor) ?? null);
       setSaldoIa(iaData?.saldo ?? 0);
+      const conexaoResposta = await fetch("/api/email/conexao");
+      if (conexaoResposta.ok) {
+        const conexaoDados = await conexaoResposta.json();
+        setConexao(conexaoDados.conexao ?? null);
+      }
       setCarregando(false);
     }
     void carregar();
@@ -139,6 +146,33 @@ export default function PaginaDisparos() {
     setMensagem("Campanha salva.");
   }
 
+  async function enviarCampanha() {
+    if (!campanha || enviando || !conexao) return;
+    if (!confirm(`Enviar para ${destinatarios} destinatário(s) usando ${conexao.email}?`)) return;
+    setEnviando(true);
+    setErro("");
+    try {
+      let totalEnviado = 0;
+      let totalFalha = 0;
+      let pendentes = 1;
+      while (pendentes > 0) {
+        const resposta = await fetch("/api/campanhas/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: campanha.id }) });
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível enviar a campanha.");
+        totalEnviado += dados.enviados ?? 0;
+        totalFalha += dados.falhas ?? 0;
+        pendentes = dados.pendentes ?? 0;
+        setMensagem(`Enviando... ${totalEnviado} enviado(s), ${pendentes} pendente(s).`);
+      }
+      setMensagem(`${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
+      await selecionarLista(listaId);
+    } catch (erroEnvio) {
+      setErro(erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   if (carregando) return <main className="flex min-h-screen items-center justify-center bg-pipe-dark text-gray-400">Carregando...</main>;
 
   return (
@@ -176,7 +210,7 @@ export default function PaginaDisparos() {
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
-          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">Conecte Gmail ou Outlook para liberar o envio. O próximo passo será revisar, conectar a conta e enviar os destinatários em fila.</div>
+          {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Gmail conectado: {conexao.email}</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada"} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : "Enviar campanha"}</button></div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span>Conecte o Gmail para liberar o envio.</span><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Conectar Gmail</a></div>}
         </section>}
 
         {mensagem && <p className="mt-4 text-sm text-pipe-lime">{mensagem}</p>}

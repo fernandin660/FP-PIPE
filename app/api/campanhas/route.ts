@@ -79,18 +79,18 @@ export async function POST(request: Request) {
   if (companyIds.length === 0) return NextResponse.json({ erro: "A lista não possui leads." }, { status: 400 });
 
   const [{ data: empresas }, { data: contatos }] = await Promise.all([
-    supabase.from("companies").select("id, email, emails_extra").in("id", companyIds),
-    supabase.from("contatos").select("id, company_id, email, emails").in("company_id", companyIds),
+    supabase.from("companies").select("id, email, emails_extra, nome_fantasia, razao_social").in("id", companyIds),
+    supabase.from("contatos").select("id, company_id, email, emails, nome, cargo, empresa").in("company_id", companyIds),
   ]);
 
-  const destinatarios: Array<{ contato_id: string | null; company_id: string; email: string; organizacao_id: string }> = [];
+  const destinatarios: Array<{ contato_id: string | null; company_id: string; email: string; organizacao_id: string; nome: string | null; empresa: string | null; cargo: string | null }> = [];
   const vistos = new Set<string>();
   for (const empresa of empresas ?? []) {
     const emails = [empresa.email, ...(Array.isArray(empresa.emails_extra) ? empresa.emails_extra : [])];
     for (const email of emails) {
       if (typeof email === "string" && email.includes("@") && !vistos.has(email.toLowerCase())) {
         vistos.add(email.toLowerCase());
-        destinatarios.push({ contato_id: null, company_id: empresa.id, email: email.toLowerCase(), organizacao_id: orgId });
+        destinatarios.push({ contato_id: null, company_id: empresa.id, email: email.toLowerCase(), organizacao_id: orgId, nome: null, cargo: null, empresa: empresa.nome_fantasia ?? empresa.razao_social ?? null });
       }
     }
   }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     for (const email of emails) {
       if (typeof email === "string" && email.includes("@") && !vistos.has(email.toLowerCase())) {
         vistos.add(email.toLowerCase());
-        destinatarios.push({ contato_id: contato.id, company_id: contato.company_id, email: email.toLowerCase(), organizacao_id: orgId });
+        destinatarios.push({ contato_id: contato.id, company_id: contato.company_id, email: email.toLowerCase(), organizacao_id: orgId, nome: contato.nome ?? null, cargo: contato.cargo ?? null, empresa: contato.empresa ?? null });
       }
     }
   }

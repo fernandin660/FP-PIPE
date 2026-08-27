@@ -23,12 +23,19 @@ create table if not exists public.campanha_destinatarios (
   contato_id uuid references public.contatos(id) on delete set null,
   company_id uuid references public.companies(id) on delete set null,
   email text not null,
+  nome text,
+  empresa text,
+  cargo text,
   status text not null default 'nao_contatado' check (status in ('nao_contatado','agendado','enviado','entregue','aberto','clicado','respondeu','falhou','opt_out')),
   erro text,
   enviado_em timestamptz,
   criado_em timestamptz not null default now(),
   unique (campanha_id, email)
 );
+
+alter table public.campanha_destinatarios add column if not exists nome text;
+alter table public.campanha_destinatarios add column if not exists empresa text;
+alter table public.campanha_destinatarios add column if not exists cargo text;
 
 create index if not exists campanhas_org_idx on public.campanhas (organizacao_id, criado_em desc);
 create index if not exists campanha_destinatarios_campanha_idx on public.campanha_destinatarios (campanha_id, status);
