@@ -393,6 +393,7 @@ function BuscadorContent() {
     endereco: string | null;
     telefone_empresa: string | null;
     website: string | null;
+    linkedin_url: string | null;
     emails_genericos: string[];
     fontes: string[];
     origem: "banco" | "web";
@@ -420,6 +421,7 @@ function BuscadorContent() {
       endereco: string | null;
       telefone_empresa: string | null;
       website: string | null;
+      linkedin_url: string | null;
       emails_genericos: string[];
     } | null;
   } | null>(null);
@@ -792,6 +794,7 @@ function BuscadorContent() {
           endereco: string | null;
           telefone_empresa: string | null;
           website: string | null;
+          linkedin_url: string | null;
           emails_genericos: string[];
           fontes: string[];
           origem: "banco" | "web";
@@ -886,13 +889,14 @@ function BuscadorContent() {
         endereco: string | null;
         telefone_empresa: string | null;
         website: string | null;
+        linkedin_url: string | null;
         emails_genericos: string[];
       } | null = null;
 
       if (empresaNome) {
         try {
           const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(empresaNome)}`);
-          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: { nome: string; cnpj: string | null; razao_social: string | null; endereco: string | null; telefone_empresa: string | null; website: string | null; emails_genericos: string[]; fontes: string[]; origem: "banco" | "web" }; erro?: string };
+          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: { nome: string; cnpj: string | null; razao_social: string | null; endereco: string | null; telefone_empresa: string | null; website: string | null; linkedin_url: string | null; emails_genericos: string[]; fontes: string[]; origem: "banco" | "web" }; erro?: string };
           if (resEmpresa.ok && dadosEmpresa.empresa) {
             let e = dadosEmpresa.empresa;
             if (e.cnpj && !e.telefone_empresa) {
@@ -927,6 +931,7 @@ function BuscadorContent() {
         endereco: empresaDados.endereco ?? null,
         telefone_empresa: empresaDados.telefone_empresa ?? null,
         website: empresaDados.website ?? null,
+        linkedin_url: empresaDados.linkedin_url ?? null,
         emails_genericos: empresaDados.emails_genericos ?? [],
       } : null;
 
@@ -1166,6 +1171,14 @@ function BuscadorContent() {
                     <span className="text-pipe-muted">🌐</span>
                     <a href={fichaEmpresa.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
                       {fichaEmpresa.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                    </a>
+                  </div>
+                )}
+                {fichaEmpresa.linkedin_url && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-pipe-muted">💼</span>
+                    <a href={fichaEmpresa.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                      LinkedIn da empresa
                     </a>
                   </div>
                 )}
@@ -1412,6 +1425,16 @@ function BuscadorContent() {
                                     <dd>
                                       <a href={resultadoPessoa.empresaDetalhes.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
                                         {resultadoPessoa.empresaDetalhes.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                                      </a>
+                                    </dd>
+                                  </div>
+                                )}
+                                {resultadoPessoa.empresaDetalhes?.linkedin_url && (
+                                  <div className="flex gap-2">
+                                    <dt className="text-pipe-muted w-28 shrink-0">LinkedIn</dt>
+                                    <dd>
+                                      <a href={resultadoPessoa.empresaDetalhes.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                                        Página da empresa
                                       </a>
                                     </dd>
                                   </div>

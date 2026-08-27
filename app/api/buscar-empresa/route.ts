@@ -5,6 +5,7 @@ import {
   buscarCnpjPorEmpresa,
   buscarTelefoneMaps,
   buscarDadosCnpj,
+  buscarDadosEmpresaGoogle,
   sugerirEmailsEmpresa,
 } from "../../../lib/enriquecimento";
 
@@ -15,6 +16,7 @@ type EmpresaFicha = {
   endereco: string | null;
   telefone_empresa: string | null;
   website: string | null;
+  linkedin_url: string | null;
   emails_genericos: string[];
   fontes: string[];
   origem: "banco" | "web";
@@ -23,9 +25,10 @@ type EmpresaFicha = {
 async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
   const nome = ficha.nome;
 
-  const [casaResultado, mapsResultado] = await Promise.all([
+  const [casaResultado, mapsResultado, googleResultado] = await Promise.all([
     buscarCnpjPorEmpresa(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarCnpjPorEmpresa>>)),
     buscarTelefoneMaps(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarTelefoneMaps>>)),
+    buscarDadosEmpresaGoogle(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarDadosEmpresaGoogle>>)),
   ]);
 
   if (casaResultado.cnpj && !ficha.cnpj) {
@@ -54,6 +57,16 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
   if (mapsResultado.website && !ficha.website) {
     ficha.website = mapsResultado.website;
     ficha.fontes.push("maps_website");
+  }
+
+  if (googleResultado.website && !ficha.website) {
+    ficha.website = googleResultado.website;
+    ficha.fontes.push("google");
+  }
+
+  if (googleResultado.linkedin_url && !ficha.linkedin_url) {
+    ficha.linkedin_url = googleResultado.linkedin_url;
+    ficha.fontes.push("google_linkedin");
   }
 
   if (ficha.cnpj) {
@@ -141,6 +154,7 @@ export async function GET(requisicao: Request) {
         endereco: e.endereco ?? null,
         telefone_empresa: e.telefone ?? null,
         website: e.website ?? null,
+        linkedin_url: null,
         emails_genericos: dominio ? sugerirEmailsEmpresa(dominio) : [],
         fontes: ["banco"],
         origem: "banco",
@@ -158,6 +172,7 @@ export async function GET(requisicao: Request) {
     endereco: null,
     telefone_empresa: null,
     website: null,
+    linkedin_url: null,
     emails_genericos: [],
     fontes: [],
     origem: "web",

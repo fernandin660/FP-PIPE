@@ -299,6 +299,69 @@ export async function buscarCargoAtual(
 }
 
 // ============================================================
+// 6b. Buscar site e LinkedIn da empresa via Google (Serper)
+// ============================================================
+
+export async function buscarDadosEmpresaGoogle(
+  nomeEmpresa: string
+): Promise<{ website?: string; linkedin_url?: string }> {
+  if (!CHAVE_SERPER || !nomeEmpresa) return {};
+
+  const results: { website?: string; linkedin_url?: string } = {};
+
+  const queries = [
+    `"${nomeEmpresa}" site oficial`,
+    `"${nomeEmpresa}" site:linkedin.com/company`,
+  ];
+
+  for (const q of queries) {
+    try {
+      const resposta = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": CHAVE_SERPER,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ q, gl: "br", hl: "pt-br", num: 5 }),
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (!resposta.ok) continue;
+
+      const dados = (await resposta.json()) as SerperResposta;
+
+      for (const item of dados.organic ?? []) {
+        const link = item.link ?? "";
+        const titulo = (item.title ?? "").toLowerCase();
+
+        if (!results.linkedin_url && link.includes("linkedin.com/company/")) {
+          const match = link.match(/linkedin\.com\/company\/[\w-]+/);
+          if (match) {
+            results.linkedin_url = `https://www.${match[0]}`;
+          }
+        }
+
+        if (!results.website && link && !link.includes("linkedin.com") && !link.includes("google.com") && !link.includes("facebook.com") && !link.includes("cnpj.biz") && !link.includes("casadosdados") && !link.includes("receitaws") && !link.includes("serpro")) {
+          try {
+            const url = new URL(link);
+            const dominio = url.hostname.replace(/^www\./, "");
+            if (!dominio.includes("wikipedia.org") && !dominio.includes("youtube.com") && !dominio.includes("instagram.com")) {
+              results.website = url.origin;
+            }
+          } catch {}
+        }
+      }
+    } catch {
+      // Continua pra próxima query
+    }
+
+    if (results.website && results.linkedin_url) break;
+  }
+
+  return results;
+}
+
+// ============================================================
 // 7. MillionPhones — telefone via LinkedIn URL
 // ============================================================
 
