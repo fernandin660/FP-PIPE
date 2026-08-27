@@ -157,6 +157,7 @@ export async function POST(requisicao: Request) {
     const partes = linkedinNormalizado.split("/").filter(Boolean);
     const slug = partes[partes.length - 1] ?? "";
     nomeInput = slug
+      .replace(/-[0-9a-f]{8,}$/, "")
       .replace(/-\d+$/, "")
       .split("-")
       .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
