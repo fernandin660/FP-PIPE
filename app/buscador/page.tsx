@@ -401,10 +401,16 @@ function BuscadorContent() {
   const [linkedinPessoa, setLinkedinPessoa] = useState("");
   const [buscandoPessoa, setBuscandoPessoa] = useState(false);
   const [resultadoPessoa, setResultadoPessoa] = useState<{
+    id: string | null;
     nome: string | null;
     email: string | null;
+    cargo: string | null;
+    empresa: string | null;
+    linkedin_url: string | null;
     telefones: string[];
     emails: string[];
+    fontesEmail: string[];
+    fontesTelefone: string[];
   } | null>(null);
   const [erroPessoa, setErroPessoa] = useState("");
   const [mostrarPopupMillionPhones, setMostrarPopupMillionPhones] = useState(false);
@@ -821,9 +827,11 @@ function BuscadorContent() {
 
       const dados = (await res.json()) as {
         encontrado?: boolean;
-        contato?: { nome: string | null; email: string | null };
+        contato?: { id?: string; nome: string | null; email: string | null; cargo: string | null; empresa: string | null; linkedin_url: string | null };
         emails?: string[];
         telefones?: string[];
+        fontesEmail?: string[];
+        fontesTelefone?: string[];
         saldoTelefones?: number;
         erro?: string;
       };
@@ -839,10 +847,16 @@ function BuscadorContent() {
 
       if (dados.encontrado && dados.contato) {
         setResultadoPessoa({
+          id: dados.contato.id ?? null,
           nome: dados.contato.nome ?? null,
           email: dados.contato.email ?? null,
+          cargo: dados.contato.cargo ?? null,
+          empresa: dados.contato.empresa ?? fichaEmpresa?.nome ?? null,
+          linkedin_url: dados.contato.linkedin_url ?? linkedinPessoa.trim(),
           telefones: dados.telefones ?? [],
           emails: dados.emails ?? [],
+          fontesEmail: dados.fontesEmail ?? [],
+          fontesTelefone: dados.fontesTelefone ?? [],
         });
         if (dados.saldoTelefones !== undefined) {
           setSaldoTelefones(dados.saldoTelefones);
@@ -1139,18 +1153,48 @@ function BuscadorContent() {
                 )}
 
                 {resultadoPessoa && (
-                  <div className="mt-4 bg-pipe-dark border border-pipe-lime/30 rounded-lg p-4">
-                    {resultadoPessoa.nome && (
-                      <p className="text-sm font-bold text-white mb-2">{resultadoPessoa.nome}</p>
+                  <div className="mt-4 bg-pipe-dark border border-pipe-lime/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        {resultadoPessoa.nome && (
+                          <p className="text-base font-bold text-white">{resultadoPessoa.nome}</p>
+                        )}
+                        {resultadoPessoa.cargo && (
+                          <p className="text-xs text-pipe-muted">{resultadoPessoa.cargo}</p>
+                        )}
+                        {resultadoPessoa.empresa && (
+                          <p className="text-xs text-pipe-muted">{resultadoPessoa.empresa}</p>
+                        )}
+                      </div>
+                      {resultadoPessoa.id && (
+                        <span className="text-[10px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-2 py-1 shrink-0">
+                          ✅ Salvo nos contatos
+                        </span>
+                      )}
+                    </div>
+
+                    {resultadoPessoa.linkedin_url && (
+                      <a
+                        href={resultadoPessoa.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
+                      >
+                        💼 Abrir LinkedIn
+                      </a>
                     )}
+
                     {resultadoPessoa.telefones.length > 0 && (
-                      <div className="space-y-1">
+                      <div>
+                        <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">Telefone pessoal</p>
                         {resultadoPessoa.telefones.map((tel) => (
                           <div key={tel} className="flex items-center gap-2">
                             <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline text-sm">
                               📞 {tel}
                             </a>
-                            <span className="text-[10px] text-pipe-muted">Pessoal</span>
+                            <span className="text-[10px] text-pipe-muted">
+                              {resultadoPessoa.fontesTelefone.includes("millionphones") ? "MillionPhones" : "Web"}
+                            </span>
                             <button
                               onClick={async () => { await navigator.clipboard.writeText(tel); }}
                               className="text-xs text-pipe-muted hover:text-white transition"
@@ -1162,12 +1206,34 @@ function BuscadorContent() {
                         ))}
                       </div>
                     )}
-                    {resultadoPessoa.email && (
-                      <div className="mt-2">
-                        <a href={`mailto:${resultadoPessoa.email}`} className="text-pipe-lime text-sm hover:underline">
-                          ✉️ {resultadoPessoa.email}
-                        </a>
+
+                    {resultadoPessoa.emails.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">E-mails sugeridos</p>
+                        <div className="space-y-1">
+                          {resultadoPessoa.emails.map((email) => (
+                            <div key={email} className="flex items-center gap-2">
+                              <a href={`mailto:${email}`} className="text-pipe-lime text-sm hover:underline">
+                                {email}
+                              </a>
+                              <button
+                                onClick={async () => { await navigator.clipboard.writeText(email); }}
+                                className="text-xs text-pipe-muted hover:text-white transition"
+                                title="Copiar"
+                              >
+                                📋
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ Sugeridos — confira antes de usar</p>
                       </div>
+                    )}
+
+                    {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && (
+                      <p className="text-xs text-amber-400">
+                        Nenhum telefone ou e-mail encontrado para este perfil. O serviço de telefone pessoal ainda não está ativado.
+                      </p>
                     )}
                   </div>
                 )}
