@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     clientIdConfigurado: Boolean(clientId),
     clientSecretConfigurado: Boolean(clientSecret),
+    clientIdCompleto: clientId || null,
     clientIdFinal: clientId ? `${clientId.slice(0, 12)}...${clientId.slice(-8)}` : null,
     clientSecretTamanho: clientSecret.length,
     redirectUri: `${appUrl}/api/email/google/callback`,
