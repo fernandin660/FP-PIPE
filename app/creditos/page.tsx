@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../../lib/supabase/client";
 
 type Moeda = {
-  chave: "listas" | "buscador" | "abordagens";
+  chave: "listas" | "buscador" | "telefone" | "abordagens";
   icone: string;
   nome: string;
   descricao: string;
@@ -32,6 +32,15 @@ const MOEDAS_INICIAIS: Moeda[] = [
     descricao:
       "Cada busca de e-mail verificado pelo LinkedIn gasta 1 crédito. Perfis já buscados saem do cache sem custo extra pra você.",
     tabela: "creditos_contatos",
+    saldo: null,
+  },
+  {
+    chave: "telefone",
+    icone: "📞",
+    nome: "Créditos de telefone",
+    descricao:
+      "Cada telefone verificado gasta 10 créditos. Gold inclui 500 (50 telefones), Platinum 1000 (100 telefones).",
+    tabela: "creditos_telefone",
     saldo: null,
   },
   {
@@ -98,7 +107,7 @@ export default function PaginaCreditos() {
           {carregando ? (
             <p className="text-pipe-muted text-sm mt-10">Carregando...</p>
           ) : (
-            <div className="grid md:grid-cols-3 gap-4 mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
               {moedas.map((moeda) => (
                 <div
                   key={moeda.chave}

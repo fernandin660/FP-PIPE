@@ -305,6 +305,23 @@ export function sugerirEmails(nome: string, dominio: string): string[] {
   return [...new Set(sugestoes)];
 }
 
+export function sugerirEmailsEmpresa(dominio: string): string[] {
+  if (!dominio) return [];
+
+  const dominioLimpo = dominio.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+
+  const prefixos = [
+    "contato",
+    "vendas",
+    "comercial",
+    "admin",
+    "recepcao",
+    "atendimento",
+  ];
+
+  return prefixos.map((p) => `${p}@${dominioLimpo}`);
+}
+
 // ============================================================
 // 8. Buscar domínio do site da empresa (Casa dos Dados)
 // ============================================================
@@ -590,15 +607,22 @@ export async function buscarContatoCompleto(
   }
 
   // Gerar sugestões de email
-  const emails = nomePessoa && dominio
-    ? sugerirEmails(nomePessoa, dominio)
-    : [];
+  let emails: string[] = [];
+  let fontesEmail: string[] = [];
+
+  if (nomePessoa && dominio) {
+    emails = sugerirEmails(nomePessoa, dominio);
+    fontesEmail = ["ia_padrao"];
+  } else if (dominio) {
+    emails = sugerirEmailsEmpresa(dominio);
+    fontesEmail = ["emails_empresa"];
+  }
 
   return {
     emails,
     telefones: telefoneResult.telefones,
     website: telefoneResult.website,
-    fontesEmail: dominio ? ["ia_padrao"] : [],
+    fontesEmail,
     fontesTelefone: telefoneResult.fontes,
   };
 }

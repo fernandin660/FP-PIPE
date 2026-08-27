@@ -339,6 +339,7 @@ function BuscadorContent() {
   const [perfil, setPerfil] = useState<PerfilVendedor | null>(null);
   const [saldoCreditos, setSaldoCreditos] = useState<number | null>(null);
   const [saldoContatos, setSaldoContatos] = useState<number | null>(null);
+  const [saldoTelefones, setSaldoTelefones] = useState<number | null>(null);
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
 
   const [urlLinkedin, setUrlLinkedin] = useState("");
@@ -384,6 +385,29 @@ function BuscadorContent() {
   const [veioDoCache, setVeioDoCache] = useState(false);
   const autoBuscouRef = useRef(false);
   const pendenteAutoBusca = useRef<string | null>(null);
+
+  const [fichaEmpresa, setFichaEmpresa] = useState<{
+    nome: string;
+    cnpj: string | null;
+    razao_social: string | null;
+    endereco: string | null;
+    telefone_empresa: string | null;
+    website: string | null;
+    emails_genericos: string[];
+    fontes: string[];
+    origem: "banco" | "web";
+  } | null>(null);
+  const [buscandoEmpresaFicha, setBuscandoEmpresaFicha] = useState(false);
+  const [linkedinPessoa, setLinkedinPessoa] = useState("");
+  const [buscandoPessoa, setBuscandoPessoa] = useState(false);
+  const [resultadoPessoa, setResultadoPessoa] = useState<{
+    nome: string | null;
+    email: string | null;
+    telefones: string[];
+    emails: string[];
+  } | null>(null);
+  const [erroPessoa, setErroPessoa] = useState("");
+  const [mostrarPopupMillionPhones, setMostrarPopupMillionPhones] = useState(false);
 
   const carregarHistorico = useCallback(
     async (idUsuario?: string) => {
@@ -453,6 +477,21 @@ function BuscadorContent() {
         .maybeSingle();
 
       setSaldoContatos(dadosContatos?.saldo ?? 5);
+
+      const { data: orgData } = await supabase
+        .from("organizacao_membros")
+        .select("organizacao_id")
+        .eq("usuario_id", user.id)
+        .single();
+
+      if (orgData) {
+        const { data: dadosTelefone } = await supabase
+          .from("creditos_telefone")
+          .select("saldo")
+          .eq("organizacao_id", orgData.organizacao_id)
+          .maybeSingle();
+        setSaldoTelefones(dadosTelefone?.saldo ?? 0);
+      }
 
       const { data: dadosEmpresas } = await supabase
         .from("companies")
@@ -665,6 +704,7 @@ function BuscadorContent() {
         contato?: ContatoEncontrado;
         emails?: string[];
         telefones?: string[];
+        saldoTelefones?: number;
         saldoContatos?: number;
         mensagem?: string;
         erro?: string;
@@ -678,7 +718,9 @@ function BuscadorContent() {
 
       if (dados.encontrado && dados.contato) {
         setResultado(dados.contato);
-        setSaldoContatos(dados.saldoContatos ?? null);
+        if (dados.saldoTelefones !== undefined) {
+          setSaldoTelefones(dados.saldoTelefones);
+        }
         setVeioDoCache(Boolean(dados.doCache));
         setEmailsEncontrados(dados.emails ?? []);
         setTelefonesEncontrados(dados.telefones ?? []);
@@ -712,6 +754,106 @@ function BuscadorContent() {
       setTimeout(() => setCopiado(false), 2000);
     } catch {
       console.error("Não conseguimos copiar o e-mail.");
+    }
+  };
+
+  const buscarEmpresaFicha = async (termo: string) => {
+    if (!termo.trim() || buscandoEmpresaFicha) return;
+
+    setBuscandoEmpresaFicha(true);
+    setFichaEmpresa(null);
+    setResultadoPessoa(null);
+    setErroPessoa("");
+
+    try {
+      const res = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(termo.trim())}`);
+      const dados = (await res.json()) as {
+        empresa?: {
+          nome: string;
+          cnpj: string | null;
+          razao_social: string | null;
+          endereco: string | null;
+          telefone_empresa: string | null;
+          website: string | null;
+          emails_genericos: string[];
+          fontes: string[];
+          origem: "banco" | "web";
+        };
+        erro?: string;
+      };
+
+      if (!res.ok) {
+        setMensagem(dados.erro ?? "Erro ao buscar empresa.");
+        setErroMensagem(true);
+        return;
+      }
+
+      if (dados.empresa) {
+        setFichaEmpresa(dados.empresa);
+        setMensagem("");
+      }
+    } catch {
+      setMensagem("Falha de conexão ao buscar empresa.");
+      setErroMensagem(true);
+    } finally {
+      setBuscandoEmpresaFicha(false);
+    }
+  };
+
+  const buscarPessoa = async () => {
+    if (!linkedinPessoa.trim() || buscandoPessoa) return;
+
+    setBuscandoPessoa(true);
+    setResultadoPessoa(null);
+    setErroPessoa("");
+
+    try {
+      const res = await fetch("/api/buscar-contato", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedinUrl: linkedinPessoa.trim(),
+          empresa: fichaEmpresa?.nome ?? "",
+          nome: "",
+          tipo: "telefone",
+        }),
+      });
+
+      const dados = (await res.json()) as {
+        encontrado?: boolean;
+        contato?: { nome: string | null; email: string | null };
+        emails?: string[];
+        telefones?: string[];
+        saldoTelefones?: number;
+        erro?: string;
+      };
+
+      if (!res.ok) {
+        if (res.status === 402) {
+          setMostrarPopupMillionPhones(true);
+        } else {
+          setErroPessoa(dados.erro ?? "Erro ao buscar pessoa.");
+        }
+        return;
+      }
+
+      if (dados.encontrado && dados.contato) {
+        setResultadoPessoa({
+          nome: dados.contato.nome ?? null,
+          email: dados.contato.email ?? null,
+          telefones: dados.telefones ?? [],
+          emails: dados.emails ?? [],
+        });
+        if (dados.saldoTelefones !== undefined) {
+          setSaldoTelefones(dados.saldoTelefones);
+        }
+      } else {
+        setErroPessoa("Nenhum telefone pessoal encontrado para este perfil.");
+      }
+    } catch {
+      setErroPessoa("Falha de conexão. Tente novamente.");
+    } finally {
+      setBuscandoPessoa(false);
     }
   };
 
@@ -820,440 +962,218 @@ function BuscadorContent() {
 
             {saldoContatos !== null && (
               <p className="text-pipe-muted text-sm">
-                🔎 Créditos de contato:{" "}
+                🔎 E-mails:{" "}
                 <span className="text-pipe-lime font-bold">{saldoContatos}</span>
+              </p>
+            )}
+
+            {saldoTelefones !== null && saldoTelefones > 0 && (
+              <p className="text-pipe-muted text-sm">
+                📞 Telefones:{" "}
+                <span className="text-pipe-lime font-bold">{saldoTelefones}</span>
+                <span className="text-[10px] text-pipe-muted ml-1">
+                  ({Math.floor(saldoTelefones / 10)} disponíveis)
+                </span>
               </p>
             )}
           </div>
 
           <p className="text-pipe-muted mt-3 max-w-2xl">
-            Selecione um lead da sua lista ou cole o link do LinkedIn. Receba{" "}
-            <strong className="text-gray-200">e-mails sugeridos</strong> (grátis) +{" "}
-            <strong className="text-gray-200">telefone verificado</strong> (3 créditos).
+            Busque uma empresa para ver telefones e e-mails gerais (grátis).{" "}
+            Depois, cole o LinkedIn de um funcionário para buscar o{" "}
+            <strong className="text-gray-200">telefone pessoal</strong> (10 créditos).
           </p>
 
           <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
-            <div className="relative">
-              <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-                Buscar lead
-              </label>
-              <input
-                type="text"
-                value={termoBusca}
-                onChange={(e) => aoDigitarBusca(e.target.value)}
-                onFocus={() => termoBusca.length >= 2 && setMostrarResultados(true)}
-                placeholder="Digite o nome da empresa ou pessoa..."
-                className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                disabled={buscando}
-              />
-
-              {mostrarResultados && termoBusca.length >= 2 && (
-                <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-pipe-card border border-pipe-border rounded-xl shadow-2xl max-h-64 overflow-y-auto">
-                  {buscandoLead ? (
-                    <p className="text-xs text-pipe-muted px-4 py-3">Buscando...</p>
-                  ) : resultadosBusca.length > 0 ? (
-                    resultadosBusca.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => selecionarLead(r.id ?? "")}
-                        className="w-full text-left px-4 py-3 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {r.nome || r.empresa || "Sem nome"}
-                        </p>
-                        <p className="text-xs text-pipe-muted">
-                          {r.nome && r.empresa ? `${r.empresa}` : ""}
-                          {r.cargo ? ` · ${r.cargo}` : ""}
-                          {r.origem === "contato" ? " · 📋 Salvo" : " · 🏢 Lista"}
-                        </p>
-                      </button>
-                    ))
-                  ) : leadNaoEncontrado ? (
-                    <div className="px-4 py-3">
-                      <p className="text-xs text-amber-400">
-                        Lead não está nas suas listas.
-                      </p>
-                      <p className="text-xs text-pipe-muted mt-1">
-                        Preencha os campos abaixo para buscar no banco de dados.
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-                URL do perfil do LinkedIn
+                Buscar empresa
               </label>
-              <input
-                type="url"
-                value={urlLinkedin}
-                onChange={(e) => setUrlLinkedin(e.target.value)}
-                placeholder="https://www.linkedin.com/in/nome-da-pessoa"
-                className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                disabled={buscando}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-                  Nome da pessoa
-                </label>
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
-                  value={nomeInput}
-                  onChange={(e) => setNomeInput(e.target.value)}
-                  placeholder="João Silva"
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                  disabled={buscando}
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void buscarEmpresaFicha(termoBusca);
+                  }}
+                  placeholder="Digite o nome da empresa (ex: Sal Express, Petrobras...)"
+                  className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  disabled={buscandoEmpresaFicha}
                 />
+                <button
+                  onClick={() => void buscarEmpresaFicha(termoBusca)}
+                  disabled={buscandoEmpresaFicha || termoBusca.length < 2}
+                  className="bg-pipe-lime text-black font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
+                >
+                  {buscandoEmpresaFicha ? "🔍 Buscando..." : "🔎 Buscar empresa"}
+                </button>
               </div>
-              <div className="relative">
-                <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">
-                  Empresa
-                </label>
-                <input
-                  type="text"
-                  value={empresaInput}
-                  onChange={(e) => aoDigitarEmpresa(e.target.value)}
-                  onFocus={() => empresaInput.length >= 2 && setMostrarResultadosEmpresa(true)}
-                  onBlur={() => setTimeout(() => setMostrarResultadosEmpresa(false), 200)}
-                  placeholder="Tech Solutions Ltda"
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                  disabled={buscando}
-                />
-
-                {mostrarResultadosEmpresa && empresaInput.length >= 2 && (
-                  <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-pipe-card border border-pipe-border rounded-xl shadow-2xl max-h-64 overflow-y-auto">
-                    {buscandoEmpresa ? (
-                      <p className="text-xs text-pipe-muted px-4 py-3">Buscando nas suas listas...</p>
-                    ) : resultadosEmpresa.length > 0 ? (
-                      <>
-                        <p className="text-[10px] text-pipe-muted px-4 pt-2 pb-1 uppercase tracking-wide">Suas empresas</p>
-                        {resultadosEmpresa.map((e) => (
-                          <button
-                            key={e.id}
-                            onMouseDown={() => selecionarEmpresa(e.nome)}
-                            className="w-full text-left px-4 py-2.5 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
-                          >
-                            <p className="text-sm text-white">{e.nome}</p>
-                            {e.cnpj && (
-                              <p className="text-xs text-pipe-muted">CNPJ: {e.cnpj}</p>
-                            )}
-                          </button>
-                        ))}
-                      </>
-                    ) : !empresaWebBuscada ? (
-                      <div className="px-4 py-3">
-                        <p className="text-xs text-pipe-muted mb-2">Não encontrada nas suas listas.</p>
-                        <button
-                          onMouseDown={() => void buscarEmpresaWeb(empresaInput)}
-                          className="w-full text-left text-xs text-pipe-lime hover:underline font-semibold"
-                        >
-                          🔎 Buscar "{empresaInput}" na web
-                        </button>
-                      </div>
-                    ) : buscandoEmpresaWeb ? (
-                      <p className="text-xs text-pipe-muted px-4 py-3">Buscando na web...</p>
-                    ) : resultadosEmpresaWeb.length > 0 ? (
-                      <>
-                        <p className="text-[10px] text-pipe-muted px-4 pt-2 pb-1 uppercase tracking-wide">Resultados da web</p>
-                        {resultadosEmpresaWeb.map((e) => (
-                          <button
-                            key={e.cnpj}
-                            onMouseDown={() => selecionarEmpresa(e.nome_fantasia || e.razao_social)}
-                            className="w-full text-left px-4 py-2.5 hover:bg-pipe-dark transition border-b border-pipe-border last:border-0"
-                          >
-                            <p className="text-sm text-white">{e.nome_fantasia || e.razao_social}</p>
-                            <p className="text-xs text-pipe-muted">
-                              {e.razao_social !== e.nome_fantasia ? `${e.razao_social} · ` : ""}
-                              CNPJ: {e.cnpj}
-                            </p>
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <p className="text-xs text-pipe-muted px-4 py-3">Nenhum resultado encontrado na web.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 items-end">
-              <div className="flex-1">
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-pipe-muted">Tipo de busca:</span>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={tipoBusca === "email"}
-                      onChange={() => setTipoBusca("email")}
-                      className="accent-pipe-lime"
-                    />
-                    <span className="text-xs text-gray-300">
-                      📧 E-mail <span className="text-pipe-lime">(grátis)</span>
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={tipoBusca === "telefone"}
-                      onChange={() => setTipoBusca("telefone")}
-                      className="accent-pipe-lime"
-                    />
-                    <span className="text-xs text-gray-300">
-                      📞 Telefone <span className="text-pipe-muted">(3 créditos)</span>
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={tipoBusca === "both"}
-                      onChange={() => setTipoBusca("both")}
-                      className="accent-pipe-lime"
-                    />
-                    <span className="text-xs text-gray-300">
-                      📧📞 Ambos <span className="text-pipe-muted">(3 créditos)</span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <button
-                onClick={buscar}
-                disabled={buscando || !temInput}
-                className="bg-pipe-lime text-black font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
-              >
-                {buscando ? "🔍 Buscando..." : "🔎 Buscar contato"}
-              </button>
             </div>
 
             {mensagem && (
-              <p
-                className={`mt-4 text-sm ${
-                  erroMensagem ? "text-red-400" : "text-amber-400"
-                }`}
-              >
+              <p className={`text-sm ${erroMensagem ? "text-red-400" : "text-amber-400"}`}>
                 {mensagem}
               </p>
             )}
+          </div>
 
-            {resultado && (
-              <div className="mt-6 border border-pipe-blue/40 bg-pipe-blue/5 rounded-xl p-5">
-                {veioDoCache && (
-                  <p className="mb-3 text-[11px] font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-3 py-1.5 inline-block">
-                    ⚡ Resposta instantânea
-                  </p>
-                )}
-
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <p className="text-xl font-bold text-white">
-                      {resultado.nome ?? "Contato encontrado"}
-                    </p>
-                    <p className="text-sm text-pipe-muted mt-0.5">
-                      {[resultado.cargo, resultado.empresa]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                    </p>
+          {fichaEmpresa && (
+            <div className="mt-6 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🏢</span>
+                    <h2 className="font-display text-xl text-white">{fichaEmpresa.nome}</h2>
+                    <span className="text-[10px] text-pipe-muted bg-pipe-dark px-2 py-0.5 rounded-full">
+                      {fichaEmpresa.origem === "banco" ? "📋 Seus dados" : "🌐 Web"}
+                    </span>
                   </div>
+                  {fichaEmpresa.razao_social && fichaEmpresa.razao_social !== fichaEmpresa.nome && (
+                    <p className="text-xs text-pipe-muted mt-1">{fichaEmpresa.razao_social}</p>
+                  )}
                 </div>
+              </div>
 
-                {emailsEncontrados.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                      📧 E-mails sugeridos
-                    </p>
-                    <div className="space-y-1">
-                      {emailsEncontrados.map((email: string, i: number) => (
-                        <div
-                          key={email}
-                          className="flex items-center gap-2"
-                        >
-                          <a
-                            href={`mailto:${email}`}
-                            className="text-pipe-lime font-semibold break-all hover:underline text-sm"
-                          >
-                            {i + 1}. {email}
-                          </a>
-                          <button
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(email);
-                            }}
-                            className="text-xs text-pipe-muted hover:text-white transition"
-                            title="Copiar"
-                          >
-                            📋
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-pipe-muted mt-1 italic">
-                      ⚠️ Sugeridos — confira antes de usar
-                    </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {fichaEmpresa.cnpj && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-pipe-muted">CNPJ:</span>
+                    <span className="text-white font-mono">{fichaEmpresa.cnpj}</span>
                   </div>
                 )}
-
-                {telefonesEncontrados.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                      📞 Telefone verificado
-                    </p>
-                    <div className="space-y-1">
-                      {telefonesEncontrados.map((tel: string) => (
-                        <div
-                          key={tel}
-                          className="flex items-center gap-2"
-                        >
-                          <a
-                            href={`tel:${tel}`}
-                            className="text-pipe-lime font-semibold hover:underline text-sm"
-                          >
-                            {tel}
-                          </a>
-                          <span className="text-[10px] text-pipe-muted">✅ MillionPhones</span>
-                          <button
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(tel);
-                            }}
-                            className="text-xs text-pipe-muted hover:text-white transition"
-                            title="Copiar"
-                          >
-                            📋
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                {fichaEmpresa.endereco && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-pipe-muted">📍</span>
+                    <span className="text-white">{fichaEmpresa.endereco}</span>
                   </div>
                 )}
-
-                {!emailsEncontrados.length && !telefonesEncontrados.length && resultado.email && (
-                  <div className="mt-4">
-                    <a
-                      href={`mailto:${resultado.email}`}
-                      className="text-pipe-lime font-semibold break-all hover:underline"
-                    >
-                      ✉️ {resultado.email}
+                {fichaEmpresa.website && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-pipe-muted">🌐</span>
+                    <a href={fichaEmpresa.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
+                      {fichaEmpresa.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                     </a>
                   </div>
                 )}
+              </div>
 
-                {(resultado.company_id || resultado.id) && (
-                  <div className="mt-3 flex justify-end gap-2 flex-wrap items-center">
-                    {resultado.company_id ? (
-                      <span
-                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime"
-                        title="Este contato já está salvo em um dos seus leads"
-                      >
-                        ✅ Já vinculado a um lead
-                      </span>
-                    ) : (
-                      <>
-                        <CadastrarComoLead contato={resultado} />
-
-                        <AtribuirLead
-                          contatoId={resultado.id ?? ""}
-                          empresas={empresas}
-                          aoVincular={() => void carregarHistorico()}
-                        />
-                      </>
-                    )}
+              {fichaEmpresa.telefone_empresa && (
+                <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                  <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">Telefone da empresa</p>
+                  <div className="flex items-center gap-2">
+                    <a href={`tel:${fichaEmpresa.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline text-sm">
+                      📞 {fichaEmpresa.telefone_empresa}
+                    </a>
+                    <span className="text-[10px] text-pipe-muted">Grátis</span>
+                    <button
+                      onClick={async () => { await navigator.clipboard.writeText(fichaEmpresa.telefone_empresa!); }}
+                      className="text-xs text-pipe-muted hover:text-white transition"
+                      title="Copiar"
+                    >
+                      📋
+                    </button>
                   </div>
+                </div>
+              )}
+
+              {fichaEmpresa.emails_genericos.length > 0 && (
+                <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                  <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">E-mails gerais da empresa</p>
+                  <div className="space-y-1">
+                    {fichaEmpresa.emails_genericos.map((email) => (
+                      <div key={email} className="flex items-center gap-2">
+                        <a href={`mailto:${email}`} className="text-pipe-lime text-sm hover:underline">
+                          {email}
+                        </a>
+                        <button
+                          onClick={async () => { await navigator.clipboard.writeText(email); }}
+                          className="text-xs text-pipe-muted hover:text-white transition"
+                          title="Copiar"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ E-mails genéricos — confira antes de usar</p>
+                </div>
+              )}
+
+              {!fichaEmpresa.telefone_empresa && fichaEmpresa.emails_genericos.length === 0 && (
+                <p className="text-sm text-pipe-muted">
+                  Nenhum telefone ou e-mail encontrado para esta empresa. Tente buscar por outro nome.
+                </p>
+              )}
+
+              <div className="border-t border-pipe-border pt-4">
+                <p className="text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-3">
+                  👤 Contato pessoal via LinkedIn
+                </p>
+                <p className="text-[11px] text-pipe-muted mb-3">
+                  Cole o LinkedIn de um funcionário para buscar o telefone pessoal. Custo: 10 créditos de telefone.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="url"
+                    value={linkedinPessoa}
+                    onChange={(e) => setLinkedinPessoa(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void buscarPessoa();
+                    }}
+                    placeholder="https://www.linkedin.com/in/nome-da-pessoa"
+                    className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    disabled={buscandoPessoa}
+                  />
+                  <button
+                    onClick={() => void buscarPessoa()}
+                    disabled={buscandoPessoa || !linkedinPessoa.trim()}
+                    className="bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
+                  >
+                    {buscandoPessoa ? "🔍 Buscando..." : "📞 Buscar pessoa (10 créd)"}
+                  </button>
+                </div>
+
+                {erroPessoa && (
+                  <p className="mt-2 text-sm text-red-400">{erroPessoa}</p>
                 )}
 
-                {resultado.id && (
-                  <div className="mt-5 border-t border-pipe-border pt-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue mb-3">
-                      🤖 Gerar abordagem para este contato
-                    </p>
-
-                    <p className="text-[11px] text-pipe-muted mb-3">
-                      Usaremos o perfil do LinkedIn encontrado + o que sua
-                      empresa vende (todo o portfólio). Custo: 1 Crédito de IA.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <select
-                        value={objetivoContato}
-                        onChange={(e) => setObjetivoContato(e.target.value)}
-                        className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                      >
-                        <option value="">Objetivo da abordagem...</option>
-                        <option value="agendar_reuniao">📅 Agendar reunião</option>
-                        <option value="gerar_interesse">✨ Gerar interesse</option>
-                        <option value="fazer_diagnostico">🩺 Fazer diagnóstico</option>
-                        <option value="apresentar_solucao">💡 Apresentar solução</option>
-                        <option value="descobrir_responsavel">🔎 Descobrir o responsável</option>
-                        <option value="outro">✏️ Outro</option>
-                      </select>
-
-                      <select
-                        value={canalContato}
-                        onChange={(e) => setCanalContato(e.target.value)}
-                        className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                      >
-                        <option value="">Canal...</option>
-                        <option value="email">✉️ E-mail</option>
-                        <option value="linkedin">💼 LinkedIn</option>
-                        <option value="whatsapp">💬 WhatsApp</option>
-                        <option value="ligacao">📞 Ligação</option>
-                      </select>
-                    </div>
-
-                    <button
-                      onClick={gerarAbordagemContato}
-                      disabled={
-                        gerandoAbordagem || !objetivoContato || !canalContato
-                      }
-                      className="mt-3 w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 disabled:opacity-50 transition"
-                    >
-                      {gerandoAbordagem
-                        ? "🤖 Nossa equipe está escrevendo..."
-                        : "🤖 Gerar abordagem"}
-                    </button>
-
-                    {erroAbordagem && (
-                      <p className="mt-3 text-sm text-red-400">{erroAbordagem}</p>
+                {resultadoPessoa && (
+                  <div className="mt-4 bg-pipe-dark border border-pipe-lime/30 rounded-lg p-4">
+                    {resultadoPessoa.nome && (
+                      <p className="text-sm font-bold text-white mb-2">{resultadoPessoa.nome}</p>
                     )}
-
-                    {abordagemContato && (
-                      <div className="mt-4 space-y-2">
-                        {abordagemContato.argumento && (
-                          <p className="text-xs text-pipe-lime border-l-2 border-pipe-lime/40 pl-3">
-                            💡 {abordagemContato.argumento}
-                          </p>
-                        )}
-
-                        {abordagemContato.canal === "email" &&
-                          abordagemContato.assunto && (
-                            <p className="text-sm text-gray-200">
-                              <strong>Assunto:</strong> {abordagemContato.assunto}
-                            </p>
-                          )}
-
-                        <pre className="whitespace-pre-wrap font-sans text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
-{abordagemContato.conteudo}
-                        </pre>
-
-                        <button
-                          onClick={copiarAbordagem}
-                          className="text-xs font-semibold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 transition"
-                        >
-                          {copiadoAbordagem ? "✅ Copiado!" : "📋 Copiar abordagem"}
-                        </button>
+                    {resultadoPessoa.telefones.length > 0 && (
+                      <div className="space-y-1">
+                        {resultadoPessoa.telefones.map((tel) => (
+                          <div key={tel} className="flex items-center gap-2">
+                            <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline text-sm">
+                              📞 {tel}
+                            </a>
+                            <span className="text-[10px] text-pipe-muted">Pessoal</span>
+                            <button
+                              onClick={async () => { await navigator.clipboard.writeText(tel); }}
+                              className="text-xs text-pipe-muted hover:text-white transition"
+                              title="Copiar"
+                            >
+                              📋
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {resultadoPessoa.email && (
+                      <div className="mt-2">
+                        <a href={`mailto:${resultadoPessoa.email}`} className="text-pipe-lime text-sm hover:underline">
+                          ✉️ {resultadoPessoa.email}
+                        </a>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {historico.length > 0 && (
             <div className="mt-10">
@@ -1323,6 +1243,29 @@ function BuscadorContent() {
           )}
         </div>
       </main>
+
+      {mostrarPopupMillionPhones && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+            <div className="text-center">
+              <span className="text-4xl">🔒</span>
+              <h3 className="font-display text-xl text-white mt-4">Serviço temporariamente indisponível</h3>
+              <p className="text-sm text-pipe-muted mt-3">
+                A busca de telefone pessoal via MillionPhones ainda não está ativada nesta conta.
+              </p>
+              <p className="text-sm text-pipe-muted mt-2">
+                <strong className="text-gray-200">Contate o administrador</strong> para ativação deste serviço.
+              </p>
+              <button
+                onClick={() => setMostrarPopupMillionPhones(false)}
+                className="mt-6 bg-pipe-lime text-black font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 transition text-sm"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

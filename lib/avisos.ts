@@ -173,6 +173,7 @@ export async function registrarUso(api: string) {
 const TABELAS_CREDITOS = [
   { tabela: "creditos", label: "Buscas (listas)" },
   { tabela: "creditos_contatos", label: "Créditos de Lead" },
+  { tabela: "creditos_telefone", label: "Créditos de Telefone" },
   { tabela: "creditos_ia", label: "Créditos de IA" },
 ] as const;
 

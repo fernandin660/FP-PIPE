@@ -163,7 +163,8 @@ export async function POST(requisicao: Request) {
     ? String(corpo.tipo)
     : "both";
 
-  const custoCredits = tipo === "email" ? 0 : 3;
+  const precisaTelefone = tipo === "telefone" || tipo === "both";
+  const custoTelefone = 10; // cada telefone verificado custa 10 créditos de telefone
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -191,37 +192,27 @@ export async function POST(requisicao: Request) {
       .maybeSingle();
 
     if (cacheHit?.email) {
-      const { data: creditosCache } = await supabase
-        .from("creditos_contatos")
-        .select("saldo")
-        .eq("organizacao_id", orgId)
-        .maybeSingle();
-
-      let saldoCache = creditosCache?.saldo;
-
-      if (saldoCache === null || saldoCache === undefined) {
-        const { data: criada } = await supabase
-          .from("creditos_contatos")
-          .insert({ organizacao_id: orgId, saldo: 5 })
+      let saldoTelefoneCache = 0;
+      if (precisaTelefone) {
+        const { data: telCache } = await supabase
+          .from("creditos_telefone")
           .select("saldo")
-          .single();
-        saldoCache = criada?.saldo ?? 0;
-      }
+          .eq("organizacao_id", orgId)
+          .maybeSingle();
+        saldoTelefoneCache = telCache?.saldo ?? 0;
 
-      if (custoCredits > 0 && (saldoCache ?? 0) < custoCredits) {
-        return NextResponse.json(
-          { erro: "Créditos insuficientes para buscar telefone." },
-          { status: 402 }
-        );
-      }
+        if (saldoTelefoneCache < custoTelefone) {
+          return NextResponse.json(
+            { erro: "Créditos de telefone insuficientes. Faça upgrade para obter mais." },
+            { status: 402 }
+          );
+        }
 
-      let novoSaldoCache = saldoCache ?? 0;
-      if (custoCredits > 0) {
-        novoSaldoCache = Math.max(0, (saldoCache ?? 0) - custoCredits);
         await admin
-          .from("creditos_contatos")
-          .update({ saldo: novoSaldoCache })
+          .from("creditos_telefone")
+          .update({ saldo: saldoTelefoneCache - custoTelefone })
           .eq("organizacao_id", orgId);
+        saldoTelefoneCache -= custoTelefone;
       }
 
       const contatoCache = {
@@ -300,41 +291,27 @@ export async function POST(requisicao: Request) {
         emails: tipo !== "telefone" ? [contatoCache.email] : [],
         telefones,
         fontesTelefone,
-        saldoContatos: novoSaldoCache,
+        saldoTelefones: saldoTelefoneCache,
       });
     }
   }
 
   // Busca completa — com ou sem LinkedIn
-  const { data: creditosAtuais } = await supabase
-    .from("creditos_contatos")
-    .select("saldo")
-    .eq("organizacao_id", orgId)
-    .maybeSingle();
-
-  let saldo = creditosAtuais?.saldo;
-
-  if (saldo === null || saldo === undefined) {
-    const { data: criada, error: erroCriar } = await admin
-      .from("creditos_contatos")
-      .insert({ organizacao_id: orgId, saldo: 5 })
+  let saldoTelefone = 0;
+  if (precisaTelefone) {
+    const { data: telAtual } = await supabase
+      .from("creditos_telefone")
       .select("saldo")
-      .single();
+      .eq("organizacao_id", orgId)
+      .maybeSingle();
+    saldoTelefone = telAtual?.saldo ?? 0;
 
-    if (erroCriar || !criada) {
+    if (saldoTelefone < custoTelefone) {
       return NextResponse.json(
-        { erro: "Não foi possível preparar seus créditos." },
-        { status: 500 }
+        { erro: "Créditos de telefone insuficientes. Faça upgrade para obter mais." },
+        { status: 402 }
       );
     }
-    saldo = criada.saldo;
-  }
-
-  if (custoCredits > 0 && (saldo ?? 0) < custoCredits) {
-    return NextResponse.json(
-      { erro: "Créditos insuficientes para buscar telefone." },
-      { status: 402 }
-    );
   }
 
   // Busca: LinkedIn URL + empresa + nome (o que tiver)
@@ -344,12 +321,12 @@ export async function POST(requisicao: Request) {
     nomeInput
   );
 
-  let novoSaldo = saldo ?? 0;
-  if (custoCredits > 0) {
-    novoSaldo = Math.max(0, (saldo ?? 0) - custoCredits);
+  let novoSaldoTelefone = saldoTelefone;
+  if (precisaTelefone) {
+    novoSaldoTelefone = Math.max(0, saldoTelefone - custoTelefone);
     await admin
-      .from("creditos_contatos")
-      .update({ saldo: novoSaldo })
+      .from("creditos_telefone")
+      .update({ saldo: novoSaldoTelefone })
       .eq("organizacao_id", orgId);
 
     void registrarUso("buscador_contatos");
@@ -430,6 +407,6 @@ export async function POST(requisicao: Request) {
     telefones: resultado.telefones,
     fontesEmail: resultado.fontesEmail,
     fontesTelefone: resultado.fontesTelefone,
-    saldoContatos: novoSaldo,
+    saldoTelefones: novoSaldoTelefone,
   });
 }
