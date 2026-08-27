@@ -373,6 +373,8 @@ export default function Home() {
           .from("creditos_contatos")
           .select("saldo")
           .eq(org ? "organizacao_id" : "usuario_id", org ?? usuarioId)
+          .order("saldo", { ascending: false })
+          .limit(1)
           .maybeSingle(),
       ]);
 
@@ -504,7 +506,12 @@ export default function Home() {
 
       if (!resposta.ok) {
         if (dados?.motivo === "limite_creditos") {
-          setModalCompraAberto(true);
+          if (typeof dados.saldoServidor === "number" && dados.saldoServidor > 0) {
+            setSaldoBuscador(dados.saldoServidor);
+            alert(dados.erro ?? "Seu crédito está disponível, mas o desbloqueio precisa ser repetido.");
+          } else {
+            setModalCompraAberto(true);
+          }
         } else {
           alert(dados?.erro ?? "Não conseguimos desbloquear agora.");
         }

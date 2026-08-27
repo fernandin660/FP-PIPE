@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   if (gate.resposta) {
     return gate.resposta;
   }
-  const { orgId } = gate.ctx!;
+  const { orgId, usuarioId } = gate.ctx!;
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -59,20 +59,42 @@ export async function POST(request: Request) {
 
   const mes = new Date().toISOString().slice(0, 7);
 
-  const { data: creditos } = await admin
+  const { data: linhasCredito } = await admin
     .from("creditos_contatos")
-    .select("saldo")
+    .select("id, usuario_id, organizacao_id, saldo")
     .eq("organizacao_id", orgId)
-    .maybeSingle();
+    .order("saldo", { ascending: false });
 
-  const saldoAtual = creditos?.saldo ?? 0;
+  let credito = (linhasCredito ?? [])[0] ?? null;
+
+  if (!credito) {
+    const { data: legado } = await admin
+      .from("creditos_contatos")
+      .select("id, usuario_id, organizacao_id, saldo")
+      .eq("usuario_id", usuarioId)
+      .is("organizacao_id", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (legado) {
+      const { data: migrado } = await admin
+        .from("creditos_contatos")
+        .update({ organizacao_id: orgId })
+        .eq("id", legado.id)
+        .select("id, usuario_id, organizacao_id, saldo")
+        .single();
+      credito = migrado ?? legado;
+    }
+  }
+
+  const saldoAtual = credito?.saldo ?? 0;
 
   if (saldoAtual <= 0) {
     return NextResponse.json(
       {
-        erro:
-          "Você usou seus créditos de lead. Compre mais ou faça upgrade em /planos.",
+        erro: `O servidor identificou ${saldoAtual} crédito(s) de lead disponíveis. Recarregue a página e tente novamente.`,
         motivo: "limite_creditos",
+        saldoServidor: saldoAtual,
       },
       { status: 403 }
     );
@@ -88,7 +110,7 @@ export async function POST(request: Request) {
       saldo: saldoAtual - 1,
       atualizado_em: agora,
     })
-    .eq("organizacao_id", orgId)
+    .eq("id", credito?.id ?? "")
     .gt("saldo", 0)
     .select("saldo")
     .maybeSingle();
@@ -96,9 +118,9 @@ export async function POST(request: Request) {
   if (!novoSaldo) {
     return NextResponse.json(
       {
-        erro:
-          "Você usou seus créditos de lead. Compre mais ou faça upgrade em /planos.",
+        erro: `O servidor identificou ${saldoAtual} crédito(s) de lead disponíveis, mas o saldo mudou durante a operação. Recarregue a página e tente novamente.`,
         motivo: "limite_creditos",
+        saldoServidor: saldoAtual,
       },
       { status: 403 }
     );
@@ -115,7 +137,7 @@ export async function POST(request: Request) {
     await admin
       .from("creditos_contatos")
       .update({ saldo: saldoAtual, atualizado_em: agora })
-      .eq("organizacao_id", orgId);
+      .eq("id", credito?.id ?? "");
 
     return NextResponse.json(
       {
