@@ -110,6 +110,7 @@ export default function PaginaListas() {
   const router = useRouter();
 
   const [listas, setListas] = useState<ListaSalva[]>([]);
+  const [campanhasPorLista, setCampanhasPorLista] = useState<Record<string, string>>({});
   const [empresasPorLista, setEmpresasPorLista] = useState<
     Record<string, EmpresaDaLista[]>
   >({});
@@ -802,6 +803,14 @@ export default function PaginaListas() {
       const listasOrdenadas = (dadosListas as ListaSalva[]) ?? [];
       setListas(listasOrdenadas);
 
+      const { data: campanhas } = await supabase
+        .from("campanhas")
+        .select("lista_id, status")
+        .in("lista_id", listasOrdenadas.map((lista) => lista.id));
+      const statusCampanhas: Record<string, string> = {};
+      for (const campanha of campanhas ?? []) statusCampanhas[campanha.lista_id] = campanha.status;
+      setCampanhasPorLista(statusCampanhas);
+
       if (listasOrdenadas.length > 0) {
         const { data: vinculos } = await supabase
           .from("lista_empresas")
@@ -1157,6 +1166,11 @@ export default function PaginaListas() {
                       ) : (
                         <h2 className="font-bold text-lg text-white flex items-center gap-2">
                           {lista.nome}
+                          {campanhasPorLista[lista.id] === "enviada" && (
+                            <span className="text-[10px] rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1 font-semibold">
+                              ✅ Campanha concluída
+                            </span>
+                          )}
 
                           <button
                             onClick={() => {

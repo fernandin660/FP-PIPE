@@ -185,7 +185,7 @@ export default function PaginaDisparos() {
         pendentes = dados.pendentes ?? 0;
         setMensagem(`Enviando... ${totalEnviado} enviado(s), ${pendentes} pendente(s).`);
       }
-      setMensagem(`${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
+      setMensagem(`Campanha concluída: ${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
       await selecionarLista(listaId);
     } catch (erroEnvio) {
       setErro(erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio.");
