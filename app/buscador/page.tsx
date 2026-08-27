@@ -809,7 +809,7 @@ function BuscadorContent() {
   };
 
   const buscarPessoa = async () => {
-    if ((!nomePessoaInput.trim() && !linkedinPessoa.trim()) || buscandoPessoa) return;
+    if (buscandoPessoa) return;
 
     setBuscandoPessoa(true);
     setResultadoPessoa(null);
@@ -1156,7 +1156,7 @@ function BuscadorContent() {
                 </div>
                 <button
                   onClick={() => void buscarPessoa()}
-                  disabled={buscandoPessoa || (!nomePessoaInput.trim() && !linkedinPessoa.trim())}
+                  disabled={buscandoPessoa}
                   className="mt-3 bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
                 >
                   {buscandoPessoa ? "🔍 Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "📞 Buscar pessoa (10 créd)" : "📞 Buscar pessoa (grátis se não achar tel.)"}
