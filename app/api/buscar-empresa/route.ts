@@ -20,6 +20,76 @@ type EmpresaFicha = {
   origem: "banco" | "web";
 };
 
+async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
+  const nome = ficha.nome;
+
+  const [casaResultado, mapsResultado] = await Promise.all([
+    buscarCnpjPorEmpresa(nome),
+    buscarTelefoneMaps(nome),
+  ]);
+
+  if (casaResultado.cnpj && !ficha.cnpj) {
+    ficha.cnpj = casaResultado.cnpj;
+    ficha.fontes.push("casa_dados");
+  }
+
+  if (casaResultado.razao_social && !ficha.razao_social) {
+    ficha.razao_social = casaResultado.razao_social;
+  }
+
+  if (casaResultado.nome_fantasia && !ficha.nome) {
+    ficha.nome = casaResultado.nome_fantasia;
+  }
+
+  if (casaResultado.telefone && !ficha.telefone_empresa) {
+    ficha.telefone_empresa = casaResultado.telefone;
+    ficha.fontes.push("casa_dados_tel");
+  }
+
+  if (ficha.cnpj) {
+    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
+    if (dadosBrasil) {
+      if (dadosBrasil.razaoSocial && !ficha.razao_social) {
+        ficha.razao_social = dadosBrasil.razaoSocial;
+      }
+      if (dadosBrasil.telefone && !ficha.telefone_empresa) {
+        ficha.telefone_empresa = dadosBrasil.telefone;
+        ficha.fontes.push("brasil_api");
+      }
+    }
+  }
+
+  if (mapsResultado.telefone && !ficha.telefone_empresa) {
+    ficha.telefone_empresa = mapsResultado.telefone;
+    ficha.fontes.push("maps");
+  }
+
+  if (mapsResultado.website && !ficha.website) {
+    ficha.website = mapsResultado.website;
+    ficha.fontes.push("maps_website");
+  }
+
+  if (ficha.website && ficha.emails_genericos.length === 0) {
+    const dominio = ficha.website
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0];
+    ficha.emails_genericos = sugerirEmailsEmpresa(dominio);
+  }
+
+  if (!ficha.website && ficha.emails_genericos.length === 0 && ficha.cnpj) {
+    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj);
+    if (dadosBrasil?.telefone) {
+      if (!ficha.telefone_empresa) {
+        ficha.telefone_empresa = dadosBrasil.telefone;
+        ficha.fontes.push("brasil_api_tel");
+      }
+    }
+  }
+
+  return ficha;
+}
+
 export async function GET(requisicao: Request) {
   const url = new URL(requisicao.url);
   const q = (url.searchParams.get("q") ?? "").trim();
@@ -47,7 +117,6 @@ export async function GET(requisicao: Request) {
     return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
   }
 
-  // 1. Buscar no banco do usuário (companies)
   const { data: orgData } = await supabase
     .from("organizacao_membros")
     .select("organizacao_id")
@@ -84,53 +153,11 @@ export async function GET(requisicao: Request) {
         origem: "banco",
       };
 
-      if (!ficha.telefone_empresa || !ficha.website) {
-        const mapsResultado = await buscarTelefoneMaps(q);
-
-        if (!ficha.telefone_empresa && mapsResultado.telefone) {
-          ficha.telefone_empresa = mapsResultado.telefone;
-          ficha.fontes.push("maps");
-        }
-        if (!ficha.website && mapsResultado.website) {
-          ficha.website = mapsResultado.website;
-          ficha.fontes.push("maps_website");
-
-          const dominioWeb = mapsResultado.website
-            .replace(/^https?:\/\//, "")
-            .replace(/^www\./, "")
-            .split("/")[0];
-          if (dominioWeb && ficha.emails_genericos.length === 0) {
-            ficha.emails_genericos = sugerirEmailsEmpresa(dominioWeb);
-          }
-        }
-      }
-
-      if (!ficha.cnpj && !ficha.telefone_empresa) {
-        const casaResultado = await buscarCnpjPorEmpresa(q);
-        if (casaResultado.cnpj) {
-          ficha.cnpj = casaResultado.cnpj;
-          if (casaResultado.telefone && !ficha.telefone_empresa) {
-            ficha.telefone_empresa = casaResultado.telefone;
-            ficha.fontes.push("casa_dados");
-          }
-          const dadosBrasil = await buscarDadosCnpj(casaResultado.cnpj);
-          if (dadosBrasil) {
-            if (dadosBrasil.razaoSocial && !ficha.razao_social) {
-              ficha.razao_social = dadosBrasil.razaoSocial;
-            }
-            if (dadosBrasil.telefone && !ficha.telefone_empresa) {
-              ficha.telefone_empresa = dadosBrasil.telefone;
-              ficha.fontes.push("brasil_api");
-            }
-          }
-        }
-      }
-
-      return NextResponse.json({ empresa: ficha });
+      const enriquecida = await enriquecerFicha(ficha);
+      return NextResponse.json({ empresa: enriquecida });
     }
   }
 
-  // 2. Buscar na web (Casa dos Dados + Maps + Brasil API)
   const empresa: EmpresaFicha = {
     nome: q,
     cnpj: null,
@@ -143,49 +170,6 @@ export async function GET(requisicao: Request) {
     origem: "web",
   };
 
-  // Busca paralela: Casa dos Dados + Maps
-  const [casaResultado, mapsResultado] = await Promise.all([
-    buscarCnpjPorEmpresa(q),
-    buscarTelefoneMaps(q),
-  ]);
-
-  // Enriquecer com Casa dos Dados
-  if (casaResultado.cnpj) {
-    empresa.cnpj = casaResultado.cnpj;
-    if (casaResultado.telefone) {
-      empresa.telefone_empresa = casaResultado.telefone;
-      empresa.fontes.push("casa_dados");
-    }
-
-    // Buscar dados completos via Brasil API
-    const dadosBrasil = await buscarDadosCnpj(casaResultado.cnpj);
-    if (dadosBrasil) {
-      if (dadosBrasil.razaoSocial) empresa.razao_social = dadosBrasil.razaoSocial;
-      if (dadosBrasil.telefone && !empresa.telefone_empresa) {
-        empresa.telefone_empresa = dadosBrasil.telefone;
-        empresa.fontes.push("brasil_api");
-      }
-    }
-  }
-
-  // Enriquecer com Google Maps
-  if (mapsResultado.telefone && !empresa.telefone_empresa) {
-    empresa.telefone_empresa = mapsResultado.telefone;
-    empresa.fontes.push("maps");
-  }
-  if (mapsResultado.website) {
-    empresa.website = mapsResultado.website;
-    empresa.fontes.push("maps_website");
-  }
-
-  // Gerar emails genéricos
-  if (empresa.website) {
-    const dominio = empresa.website
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .split("/")[0];
-    empresa.emails_genericos = sugerirEmailsEmpresa(dominio);
-  }
-
-  return NextResponse.json({ empresa });
+  const enriquecida = await enriquecerFicha(empresa);
+  return NextResponse.json({ empresa: enriquecida });
 }

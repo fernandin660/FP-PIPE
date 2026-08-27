@@ -188,7 +188,7 @@ type CasaDosDadosResposta = {
 
 export async function buscarCnpjPorEmpresa(
   nomeEmpresa: string
-): Promise<{ cnpj?: string; telefone?: string }> {
+): Promise<{ cnpj?: string; telefone?: string; nome_fantasia?: string; razao_social?: string }> {
   if (!nomeEmpresa) return {};
 
   try {
@@ -196,9 +196,13 @@ export async function buscarCnpjPorEmpresa(
       "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+        },
         body: JSON.stringify({
-          query: { termo_buscado: [nomeEmpresa] },
+          query: { nome_empresa: [nomeEmpresa] },
           extras: { somente_mei: false, com_email: false, inativar: false },
           page: 1,
         }),
@@ -214,6 +218,8 @@ export async function buscarCnpjPorEmpresa(
     return {
       cnpj: item?.cnpj ?? undefined,
       telefone: item?.telefone_1 ?? item?.telefone_2 ?? undefined,
+      nome_fantasia: item?.nome_fantasia ?? undefined,
+      razao_social: item?.razao_social ?? undefined,
     };
   } catch {
     return {};
