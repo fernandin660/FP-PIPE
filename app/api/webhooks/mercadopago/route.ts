@@ -166,7 +166,6 @@ export async function POST(req: Request) {
         .from("creditos_contatos")
         .update({
           saldo: atual.saldo + definicao.buscasMes,
-          atualizado_em: agora.toISOString(),
         })
         .eq("organizacao_id", orgId);
     } else {

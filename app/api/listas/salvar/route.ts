@@ -145,7 +145,6 @@ export async function POST(request: Request) {
         .from("creditos_contatos")
         .update({
           saldo: saldoBuscador - bloqueadas.length,
-          atualizado_em: agora,
         })
         .eq(chaveDebito, valorDebito)
         .gte("saldo", bloqueadas.length)

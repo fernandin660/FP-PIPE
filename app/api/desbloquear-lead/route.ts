@@ -132,7 +132,6 @@ export async function POST(request: Request) {
     .from("creditos_contatos")
     .update({
       saldo: saldoAtual - 1,
-      atualizado_em: agora,
     })
     .eq(chaveDebito, valorDebito)
     .gt("saldo", 0)
@@ -160,7 +159,7 @@ export async function POST(request: Request) {
     // Reverte o débito se falhar ao marcar
     await admin
       .from("creditos_contatos")
-      .update({ saldo: saldoAtual, atualizado_em: agora })
+      .update({ saldo: saldoAtual })
       .eq(chaveDebito, valorDebito);
 
     return NextResponse.json(
