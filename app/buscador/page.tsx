@@ -1129,7 +1129,9 @@ function BuscadorContent() {
                 </p>
                 <p className="text-[11px] text-pipe-muted mb-3">
                   Informe o nome da pessoa. O LinkedIn é opcional (melhora a precisão).
-                  Custo: 10 créditos de telefone.
+                  {saldoTelefones !== null && saldoTelefones > 0
+                    ? ` Custo: 10 créditos de telefone (você tem ${saldoTelefones}).`
+                    : " Sempre grátis se não encontrar telefone."}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
@@ -1157,7 +1159,7 @@ function BuscadorContent() {
                   disabled={buscandoPessoa || !nomePessoaInput.trim()}
                   className="mt-3 bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
                 >
-                  {buscandoPessoa ? "🔍 Buscando..." : "📞 Buscar pessoa (10 créd)"}
+                  {buscandoPessoa ? "🔍 Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "📞 Buscar pessoa (10 créd)" : "📞 Buscar pessoa (grátis se não achar tel.)"}
                 </button>
 
                 {erroPessoa && (

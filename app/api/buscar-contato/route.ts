@@ -212,19 +212,6 @@ export async function POST(requisicao: Request) {
           .eq("organizacao_id", orgId)
           .maybeSingle();
         saldoTelefoneCache = telCache?.saldo ?? 0;
-
-        if (saldoTelefoneCache < custoTelefone) {
-          return NextResponse.json(
-            { erro: "Créditos de telefone insuficientes. Faça upgrade para obter mais." },
-            { status: 402 }
-          );
-        }
-
-        await admin
-          .from("creditos_telefone")
-          .update({ saldo: saldoTelefoneCache - custoTelefone })
-          .eq("organizacao_id", orgId);
-        saldoTelefoneCache -= custoTelefone;
       }
 
       const contatoCache = {
@@ -288,6 +275,14 @@ export async function POST(requisicao: Request) {
           .from("contatos")
           .update({ telefones })
           .eq("id", salvoCache.id);
+
+        if (precisaTelefone && saldoTelefoneCache >= custoTelefone) {
+          saldoTelefoneCache -= custoTelefone;
+          await admin
+            .from("creditos_telefone")
+            .update({ saldo: saldoTelefoneCache })
+            .eq("organizacao_id", orgId);
+        }
       }
 
       return NextResponse.json({
@@ -317,13 +312,6 @@ export async function POST(requisicao: Request) {
       .eq("organizacao_id", orgId)
       .maybeSingle();
     saldoTelefone = telAtual?.saldo ?? 0;
-
-    if (saldoTelefone < custoTelefone) {
-      return NextResponse.json(
-        { erro: "Créditos de telefone insuficientes. Faça upgrade para obter mais." },
-        { status: 402 }
-      );
-    }
   }
 
   // Busca: LinkedIn URL + empresa + nome (o que tiver)
@@ -334,8 +322,8 @@ export async function POST(requisicao: Request) {
   );
 
   let novoSaldoTelefone = saldoTelefone;
-  if (precisaTelefone) {
-    novoSaldoTelefone = Math.max(0, saldoTelefone - custoTelefone);
+  if (precisaTelefone && resultado.telefones.length > 0 && saldoTelefone >= custoTelefone) {
+    novoSaldoTelefone = saldoTelefone - custoTelefone;
     await admin
       .from("creditos_telefone")
       .update({ saldo: novoSaldoTelefone })
