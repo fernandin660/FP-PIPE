@@ -414,6 +414,14 @@ function BuscadorContent() {
     emails: string[];
     fontesEmail: string[];
     fontesTelefone: string[];
+    empresaDetalhes: {
+      cnpj: string | null;
+      razao_social: string | null;
+      endereco: string | null;
+      telefone_empresa: string | null;
+      website: string | null;
+      emails_genericos: string[];
+    } | null;
   } | null>(null);
   const [erroPessoa, setErroPessoa] = useState("");
   const [mostrarPopupMillionPhones, setMostrarPopupMillionPhones] = useState(false);
@@ -873,6 +881,15 @@ function BuscadorContent() {
 
       const empresaNome = empresaDados?.nome ?? dados.contato?.empresa ?? nomeEmpresa;
 
+      const empresaDetalhes = empresaDados ? {
+        cnpj: empresaDados.cnpj ?? null,
+        razao_social: empresaDados.razao_social ?? null,
+        endereco: empresaDados.endereco ?? null,
+        telefone_empresa: empresaDados.telefone_empresa ?? null,
+        website: empresaDados.website ?? null,
+        emails_genericos: empresaDados.emails_genericos ?? [],
+      } : null;
+
       if (dados.encontrado && dados.contato) {
         setResultadoPessoa({
           id: dados.contato.id ?? null,
@@ -885,6 +902,7 @@ function BuscadorContent() {
           emails: dados.emails ?? [],
           fontesEmail: dados.fontesEmail ?? [],
           fontesTelefone: dados.fontesTelefone ?? [],
+          empresaDetalhes,
         });
         if (dados.saldoTelefones !== undefined) {
           setSaldoTelefones(dados.saldoTelefones);
@@ -901,6 +919,7 @@ function BuscadorContent() {
           emails: [],
           fontesEmail: [],
           fontesTelefone: [],
+          empresaDetalhes,
         });
         setErroPessoa("Nenhum contato pessoal encontrado para este perfil.");
       }
@@ -1275,11 +1294,11 @@ function BuscadorContent() {
                           <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <h2 className="font-bold text-lg text-white leading-snug">
-                                {resultadoPessoa.nome || fichaEmpresa?.nome || "Contato"}
+                                {resultadoPessoa.nome || resultadoPessoa.empresa || "Contato"}
                               </h2>
-                              {(resultadoPessoa.cargo || resultadoPessoa.empresa || fichaEmpresa?.nome) && (
+                              {(resultadoPessoa.cargo || resultadoPessoa.empresa) && (
                                 <p className="text-xs text-pipe-muted mt-0.5">
-                                  {[resultadoPessoa.cargo, resultadoPessoa.empresa || fichaEmpresa?.nome].filter(Boolean).join(" · ")}
+                                  {[resultadoPessoa.cargo, resultadoPessoa.empresa].filter(Boolean).join(" · ")}
                                 </p>
                               )}
                             </div>
@@ -1329,30 +1348,30 @@ function BuscadorContent() {
                                 🏢 Empresa
                               </p>
                               <dl className="space-y-1.5 text-sm">
-                                {fichaEmpresa?.cnpj && (
+                                {resultadoPessoa.empresaDetalhes?.cnpj && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">CNPJ</dt>
-                                    <dd className="text-gray-200 font-mono">{fichaEmpresa.cnpj}</dd>
+                                    <dd className="text-gray-200 font-mono">{resultadoPessoa.empresaDetalhes.cnpj}</dd>
                                   </div>
                                 )}
-                                {fichaEmpresa?.razao_social && fichaEmpresa.razao_social !== fichaEmpresa.nome && (
+                                {resultadoPessoa.empresaDetalhes?.razao_social && resultadoPessoa.empresaDetalhes.razao_social !== resultadoPessoa.empresa && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">Razão social</dt>
-                                    <dd className="text-gray-200">{fichaEmpresa.razao_social}</dd>
+                                    <dd className="text-gray-200">{resultadoPessoa.empresaDetalhes.razao_social}</dd>
                                   </div>
                                 )}
-                                {fichaEmpresa?.endereco && (
+                                {resultadoPessoa.empresaDetalhes?.endereco && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">Endereço</dt>
-                                    <dd className="text-gray-200">{fichaEmpresa.endereco}</dd>
+                                    <dd className="text-gray-200">{resultadoPessoa.empresaDetalhes.endereco}</dd>
                                   </div>
                                 )}
-                                {fichaEmpresa?.website && (
+                                {resultadoPessoa.empresaDetalhes?.website && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">Website</dt>
                                     <dd>
-                                      <a href={fichaEmpresa.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
-                                        {fichaEmpresa.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                                      <a href={resultadoPessoa.empresaDetalhes.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
+                                        {resultadoPessoa.empresaDetalhes.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                                       </a>
                                     </dd>
                                   </div>
@@ -1360,26 +1379,26 @@ function BuscadorContent() {
                               </dl>
                             </section>
 
-                            {(fichaEmpresa?.telefone_empresa || fichaEmpresa?.emails_genericos?.length) && (
+                            {(resultadoPessoa.empresaDetalhes?.telefone_empresa || resultadoPessoa.empresaDetalhes?.emails_genericos?.length) && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
                                   📞 Contato da empresa (grátis)
                                 </p>
                                 <div className="space-y-1.5 text-sm">
-                                  {fichaEmpresa?.telefone_empresa && (
+                                  {resultadoPessoa.empresaDetalhes?.telefone_empresa && (
                                     <div className="flex items-center gap-2">
-                                      <a href={`tel:${fichaEmpresa.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline">
-                                        📞 {fichaEmpresa.telefone_empresa}
+                                      <a href={`tel:${resultadoPessoa.empresaDetalhes.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline">
+                                        📞 {resultadoPessoa.empresaDetalhes.telefone_empresa}
                                       </a>
                                       <button
-                                        onClick={async () => { await navigator.clipboard.writeText(fichaEmpresa.telefone_empresa!); }}
+                                        onClick={async () => { await navigator.clipboard.writeText(resultadoPessoa.empresaDetalhes!.telefone_empresa!); }}
                                         className="text-xs text-pipe-muted hover:text-white transition"
                                       >
                                         📋
                                       </button>
                                     </div>
                                   )}
-                                  {fichaEmpresa?.emails_genericos?.map((email) => (
+                                  {resultadoPessoa.empresaDetalhes?.emails_genericos?.map((email) => (
                                     <div key={email} className="flex items-center gap-2">
                                       <a href={`mailto:${email}`} className="text-pipe-lime hover:underline break-all">
                                         ✉️ {email}
@@ -1438,7 +1457,7 @@ function BuscadorContent() {
                               </section>
                             )}
 
-                            {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && !fichaEmpresa?.telefone_empresa && !fichaEmpresa?.emails_genericos?.length && (
+                            {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && !resultadoPessoa.empresaDetalhes?.telefone_empresa && !resultadoPessoa.empresaDetalhes?.emails_genericos?.length && (
                               <p className="text-xs text-amber-400 border-t border-pipe-border pt-4">
                                 Nenhum telefone ou e-mail encontrado. Tente informar o LinkedIn para melhorar a busca.
                               </p>
