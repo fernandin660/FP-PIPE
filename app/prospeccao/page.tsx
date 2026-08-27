@@ -450,9 +450,20 @@ export default function Home() {
         } = await supabase.auth.getUser();
 
         if (user) {
-          await supabase.from("companies").upsert(
+          const { data: membro } = await supabase
+            .from("organizacao_membros")
+            .select("organizacao_id")
+            .eq("usuario_id", user.id)
+            .eq("status", "ativo")
+            .limit(1)
+            .maybeSingle();
+
+          if (!membro?.organizacao_id) throw new Error("Organização não encontrada.");
+
+          const { error } = await supabase.from("companies").upsert(
             {
               usuario_id: user.id,
+              organizacao_id: membro.organizacao_id,
               cnpj: digitos || null,
               razao_social: lead.razaoSocial,
               nome_fantasia: "",
@@ -466,6 +477,7 @@ export default function Home() {
             },
             { onConflict: "usuario_id,cnpj" }
           );
+          if (error) throw error;
         }
       }
     } catch (erroLeadManual) {
@@ -1316,9 +1328,22 @@ export default function Home() {
           } = await supabase.auth.getUser();
 
           if (user) {
-            await supabase.from("companies").upsert(
+            const { data: membro } = await supabase
+              .from("organizacao_membros")
+              .select("organizacao_id")
+              .eq("usuario_id", user.id)
+              .eq("status", "ativo")
+              .limit(1)
+              .maybeSingle();
+
+            if (!membro?.organizacao_id) {
+              throw new Error("Não foi possível identificar a organização da equipe.");
+            }
+
+            const { error: erroEmpresas } = await supabase.from("companies").upsert(
               empresas.map((e) => ({
                 usuario_id: user.id,
+                organizacao_id: membro.organizacao_id,
                 cnpj: e.cnpj,
                 razao_social: e.razaoSocial,
                 nome_fantasia: e.nomeFantasia,
@@ -1329,6 +1354,8 @@ export default function Home() {
               })),
               { onConflict: "usuario_id,cnpj" }
             );
+
+            if (erroEmpresas) throw erroEmpresas;
           }
         }
       } catch (erroSalvamento) {
@@ -1336,6 +1363,8 @@ export default function Home() {
           "Não foi possível salvar as empresas:",
           erroSalvamento
         );
+        setErroEmpresas("A busca encontrou os leads, mas não conseguimos salvá-los na sua organização. Tente novamente.");
+        return;
       }
 
       await pontuarEmpresas(empresas);

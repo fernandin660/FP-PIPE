@@ -26,6 +26,14 @@ export async function GET(requisicao: Request) {
     return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
   }
 
+  const { data: membro } = await supabase
+    .from("organizacao_membros")
+    .select("organizacao_id")
+    .eq("usuario_id", user.id)
+    .eq("status", "ativo")
+    .limit(1)
+    .maybeSingle();
+
   const url = new URL(requisicao.url);
   const q = (url.searchParams.get("q") ?? "").trim();
 
@@ -45,7 +53,7 @@ export async function GET(requisicao: Request) {
     supabase
       .from("contatos")
       .select("id, nome, empresa, linkedin_url, cargo, email")
-      .eq("usuario_id", user.id)
+      .eq("organizacao_id", membro?.organizacao_id ?? "")
       .or(`nome.ilike.${termo},empresa.ilike.${termo}`)
       .order("criado_em", { ascending: false })
       .limit(8),
