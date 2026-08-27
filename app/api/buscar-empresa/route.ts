@@ -72,19 +72,61 @@ export async function GET(requisicao: Request) {
         .replace(/^www\./, "")
         .split("/")[0];
 
-      return NextResponse.json({
-        empresa: {
-          nome,
-          cnpj: e.cnpj ?? null,
-          razao_social: e.razao_social ?? null,
-          endereco: e.endereco ?? null,
-          telefone_empresa: e.telefone ?? null,
-          website: e.website ?? null,
-          emails_genericos: dominio ? sugerirEmailsEmpresa(dominio) : [],
-          fontes: ["banco"],
-          origem: "banco" as const,
-        },
-      });
+      const ficha: EmpresaFicha = {
+        nome,
+        cnpj: e.cnpj ?? null,
+        razao_social: e.razao_social ?? null,
+        endereco: e.endereco ?? null,
+        telefone_empresa: e.telefone ?? null,
+        website: e.website ?? null,
+        emails_genericos: dominio ? sugerirEmailsEmpresa(dominio) : [],
+        fontes: ["banco"],
+        origem: "banco",
+      };
+
+      if (!ficha.telefone_empresa || !ficha.website) {
+        const mapsResultado = await buscarTelefoneMaps(q);
+
+        if (!ficha.telefone_empresa && mapsResultado.telefone) {
+          ficha.telefone_empresa = mapsResultado.telefone;
+          ficha.fontes.push("maps");
+        }
+        if (!ficha.website && mapsResultado.website) {
+          ficha.website = mapsResultado.website;
+          ficha.fontes.push("maps_website");
+
+          const dominioWeb = mapsResultado.website
+            .replace(/^https?:\/\//, "")
+            .replace(/^www\./, "")
+            .split("/")[0];
+          if (dominioWeb && ficha.emails_genericos.length === 0) {
+            ficha.emails_genericos = sugerirEmailsEmpresa(dominioWeb);
+          }
+        }
+      }
+
+      if (!ficha.cnpj && !ficha.telefone_empresa) {
+        const casaResultado = await buscarCnpjPorEmpresa(q);
+        if (casaResultado.cnpj) {
+          ficha.cnpj = casaResultado.cnpj;
+          if (casaResultado.telefone && !ficha.telefone_empresa) {
+            ficha.telefone_empresa = casaResultado.telefone;
+            ficha.fontes.push("casa_dados");
+          }
+          const dadosBrasil = await buscarDadosCnpj(casaResultado.cnpj);
+          if (dadosBrasil) {
+            if (dadosBrasil.razaoSocial && !ficha.razao_social) {
+              ficha.razao_social = dadosBrasil.razaoSocial;
+            }
+            if (dadosBrasil.telefone && !ficha.telefone_empresa) {
+              ficha.telefone_empresa = dadosBrasil.telefone;
+              ficha.fontes.push("brasil_api");
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ empresa: ficha });
     }
   }
 

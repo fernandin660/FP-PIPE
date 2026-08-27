@@ -816,20 +816,28 @@ function BuscadorContent() {
     setResultadoPessoa(null);
     setErroPessoa("");
     setExpandidoPessoa(false);
+    setDrawerPessoa(false);
 
     try {
-      const res = await fetch("/api/buscar-contato", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          linkedinUrl: linkedinPessoa.trim() || undefined,
-          empresa: fichaEmpresa?.nome ?? "",
-          nome: nomePessoaInput.trim(),
-          tipo: "telefone",
-        }),
-      });
+      const nomeEmpresa = fichaEmpresa?.nome ?? "";
 
-      const dados = (await res.json()) as {
+      const [resPessoa, resEmpresa] = await Promise.all([
+        fetch("/api/buscar-contato", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            linkedinUrl: linkedinPessoa.trim() || undefined,
+            empresa: nomeEmpresa,
+            nome: nomePessoaInput.trim(),
+            tipo: "telefone",
+          }),
+        }),
+        !fichaEmpresa && nomeEmpresa
+          ? fetch(`/api/buscar-empresa?q=${encodeURIComponent(nomeEmpresa)}`)
+          : Promise.resolve(null),
+      ]);
+
+      const dados = (await resPessoa.json()) as {
         encontrado?: boolean;
         contato?: { id?: string; nome: string | null; email: string | null; cargo: string | null; empresa: string | null; linkedin_url: string | null };
         emails?: string[];
@@ -840,13 +848,22 @@ function BuscadorContent() {
         erro?: string;
       };
 
-      if (!res.ok) {
-        if (res.status === 402) {
+      if (!resPessoa.ok) {
+        if (resPessoa.status === 402) {
           setMostrarPopupMillionPhones(true);
         } else {
           setErroPessoa(dados.erro ?? "Erro ao buscar pessoa.");
         }
         return;
+      }
+
+      if (resEmpresa) {
+        const dadosEmpresa = (await resEmpresa.json()) as {
+          empresa?: typeof fichaEmpresa;
+        };
+        if (dadosEmpresa.empresa) {
+          setFichaEmpresa(dadosEmpresa.empresa);
+        }
       }
 
       if (dados.encontrado && dados.contato) {
@@ -879,21 +896,6 @@ function BuscadorContent() {
           fontesTelefone: [],
         });
         setErroPessoa("Nenhum contato pessoal encontrado para este perfil.");
-      }
-
-      const nomeEmpresa = (dados.contato?.empresa ?? fichaEmpresa?.nome) || "";
-      if (nomeEmpresa && !fichaEmpresa) {
-        try {
-          const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(nomeEmpresa)}`);
-          const dadosEmpresa = (await resEmpresa.json()) as {
-            empresa?: typeof fichaEmpresa;
-          };
-          if (dadosEmpresa.empresa) {
-            setFichaEmpresa(dadosEmpresa.empresa);
-          }
-        } catch {
-          // Silencioso
-        }
       }
     } catch {
       setErroPessoa("Falha de conexão. Tente novamente.");
