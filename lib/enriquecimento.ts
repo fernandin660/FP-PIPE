@@ -181,9 +181,8 @@ type CasaDosDadosItem = {
 };
 
 type CasaDosDadosResposta = {
-  data?: {
-    cnpj_faces?: CasaDosDadosItem[];
-  };
+  total?: number;
+  cnpjs?: CasaDosDadosItem[];
 };
 
 export async function buscarCnpjPorEmpresa(
@@ -213,7 +212,7 @@ export async function buscarCnpjPorEmpresa(
     if (!resposta.ok) return {};
 
     const dados = (await resposta.json()) as CasaDosDadosResposta;
-    const item = (dados.data?.cnpj_faces ?? [])[0];
+    const item = (dados.cnpjs ?? [])[0];
 
     return {
       cnpj: item?.cnpj ?? undefined,
@@ -425,7 +424,7 @@ export async function buscarDominioEmpresa(
     if (!resposta.ok) return {};
 
     const dados = (await resposta.json()) as CasaDosDadosResposta;
-    const item = (dados.data?.cnpj_faces ?? [])[0];
+    const item = (dados.cnpjs ?? [])[0];
 
     // Casa dos Dados não retorna website diretamente, mas retorna CNPJ
     // que pode ser usado na Brasil API para achar o site
