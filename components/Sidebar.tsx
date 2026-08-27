@@ -208,6 +208,7 @@ export default function Sidebar({
             pathname === "/prospeccao"
           )}
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
+          {item("/disparos", "Disparos em massa", "✉️", pathname === "/disparos")}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
