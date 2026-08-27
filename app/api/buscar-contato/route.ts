@@ -16,13 +16,13 @@ function normalizarLinkedin(url: string): string {
 
 async function localizarContatoExistente(
   supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
-  usuarioId: string,
+  orgId: string,
   linkedinNormalizado: string
 ) {
   const { data } = await supabase
     .from("contatos")
-    .select("id, company_id")
-    .eq("usuario_id", usuarioId)
+    .select("id, company_id, telefones")
+    .eq("organizacao_id", orgId)
     .eq("linkedin_url", linkedinNormalizado)
     .order("criado_em", { ascending: false })
     .limit(1)
@@ -60,6 +60,14 @@ export async function PUT(requisicao: Request) {
     return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
   }
 
+  const { data: membroAtual } = await supabase
+    .from("organizacao_membros")
+    .select("organizacao_id")
+    .eq("usuario_id", user.id)
+    .eq("status", "ativo")
+    .limit(1)
+    .maybeSingle();
+
   let corpo: CorpoAtribuicao;
   try {
     corpo = (await requisicao.json()) as CorpoAtribuicao;
@@ -78,7 +86,7 @@ export async function PUT(requisicao: Request) {
     .from("contatos")
     .select("id, nome, cargo, email, linkedin_url")
     .eq("id", contatoId)
-    .eq("usuario_id", user.id)
+    .eq("organizacao_id", membroAtual?.organizacao_id ?? "")
     .single();
 
   const { data: empresa } = await supabase
@@ -188,11 +196,28 @@ export async function POST(requisicao: Request) {
 
   const { data: perfilDepto } = await supabase
     .from("perfil")
-    .select("departamento_uso")
+    .select("departamento_uso, area_atuacao, produtos_servicos, nichos")
     .eq("usuario_id", usuarioId)
     .maybeSingle();
   const deptoAtual =
     (perfilDepto?.departamento_uso as string | null)?.trim() || "";
+
+  const termosIcp = [
+    perfilDepto?.area_atuacao,
+    perfilDepto?.produtos_servicos,
+    ...(Array.isArray(perfilDepto?.nichos) ? perfilDepto.nichos : []),
+  ]
+    .filter((termo): termo is string => typeof termo === "string" && !!termo.trim())
+    .join(" ");
+
+  function pontuarIcp(cargo: string | null, empresa: string | null) {
+    if (!termosIcp) return { score: null, motivos: [] as string[] };
+    const texto = `${cargo ?? ""} ${empresa ?? ""}`.toLowerCase();
+    const termos = termosIcp.toLowerCase().split(/[^a-z0-9À-ÿ]+/i).filter((t) => t.length >= 4);
+    const encontrados = [...new Set(termos.filter((termo) => texto.includes(termo)))];
+    const score = Math.min(100, 35 + encontrados.length * 15 + (cargo ? 20 : 0));
+    return { score, motivos: encontrados.slice(0, 4) };
+  }
 
   // Cache só funciona se tiver LinkedIn URL
   if (temLinkedin) {
@@ -224,7 +249,7 @@ export async function POST(requisicao: Request) {
 
       const existenteCache = await localizarContatoExistente(
         supabase,
-        usuarioId,
+        orgId,
         linkedinNormalizado
       );
 
@@ -249,6 +274,7 @@ export async function POST(requisicao: Request) {
           .insert({
             ...contatoCache,
             usuario_id: usuarioId,
+            organizacao_id: orgId,
             emails: [contatoCache.email],
             telefones: [],
           })
@@ -270,13 +296,13 @@ export async function POST(requisicao: Request) {
         fontesTelefone = enrich.fontesTelefone;
       }
 
-      if (telefones.length > 0 && salvoCache?.id) {
+        if (telefones.length > 0 && salvoCache?.id) {
         await supabase
           .from("contatos")
           .update({ telefones })
           .eq("id", salvoCache.id);
 
-        if (precisaTelefone && saldoTelefoneCache >= custoTelefone) {
+        if (precisaTelefone && saldoTelefoneCache >= custoTelefone && !(existenteCache?.telefones?.length)) {
           saldoTelefoneCache -= custoTelefone;
           await admin
             .from("creditos_telefone")
@@ -299,6 +325,8 @@ export async function POST(requisicao: Request) {
         telefones,
         fontesTelefone,
         saldoTelefones: saldoTelefoneCache,
+        matchScore: pontuarIcp(contatoCache.cargo, contatoCache.empresa).score,
+        matchMotivos: pontuarIcp(contatoCache.cargo, contatoCache.empresa).motivos,
       });
     }
   }
@@ -321,8 +349,17 @@ export async function POST(requisicao: Request) {
     nomeInput
   );
 
+  const existenteAntes = temLinkedin
+    ? await localizarContatoExistente(supabase, orgId, linkedinNormalizado)
+    : null;
+
   let novoSaldoTelefone = saldoTelefone;
-  if (precisaTelefone && resultado.telefones.length > 0 && saldoTelefone >= custoTelefone) {
+  if (
+    precisaTelefone &&
+    resultado.telefones.length > 0 &&
+    saldoTelefone >= custoTelefone &&
+    !(existenteAntes?.telefones?.length)
+  ) {
     novoSaldoTelefone = saldoTelefone - custoTelefone;
     await admin
       .from("creditos_telefone")
@@ -359,11 +396,7 @@ export async function POST(requisicao: Request) {
   let salvo = null;
 
   if (temLinkedin) {
-    const existente = await localizarContatoExistente(
-      supabase,
-      usuarioId,
-      linkedinNormalizado
-    );
+    const existente = existenteAntes;
 
     if (existente) {
       const { data } = await supabase
@@ -384,7 +417,8 @@ export async function POST(requisicao: Request) {
         .from("contatos")
         .insert({
           ...contato,
-          usuario_id: usuarioId,
+           usuario_id: usuarioId,
+           organizacao_id: orgId,
           emails: contato.email ? [contato.email] : [],
           telefones: resultado.telefones,
         })
@@ -413,5 +447,7 @@ export async function POST(requisicao: Request) {
     fontesEmail: resultado.fontesEmail,
     fontesTelefone: resultado.fontesTelefone,
     saldoTelefones: novoSaldoTelefone,
+    matchScore: pontuarIcp(contato.cargo, contato.empresa).score,
+    matchMotivos: pontuarIcp(contato.cargo, contato.empresa).motivos,
   });
 }

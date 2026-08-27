@@ -91,6 +91,7 @@ async function provisionarOrg(
     "listas",
     "companies",
     "icps",
+    "contatos",
   ];
 
   for (const tabela of tabelas) {

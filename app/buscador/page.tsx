@@ -21,6 +21,8 @@ type ContatoEncontrado = {
   emails?: string[];
   telefones?: string[];
   origem?: "lista" | "contato";
+  matchScore?: number | null;
+  matchMotivos?: string[];
 };
 
 type EmpresaResumida = {
@@ -392,6 +394,7 @@ function BuscadorContent() {
     razao_social: string | null;
     endereco: string | null;
     telefone_empresa: string | null;
+    telefones_empresa: string[];
     website: string | null;
     linkedin_url: string | null;
     emails_genericos: string[];
@@ -415,6 +418,8 @@ function BuscadorContent() {
     emails: string[];
     fontesEmail: string[];
     fontesTelefone: string[];
+    matchScore: number | null;
+    matchMotivos: string[];
     empresaDetalhes: {
       cnpj: string | null;
       razao_social: string | null;
@@ -445,7 +450,6 @@ function BuscadorContent() {
       const { data: contatos } = await supabase
         .from("contatos")
         .select("id, company_id, linkedin_url, nome, cargo, empresa, email")
-        .eq("usuario_id", usuarioId)
         .order("criado_em", { ascending: false })
         .limit(30);
 
@@ -523,7 +527,6 @@ function BuscadorContent() {
       const { data: dadosLeads } = await supabase
         .from("contatos")
         .select("id, linkedin_url, nome, cargo, empresa, email")
-        .eq("usuario_id", user.id)
         .order("criado_em", { ascending: false })
         .limit(100);
 
@@ -723,6 +726,8 @@ function BuscadorContent() {
         contato?: ContatoEncontrado;
         emails?: string[];
         telefones?: string[];
+        matchScore?: number | null;
+        matchMotivos?: string[];
         saldoTelefones?: number;
         saldoContatos?: number;
         mensagem?: string;
@@ -736,7 +741,7 @@ function BuscadorContent() {
       }
 
       if (dados.encontrado && dados.contato) {
-        setResultado(dados.contato);
+        setResultado({ ...dados.contato, matchScore: dados.matchScore, matchMotivos: dados.matchMotivos ?? [] });
         if (dados.saldoTelefones !== undefined) {
           setSaldoTelefones(dados.saldoTelefones);
         }
@@ -793,6 +798,7 @@ function BuscadorContent() {
           razao_social: string | null;
           endereco: string | null;
           telefone_empresa: string | null;
+          telefones_empresa: string[];
           website: string | null;
           linkedin_url: string | null;
           emails_genericos: string[];
@@ -868,6 +874,8 @@ function BuscadorContent() {
         fontesEmail?: string[];
         fontesTelefone?: string[];
         saldoTelefones?: number;
+        matchScore?: number | null;
+        matchMotivos?: string[];
         erro?: string;
       };
 
@@ -887,7 +895,8 @@ function BuscadorContent() {
         cnpj: string | null;
         razao_social: string | null;
         endereco: string | null;
-        telefone_empresa: string | null;
+          telefone_empresa: string | null;
+          telefones_empresa: string[];
         website: string | null;
         linkedin_url: string | null;
         emails_genericos: string[];
@@ -896,7 +905,7 @@ function BuscadorContent() {
       if (empresaNome) {
         try {
           const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(empresaNome)}`);
-          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: { nome: string; cnpj: string | null; razao_social: string | null; endereco: string | null; telefone_empresa: string | null; website: string | null; linkedin_url: string | null; emails_genericos: string[]; fontes: string[]; origem: "banco" | "web" }; erro?: string };
+          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: { nome: string; cnpj: string | null; razao_social: string | null; endereco: string | null; telefone_empresa: string | null; telefones_empresa: string[]; website: string | null; linkedin_url: string | null; emails_genericos: string[]; fontes: string[]; origem: "banco" | "web" }; erro?: string };
           if (resEmpresa.ok && dadosEmpresa.empresa) {
             let e = dadosEmpresa.empresa;
             if (e.cnpj && !e.telefone_empresa) {
@@ -930,6 +939,7 @@ function BuscadorContent() {
         razao_social: empresaDados.razao_social ?? null,
         endereco: empresaDados.endereco ?? null,
         telefone_empresa: empresaDados.telefone_empresa ?? null,
+        telefones_empresa: empresaDados.telefones_empresa ?? [],
         website: empresaDados.website ?? null,
         linkedin_url: empresaDados.linkedin_url ?? null,
         emails_genericos: empresaDados.emails_genericos ?? [],
@@ -945,6 +955,8 @@ function BuscadorContent() {
           linkedin_url: dados.contato.linkedin_url ?? linkedinPessoa.trim(),
           telefones: dados.telefones ?? [],
           emails: dados.emails ?? [],
+          matchScore: dados.matchScore ?? null,
+          matchMotivos: dados.matchMotivos ?? [],
           fontesEmail: dados.fontesEmail ?? [],
           fontesTelefone: dados.fontesTelefone ?? [],
           empresaDetalhes,
@@ -962,6 +974,8 @@ function BuscadorContent() {
           linkedin_url: linkedinPessoa.trim() || null,
           telefones: [],
           emails: [],
+          matchScore: null,
+          matchMotivos: [],
           fontesEmail: [],
           fontesTelefone: [],
           empresaDetalhes,
@@ -1184,21 +1198,17 @@ function BuscadorContent() {
                 )}
               </div>
 
-              {fichaEmpresa.telefone_empresa && (
+              {(fichaEmpresa.telefones_empresa?.length > 0 || fichaEmpresa.telefone_empresa) && (
                 <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
                   <p className="text-[10px] text-pipe-muted uppercase tracking-wide mb-1">Telefone da empresa</p>
-                  <div className="flex items-center gap-2">
-                    <a href={`tel:${fichaEmpresa.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline text-sm">
-                      📞 {fichaEmpresa.telefone_empresa}
-                    </a>
-                    <span className="text-[10px] text-pipe-muted">Grátis</span>
-                    <button
-                      onClick={async () => { await navigator.clipboard.writeText(fichaEmpresa.telefone_empresa!); }}
-                      className="text-xs text-pipe-muted hover:text-white transition"
-                      title="Copiar"
-                    >
-                      📋
-                    </button>
+                  <div className="space-y-1">
+                    {[...(fichaEmpresa.telefones_empresa ?? []), ...(fichaEmpresa.telefone_empresa && !(fichaEmpresa.telefones_empresa ?? []).includes(fichaEmpresa.telefone_empresa) ? [fichaEmpresa.telefone_empresa] : [])].map((telefone) => (
+                      <div key={telefone} className="flex items-center gap-2">
+                        <a href={`tel:${telefone}`} className="text-pipe-lime font-semibold hover:underline text-sm">📞 {telefone}</a>
+                        <span className="text-[10px] text-pipe-muted">Grátis</span>
+                        <button onClick={async () => { await navigator.clipboard.writeText(telefone); }} className="text-xs text-pipe-muted hover:text-white transition" title="Copiar">📋</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1226,7 +1236,7 @@ function BuscadorContent() {
                 </div>
               )}
 
-              {!fichaEmpresa.telefone_empresa && fichaEmpresa.emails_genericos.length === 0 && (
+              {!fichaEmpresa.telefone_empresa && !(fichaEmpresa.telefones_empresa?.length) && fichaEmpresa.emails_genericos.length === 0 && (
                 <p className="text-sm text-pipe-muted">
                   Nenhum telefone ou e-mail encontrado para esta empresa. Tente buscar por outro nome.
                 </p>
@@ -1298,6 +1308,11 @@ function BuscadorContent() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            {resultadoPessoa.matchScore !== null && resultadoPessoa.matchScore !== undefined && (
+                              <span className={`text-xs font-semibold rounded px-1.5 py-0.5 ${resultadoPessoa.matchScore >= 70 ? "text-green-300 bg-green-500/15" : resultadoPessoa.matchScore >= 50 ? "text-yellow-300 bg-yellow-500/15" : "text-gray-300 bg-gray-500/15"}`}>
+                                🎯 ICP {resultadoPessoa.matchScore}%
+                              </span>
+                            )}
                             {fichaEmpresa?.telefone_empresa && (
                               <span className="text-xs text-pipe-muted">📞 empresa</span>
                             )}

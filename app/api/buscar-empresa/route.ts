@@ -6,6 +6,7 @@ import {
   buscarTelefoneMaps,
   buscarDadosCnpj,
   buscarDadosEmpresaGoogle,
+  buscarContatosNoSite,
   sugerirEmailsEmpresa,
 } from "../../../lib/enriquecimento";
 
@@ -15,6 +16,7 @@ type EmpresaFicha = {
   razao_social: string | null;
   endereco: string | null;
   telefone_empresa: string | null;
+  telefones_empresa: string[];
   website: string | null;
   linkedin_url: string | null;
   emails_genericos: string[];
@@ -77,6 +79,19 @@ async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
     if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
       ficha.telefone_empresa = dadosBrasil.telefone;
       ficha.fontes.push("brasil_api");
+    }
+  }
+
+  if (ficha.website) {
+    const site = await buscarContatosNoSite(ficha.website).catch(() => ({ emails: [], telefones: [] }));
+    if (site.telefones.length > 0) {
+      ficha.telefones_empresa = [...new Set([...ficha.telefones_empresa, ...site.telefones])];
+      if (!ficha.telefone_empresa) ficha.telefone_empresa = site.telefones[0];
+      ficha.fontes.push("site");
+    }
+    if (site.emails.length > 0) {
+      ficha.emails_genericos = [...new Set([...site.emails, ...ficha.emails_genericos])];
+      ficha.fontes.push("site_email");
     }
   }
 
@@ -153,6 +168,7 @@ export async function GET(requisicao: Request) {
         razao_social: e.razao_social ?? null,
         endereco: e.endereco ?? null,
         telefone_empresa: e.telefone ?? null,
+        telefones_empresa: e.telefone ? [e.telefone] : [],
         website: e.website ?? null,
         linkedin_url: (e as Record<string, unknown>).campeao_linkedin as string | null ?? null,
         emails_genericos: dominio ? sugerirEmailsEmpresa(dominio) : [],
@@ -171,6 +187,7 @@ export async function GET(requisicao: Request) {
     razao_social: null,
     endereco: null,
     telefone_empresa: null,
+    telefones_empresa: [],
     website: null,
     linkedin_url: null,
     emails_genericos: [],

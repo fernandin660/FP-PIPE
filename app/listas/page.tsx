@@ -370,6 +370,14 @@ export default function PaginaListas() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    const { data: membro } = await supabase
+      .from("organizacao_membros")
+      .select("organizacao_id")
+      .eq("usuario_id", user.id)
+      .eq("status", "ativo")
+      .limit(1)
+      .maybeSingle();
+
     const emailsLista = formContato.emails
       .split(/[,;\n]+/)
       .map((v) => v.trim())
@@ -383,6 +391,7 @@ export default function PaginaListas() {
       .from("contatos")
       .insert({
         usuario_id: user.id,
+        organizacao_id: membro?.organizacao_id ?? null,
         company_id: empresaDetalhe.id,
         nome: formContato.nome.trim() || null,
         cargo: formContato.cargo.trim() || null,

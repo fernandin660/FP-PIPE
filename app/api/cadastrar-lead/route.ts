@@ -5,6 +5,7 @@ import {
 } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { registrarUso } from "../../../lib/avisos";
+import { resolverOrg } from "../../../lib/org";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 
@@ -75,6 +76,8 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+
+  const { orgId } = await resolverOrg(supabase, user.id);
 
   const corpo = (await req.json().catch(() => null)) as {
     nome?: string;
@@ -299,6 +302,7 @@ export async function POST(req: NextRequest) {
   // 3) Cria o lead
   const insercao: Record<string, unknown> = {
     usuario_id: user.id,
+    organizacao_id: orgId,
     origem: "buscador",
     confirmado: false,
     campeao_nome: nomePessoa,
@@ -338,6 +342,7 @@ export async function POST(req: NextRequest) {
   // 4) Registra o contato no dossiê do lead + cache global
   await supabase.from("contatos").insert({
     usuario_id: user.id,
+    organizacao_id: orgId,
     company_id: leadCriado.id,
     nome: nomePessoa,
     cargo: cargoPessoa,

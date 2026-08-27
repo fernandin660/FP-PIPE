@@ -61,6 +61,26 @@ export async function buscarTelefoneSerper(
   return {};
 }
 
+export async function buscarTelefoneEmpresaSerper(
+  nomeEmpresa: string
+): Promise<{ telefones: string[] }> {
+  if (!CHAVE_SERPER || !nomeEmpresa) return { telefones: [] };
+  try {
+    const resposta = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: { "X-API-KEY": CHAVE_SERPER, "Content-Type": "application/json" },
+      body: JSON.stringify({ q: `"${nomeEmpresa}" telefone contato`, gl: "br", hl: "pt-br", num: 8 }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resposta.ok) return { telefones: [] };
+    const dados = (await resposta.json()) as SerperResposta;
+    const texto = (dados.organic ?? []).map((item) => `${item.title ?? ""} ${item.snippet ?? ""}`).join(" ");
+    return { telefones: [...new Set(texto.match(/\(?\d{2}\)?\s*\d{4,5}[-.\s]?\d{4}/g) ?? [])].slice(0, 10) };
+  } catch {
+    return { telefones: [] };
+  }
+}
+
 // ============================================================
 // 2. Google Maps Places API — telefone + website da empresa
 // ============================================================
@@ -463,6 +483,56 @@ export function sugerirEmailsEmpresa(dominio: string): string[] {
   return prefixos.map((p) => `${p}@${dominioLimpo}`);
 }
 
+// Lê apenas a página inicial e páginas de contato sobre o mesmo domínio.
+// Não executa JavaScript e limita o volume para manter a busca rápida e segura.
+export async function buscarContatosNoSite(website: string): Promise<{
+  emails: string[];
+  telefones: string[];
+}> {
+  if (!website) return { emails: [], telefones: [] };
+
+  try {
+    const origem = new URL(website);
+    const paginas = new Set([origem.toString()]);
+    const resposta = await fetch(origem.toString(), {
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "FP-Pipe/1.0" },
+    });
+    if (!resposta.ok) return { emails: [], telefones: [] };
+    const html = (await resposta.text()).slice(0, 500_000);
+    const links = [...html.matchAll(/href=["']([^"']+)["']/gi)]
+      .map((match) => match[1])
+      .filter((link) => /contato|contact|fale|atendimento|sobre/i.test(link));
+
+    for (const link of links.slice(0, 2)) {
+      try {
+        const url = new URL(link, origem);
+        if (url.hostname === origem.hostname) paginas.add(url.toString());
+      } catch {}
+    }
+
+    const textos = [html];
+    for (const pagina of [...paginas].slice(1)) {
+      try {
+        const paginaResposta = await fetch(pagina, {
+          signal: AbortSignal.timeout(5000),
+          headers: { "User-Agent": "FP-Pipe/1.0" },
+        });
+        if (paginaResposta.ok) textos.push((await paginaResposta.text()).slice(0, 300_000));
+      } catch {}
+    }
+
+    const texto = textos.join(" ");
+    const emails = [...new Set((texto.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [])
+      .map((email) => email.toLowerCase())
+      .filter((email) => !/example\.(com|org)|sentry|wixpress/i.test(email)))].slice(0, 10);
+    const telefones = [...new Set(texto.match(/\(?\d{2}\)?\s*\d{4,5}[-.\s]?\d{4}/g) ?? [])].slice(0, 10);
+    return { emails, telefones };
+  } catch {
+    return { emails: [], telefones: [] };
+  }
+}
+
 // ============================================================
 // 8. Buscar domínio do site da empresa (Casa dos Dados)
 // ============================================================
@@ -651,6 +721,12 @@ export async function enriquecerTelefonesContato(
     adicionarSeNovo(telefones, serper.telefone ?? "", fontes, "google_search");
   }
 
+  // Também procura o telefone público da empresa diretamente no Google.
+  const empresaGoogle = await buscarTelefoneEmpresaSerper(nomeEmpresa);
+  for (const telefone of empresaGoogle.telefones) {
+    adicionarSeNovo(telefones, telefone, fontes, "google_empresa");
+  }
+
   // 3. Google Maps — telefone + website da empresa
   const maps = await buscarTelefoneMaps(nomeEmpresa, cidade, uf);
   if (maps.telefone) {
@@ -724,6 +800,7 @@ export async function buscarContatoCompleto(
 
   // Buscar domínio para gerar emails
   let dominio: string | undefined;
+  let websiteParaContato = telefoneResult.website;
   let cnpjEncontrado = cnpj;
 
   if (!cnpjEncontrado && nomeEmpresa) {
@@ -744,6 +821,18 @@ export async function buscarContatoCompleto(
       .split("/")[0];
   }
 
+  // Último recurso de domínio: o site oficial encontrado no Google.
+  if (!dominio && nomeEmpresa) {
+    const googleEmpresa = await buscarDadosEmpresaGoogle(nomeEmpresa);
+    if (googleEmpresa.website) {
+      websiteParaContato = googleEmpresa.website;
+      dominio = googleEmpresa.website
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .split("/")[0];
+    }
+  }
+
   // Gerar sugestões de email
   let emails: string[] = [];
   let fontesEmail: string[] = [];
@@ -754,6 +843,12 @@ export async function buscarContatoCompleto(
   } else if (dominio) {
     emails = sugerirEmailsEmpresa(dominio);
     fontesEmail = ["emails_empresa"];
+  }
+
+  if (websiteParaContato) {
+    const dadosSite = await buscarContatosNoSite(websiteParaContato);
+    emails = [...new Set([...dadosSite.emails, ...emails])].slice(0, 15);
+    fontesEmail = [...new Set([...dadosSite.emails.map(() => "site"), ...fontesEmail])];
   }
 
   return {

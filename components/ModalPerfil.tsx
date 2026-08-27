@@ -102,6 +102,7 @@ export default function ModalPerfil({
   const [enviandoAnexo, setEnviandoAnexo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [importandoAdmin, setImportandoAdmin] = useState(false);
 
   if (!aberto) return null;
 
@@ -244,6 +245,32 @@ export default function ModalPerfil({
     );
   }
 
+  async function importarConfiguracoesAdmin() {
+    if (importandoAdmin) return;
+    setImportandoAdmin(true);
+    setErro("");
+    try {
+      const resposta = await fetch("/api/perfil/importar-admin", { method: "POST" });
+      const dados = await resposta.json();
+      if (!resposta.ok || !dados.perfil) throw new Error(dados.erro ?? "Importação indisponível.");
+      const importado = dados.perfil as PerfilVendedor;
+      setNomeEmpresa(importado.nome_empresa ?? "");
+      setTempoEmpresa(importado.tempo_empresa ?? "");
+      setAreaAtuacao(importado.area_atuacao ?? "");
+      setDepartamentoUso(importado.departamento_uso ?? "");
+      setProdutosServicos(importado.produtos_servicos ?? "");
+      setSite(importado.site ?? "");
+      setFotoUrl(importado.foto_url ?? null);
+      setAnexos(importado.anexos ?? []);
+      setNichosEscolhidos(importado.nichos ?? []);
+      aoSalvar(importado);
+    } catch (erroImportacao) {
+      setErro(erroImportacao instanceof Error ? erroImportacao.message : "Não foi possível importar as configurações.");
+    } finally {
+      setImportandoAdmin(false);
+    }
+  }
+
   async function enviarFoto(arquivo: File) {
     const supabase = criarClienteSupabase();
     if (!supabase) return;
@@ -355,6 +382,15 @@ export default function ModalPerfil({
             ? "Falta só este passo: conte o que sua empresa vende. Nossa inteligência usa isso para pontuar empresas e escrever e-mails personalizados."
             : "Nossa inteligência usa estes dados para pontuar empresas e escrever e-mails personalizados."}
         </p>
+
+        <button
+          type="button"
+          onClick={importarConfiguracoesAdmin}
+          disabled={importandoAdmin}
+          className="mt-4 w-full rounded-lg border border-pipe-blue/50 bg-pipe-blue/10 px-4 py-2.5 text-sm text-pipe-blue hover:bg-pipe-blue/20 disabled:opacity-50"
+        >
+          {importandoAdmin ? "Importando..." : "↗ Importar configurações do administrador"}
+        </button>
 
         <form onSubmit={salvar} className="space-y-4 mt-6">
           <div className="flex items-center gap-4">
