@@ -806,7 +806,24 @@ function BuscadorContent() {
       }
 
       if (dados.empresa) {
-        setFichaEmpresa(dados.empresa);
+        let empresaFinal = dados.empresa;
+
+        if (empresaFinal.cnpj && !empresaFinal.telefone_empresa) {
+          try {
+            const resBrasil = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${empresaFinal.cnpj}`, { signal: AbortSignal.timeout(6000) });
+            if (resBrasil.ok) {
+              const brasil = await resBrasil.json() as { ddd_telefone_1?: string; ddd_telefone_2?: string; nome?: string; email?: string };
+              const tel1 = typeof brasil.ddd_telefone_1 === "string" ? brasil.ddd_telefone_1.trim() : "";
+              if (tel1) {
+                empresaFinal = { ...empresaFinal, telefone_empresa: tel1 };
+              } else if (typeof brasil.ddd_telefone_2 === "string" && brasil.ddd_telefone_2.trim()) {
+                empresaFinal = { ...empresaFinal, telefone_empresa: brasil.ddd_telefone_2.trim() };
+              }
+            }
+          } catch {}
+        }
+
+        setFichaEmpresa(empresaFinal);
         setMensagem("");
       }
     } catch {
@@ -875,10 +892,25 @@ function BuscadorContent() {
       if (empresaNome) {
         try {
           const resEmpresa = await fetch(`/api/buscar-empresa?q=${encodeURIComponent(empresaNome)}`);
-          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: typeof empresaDados; erro?: string };
+          const dadosEmpresa = (await resEmpresa.json()) as { empresa?: { nome: string; cnpj: string | null; razao_social: string | null; endereco: string | null; telefone_empresa: string | null; website: string | null; emails_genericos: string[]; fontes: string[]; origem: "banco" | "web" }; erro?: string };
           if (resEmpresa.ok && dadosEmpresa.empresa) {
-            empresaDados = dadosEmpresa.empresa;
-            setFichaEmpresa(dadosEmpresa.empresa);
+            let e = dadosEmpresa.empresa;
+            if (e.cnpj && !e.telefone_empresa) {
+              try {
+                const resBrasil = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${e.cnpj}`, { signal: AbortSignal.timeout(6000) });
+                if (resBrasil.ok) {
+                  const brasil = await resBrasil.json() as { ddd_telefone_1?: string; ddd_telefone_2?: string };
+                  const tel1 = typeof brasil.ddd_telefone_1 === "string" ? brasil.ddd_telefone_1.trim() : "";
+                  if (tel1) {
+                    e = { ...e, telefone_empresa: tel1 };
+                  } else if (typeof brasil.ddd_telefone_2 === "string" && brasil.ddd_telefone_2.trim()) {
+                    e = { ...e, telefone_empresa: brasil.ddd_telefone_2.trim() };
+                  }
+                }
+              } catch {}
+            }
+            empresaDados = e;
+            setFichaEmpresa(e);
           } else {
             empresaDados = fichaEmpresa;
           }
