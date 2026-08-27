@@ -26,8 +26,10 @@ export async function GET(request: Request) {
     body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" }),
   });
   if (!tokenResposta.ok) {
-    console.error("Erro na troca do token Google:", await tokenResposta.text());
-    return NextResponse.redirect(`${origem}/disparos?email=erro_token`);
+    const corpoErro = await tokenResposta.json().catch(() => ({})) as { error?: string; error_description?: string };
+    console.error("Erro na troca do token Google:", corpoErro);
+    const detalhe = encodeURIComponent(corpoErro.error ?? "resposta_invalida");
+    return NextResponse.redirect(`${origem}/disparos?email=erro_token&detalhe=${detalhe}`);
   }
   const tokens = await tokenResposta.json() as { access_token?: string; refresh_token?: string; scope?: string };
   if (!tokens.refresh_token) return NextResponse.redirect(`${origem}/disparos?email=sem_refresh_token`);

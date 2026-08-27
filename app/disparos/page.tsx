@@ -60,7 +60,10 @@ export default function PaginaDisparos() {
       }
       const resultadoEmail = new URLSearchParams(window.location.search).get("email");
       if (resultadoEmail === "conectado") setMensagem("Gmail conectado com sucesso.");
-      if (resultadoEmail && resultadoEmail !== "conectado") setErro(`Não foi possível concluir a conexão Gmail (${resultadoEmail}).`);
+      if (resultadoEmail && resultadoEmail !== "conectado") {
+        const detalhe = new URLSearchParams(window.location.search).get("detalhe");
+        setErro(`Não foi possível concluir a conexão Gmail (${detalhe ?? resultadoEmail}).`);
+      }
       setCarregando(false);
     }
     void carregar();
