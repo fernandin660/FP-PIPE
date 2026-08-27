@@ -11,7 +11,13 @@ function base64Url(valor: string): string {
 }
 
 function substituir(template: string, alvo: { nome?: string | null; empresa?: string | null; cargo?: string | null }): string {
-  return template.replaceAll("{nome}", alvo.nome || "time").replaceAll("{empresa}", alvo.empresa || "sua empresa").replaceAll("{cargo}", alvo.cargo || "");
+  return template
+    .replaceAll("{nome}", alvo.nome || "time")
+    .replaceAll("{empresa}", alvo.empresa || "sua empresa")
+    .replaceAll("{cargo}", alvo.cargo || "")
+    .replaceAll("[Seu Nome]", "")
+    .replaceAll("[Seu Contato]", "")
+    .replaceAll("[Nome da Empresa]", alvo.empresa || "sua empresa");
 }
 
 async function obterToken(refreshToken: string): Promise<string> {

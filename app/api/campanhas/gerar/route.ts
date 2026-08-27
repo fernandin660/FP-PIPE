@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   const { data: perfil } = await supabase
     .from("perfil")
-    .select("nome_empresa, area_atuacao, produtos_servicos, nichos")
+    .select("nome_empresa, nome_usuario, area_atuacao, produtos_servicos, nichos")
     .eq("usuario_id", usuarioId)
     .maybeSingle();
   const { data: destinatarios } = await supabase
@@ -49,13 +49,14 @@ export async function POST(request: Request) {
 
   const textoPrompt = `Crie uma campanha de e-mail B2B para os leads da lista "${campanha.nome}".
 Empresa que envia: ${perfil?.nome_empresa ?? "não informado"}
+Nome de quem envia: ${perfil?.nome_usuario ?? perfil?.nome_empresa ?? "equipe comercial"}
 Área: ${perfil?.area_atuacao ?? "não informado"}
 Produtos e serviços: ${perfil?.produtos_servicos ?? "não informado"}
 Nichos: ${Array.isArray(perfil?.nichos) ? perfil.nichos.join(", ") : "não informado"}
 Quantidade de destinatários: ${destinatarios?.length ?? 0}
 Instruções adicionais do usuário: ${instrucoes || "escreva uma abordagem comercial humana e objetiva"}
 
-Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as variáveis {nome}, {empresa} e {cargo} quando ajudarem. Não invente dados. Retorne somente JSON no formato {"assunto":"...","corpo":"..."}.`;
+Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as variáveis {nome}, {empresa} e {cargo} quando ajudarem. Não invente dados. NÃO use placeholders como [Seu Nome], [Seu Contato], [Nome da Empresa] ou colchetes. Finalize usando o nome de quem envia informado acima. Retorne somente JSON no formato {"assunto":"...","corpo":"..."}.`;
 
   let gerado: { assunto?: string; corpo?: string };
   try {
@@ -65,6 +66,11 @@ Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as va
     return NextResponse.json({ erro: "Não conseguimos gerar a campanha agora. Nenhum crédito foi descontado." }, { status: 500 });
   }
   if (!gerado.assunto?.trim() || !gerado.corpo?.trim()) return NextResponse.json({ erro: "A IA não retornou uma campanha válida." }, { status: 500 });
+  const nomeRemetente = perfil?.nome_usuario ?? perfil?.nome_empresa ?? "Equipe comercial";
+  gerado.corpo = gerado.corpo
+    .replaceAll("[Seu Nome]", nomeRemetente)
+    .replaceAll("[Seu Contato]", "")
+    .replaceAll("[Nome da Empresa]", "{empresa}");
 
   const { data: novoSaldo } = await admin
     .from("creditos_ia")
