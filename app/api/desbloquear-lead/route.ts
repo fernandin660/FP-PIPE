@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     .select("id, contato_desbloqueado_em")
     .eq("organizacao_id", orgId)
     .eq("cnpj", cnpj)
+    .order("criado_em", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (!empresa) {

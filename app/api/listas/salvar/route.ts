@@ -65,11 +65,15 @@ export async function POST(request: Request) {
     //    (com verificação de saldo) e marca contato_desbloqueado_em.
     const { data: linhasEmpresas } = await supabase
       .from("companies")
-      .select("id, cnpj, contato_desbloqueado_em")
+      .select("id, cnpj, contato_desbloqueado_em, criado_em")
       .eq("organizacao_id", orgId)
       .in("cnpj", leadsUnicos);
 
-    const todas = linhasEmpresas ?? [];
+    // A constraint legada é por usuario_id + CNPJ. Por isso, uma equipe
+    // pode ter mais de uma linha para o mesmo CNPJ; a lista deve usar uma só.
+    const todas = [...(linhasEmpresas ?? [])]
+      .sort((a, b) => String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? "")))
+      .filter((empresa, indice, lista) => lista.findIndex((item) => item.cnpj === empresa.cnpj) === indice);
 
     if (todas.length === 0) {
       return NextResponse.json(
