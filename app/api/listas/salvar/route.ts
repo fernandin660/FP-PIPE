@@ -116,17 +116,13 @@ export async function POST(request: Request) {
       const [{ data: creditosOrg }, { data: creditosUser }] = await Promise.all([
         admin
           .from("creditos_contatos")
-          .select("id, saldo")
+          .select("usuario_id, organizacao_id, saldo")
           .eq("organizacao_id", orgId)
-          .order("saldo", { ascending: false })
-          .limit(1)
           .maybeSingle(),
         admin
           .from("creditos_contatos")
-          .select("id, saldo")
+          .select("usuario_id, organizacao_id, saldo")
           .eq("usuario_id", usuarioId)
-          .order("saldo", { ascending: false })
-          .limit(1)
           .maybeSingle(),
       ]);
 
@@ -135,7 +131,11 @@ export async function POST(request: Request) {
         .sort((a, b) => (b!.saldo ?? 0) - (a!.saldo ?? 0))[0];
 
       const saldoBuscador = creditoAlvo?.saldo ?? 0;
-      const creditoId = creditoAlvo?.id ?? "";
+      // A tabela não tem coluna "id": debitamos pela organização se a linha
+      // for da organização, senão pelo usuário.
+      const usaOrg = Boolean(creditosOrg);
+      const chaveDebito = usaOrg ? "organizacao_id" : "usuario_id";
+      const valorDebito = usaOrg ? orgId : creditoAlvo?.usuario_id ?? "";
 
       const agora = new Date().toISOString();
 
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
           saldo: saldoBuscador - bloqueadas.length,
           atualizado_em: agora,
         })
-        .eq("id", creditoId)
+        .eq(chaveDebito, valorDebito)
         .gte("saldo", bloqueadas.length)
         .select("saldo")
         .maybeSingle();

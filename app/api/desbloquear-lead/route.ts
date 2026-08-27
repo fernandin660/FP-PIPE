@@ -81,53 +81,38 @@ export async function POST(request: Request) {
   // ============================================================
   // Localização dos créditos de lead
   // ============================================================
-  // A tela mostra o saldo (ex.: 1294) que pode estar em uma linha da
-  // organização ou em uma linha antiga do usuário com outra org.
-  // Junta TODAS as candidatas e escolhe a com maior saldo disponível.
-  const [orgCreditos, userCreditos] = await Promise.all([
+  // IMPORTANTE: a tabela creditos_contatos NÃO tem coluna "id" - o
+  // identificador é "usuario_id" (+ organizacao_id). Um único registro
+  // por organização garantido pelo índice único idx_creditos_contatos_org_uniq.
+  const [{ data: orgCredito }, { data: userCredito }] = await Promise.all([
     admin
       .from("creditos_contatos")
-      .select("id, usuario_id, organizacao_id, saldo")
+      .select("usuario_id, organizacao_id, saldo")
       .eq("organizacao_id", orgId)
-      .order("saldo", { ascending: false })
-      .then((r) => r.data ?? []),
+      .maybeSingle(),
     admin
       .from("creditos_contatos")
-      .select("id, usuario_id, organizacao_id, saldo")
+      .select("usuario_id, organizacao_id, saldo")
       .eq("usuario_id", usuarioId)
-      .order("saldo", { ascending: false })
-      .then((r) => r.data ?? []),
+      .maybeSingle(),
   ]);
 
-  const candidatas = Array.from(
-    new Map(
-      [...orgCreditos, ...userCreditos].map((c) => [c.id, c])
-    ).values()
-  ).sort((a, b) => (b.saldo ?? 0) - (a.saldo ?? 0));
+  // Prefere a linha da organização; senão usa a linha do próprio usuário.
+  const melhorCredito = (orgCredito?.saldo ?? 0) > 0 ? orgCredito : userCredito;
 
-  const melhorCredito = candidatas[0] ?? null;
-
-  let creditoFinal = melhorCredito;
-
-  if (!creditoFinal || (creditoFinal.saldo ?? 0) <= 0) {
-    // Se a única linha com saldo é a antiga do usuário (outra org),
-    // realinha para a organização atual antes de debitar.
-    const legado = userCreditos?.find((c) => (c.saldo ?? 0) > 0);
-
-    if (legado) {
-      const { data: migrado } = await admin
-        .from("creditos_contatos")
-        .update({ organizacao_id: orgId })
-        .eq("id", legado.id)
-        .select("id, usuario_id, organizacao_id, saldo")
-        .single();
-      creditoFinal = migrado ?? legado;
-    }
+  // Se a linha do usuário existir mas estiver sem organização, realinha.
+  if (!orgCredito && userCredito && !userCredito.organizacao_id) {
+    await admin
+      .from("creditos_contatos")
+      .update({ organizacao_id: orgId })
+      .eq("usuario_id", userCredito.usuario_id);
   }
 
-  const saldoAtual = creditoFinal?.saldo ?? 0;
+  const saldoAtual = melhorCredito?.saldo ?? 0;
+  const chaveDebito = orgCredito ? "organizacao_id" : melhorCredito ? "usuario_id" : "";
+  const valorDebito = orgCredito ? orgId : melhorCredito?.usuario_id ?? "";
 
-  if (!creditoFinal || saldoAtual <= 0) {
+  if (!chaveDebito || saldoAtual <= 0) {
     return NextResponse.json(
       {
         erro: `O servidor não encontrou crédito de lead disponível (saldo: ${saldoAtual}).`,
@@ -149,7 +134,7 @@ export async function POST(request: Request) {
       saldo: saldoAtual - 1,
       atualizado_em: agora,
     })
-    .eq("id", creditoFinal.id)
+    .eq(chaveDebito, valorDebito)
     .gt("saldo", 0)
     .select("saldo")
     .maybeSingle();
@@ -176,7 +161,7 @@ export async function POST(request: Request) {
     await admin
       .from("creditos_contatos")
       .update({ saldo: saldoAtual, atualizado_em: agora })
-      .eq("id", creditoFinal.id);
+      .eq(chaveDebito, valorDebito);
 
     return NextResponse.json(
       {
