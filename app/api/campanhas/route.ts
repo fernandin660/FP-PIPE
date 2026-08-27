@@ -79,14 +79,14 @@ export async function POST(request: Request) {
   if (companyIds.length === 0) return NextResponse.json({ erro: "A lista não possui leads." }, { status: 400 });
 
   const [{ data: empresas }, { data: contatos }] = await Promise.all([
-    supabase.from("companies").select("id, email, emails_extra, nome_fantasia, razao_social").in("id", companyIds),
+    supabase.from("companies").select("id, email, emails_extra, campeao_email, aprovador_email, nome_fantasia, razao_social").in("id", companyIds),
     supabase.from("contatos").select("id, company_id, email, emails, nome, cargo, empresa").in("company_id", companyIds),
   ]);
 
   const destinatarios: Array<{ contato_id: string | null; company_id: string; email: string; organizacao_id: string; nome: string | null; empresa: string | null; cargo: string | null }> = [];
   const vistos = new Set<string>();
   for (const empresa of empresas ?? []) {
-    const emails = [empresa.email, ...(Array.isArray(empresa.emails_extra) ? empresa.emails_extra : [])];
+    const emails = [empresa.email, empresa.campeao_email, empresa.aprovador_email, ...(Array.isArray(empresa.emails_extra) ? empresa.emails_extra : [])];
     for (const email of emails) {
       if (typeof email === "string" && email.includes("@") && !vistos.has(email.toLowerCase())) {
         vistos.add(email.toLowerCase());
