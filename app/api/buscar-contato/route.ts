@@ -335,7 +335,7 @@ export async function POST(requisicao: Request) {
   const contato = {
     linkedin_url: linkedinNormalizado || null,
     nome: nomeInput || null,
-    cargo: null as string | null,
+    cargo: resultado.cargo ?? null,
     empresa: empresaInput || null,
     email: resultado.emails[0] ?? null,
   };

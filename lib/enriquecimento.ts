@@ -221,7 +221,77 @@ export async function buscarCnpjPorEmpresa(
 }
 
 // ============================================================
-// 6. MillionPhones — telefone via LinkedIn URL
+// 6. Buscar cargo atual via Google (Serper)
+// ============================================================
+
+export async function buscarCargoAtual(
+  nomePessoa: string,
+  nomeEmpresa?: string
+): Promise<{ cargo?: string }> {
+  if (!CHAVE_SERPER || !nomePessoa) return {};
+
+  const query = nomeEmpresa
+    ? `"${nomePessoa}" "${nomeEmpresa}" site:linkedin.com/in`
+    : `"${nomePessoa}" site:linkedin.com/in`;
+
+  try {
+    const resposta = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": CHAVE_SERPER,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q: query, gl: "br", hl: "pt-br", num: 3 }),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!resposta.ok) return {};
+
+    const dados = (await resposta.json()) as SerperResposta;
+
+    for (const item of dados.organic ?? []) {
+      const titulo = item.title ?? "";
+      const snippet = item.snippet ?? "";
+
+      // LinkedIn titles geralmente: "Nome - Cargo - Empresa | LinkedIn"
+      const partesTitulo = titulo.split(" - ");
+      if (partesTitulo.length >= 2) {
+        const candidato = partesTitulo[1]?.trim();
+        if (
+          candidato &&
+          candidato.length > 2 &&
+          candidato.length < 80 &&
+          !candidato.toLowerCase().includes("linkedin")
+        ) {
+          return { cargo: candidato };
+        }
+      }
+
+      // Fallback: procurar no snippet padrão "Cargo at Company"
+      const matchAtual = snippet.match(
+        /(?:at|em|na)\s+([A-ZÀ-Ú][\wÀ-ú\s&]+?)(?:\s*·|\s*\||\s*$)/
+      );
+      if (matchAtual?.[1]) {
+        return { cargo: matchAtual[1].trim() };
+      }
+
+      // Fallback: "Cargo em Company" em português
+      const matchEm = snippet.match(
+        /([\wÀ-ú\s]+?)\s+(?:em|na|at)\s+([A-ZÀ-Ú][\wÀ-ú\s&]+?)(?:\s*·|\s*\||\s*$)/
+      );
+      if (matchEm?.[1] && matchEm[1].trim().length > 2) {
+        return { cargo: matchEm[1].trim() };
+      }
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+// ============================================================
+// 7. MillionPhones — telefone via LinkedIn URL
 // ============================================================
 
 type MillionPhonesResposta = {
@@ -570,19 +640,16 @@ export async function buscarContatoCompleto(
 ): Promise<{
   emails: string[];
   telefones: string[];
+  cargo?: string;
   website?: string;
   fontesEmail: string[];
   fontesTelefone: string[];
 }> {
-  // Buscar telefone (cascade completa)
-  const telefoneResult = await enriquecerTelefonesContato(
-    linkedinUrl,
-    nomeEmpresa,
-    nomePessoa,
-    cidade,
-    uf,
-    cnpj
-  );
+  // Buscar cargo atual via Google (paralelo com telefone)
+  const [telefoneResult, cargoResult] = await Promise.all([
+    enriquecerTelefonesContato(linkedinUrl, nomeEmpresa, nomePessoa, cidade, uf, cnpj),
+    linkedinUrl && nomePessoa ? buscarCargoAtual(nomePessoa, nomeEmpresa) : Promise.resolve({ cargo: undefined as string | undefined }),
+  ]);
 
   // Buscar domínio para gerar emails
   let dominio: string | undefined;
@@ -621,6 +688,7 @@ export async function buscarContatoCompleto(
   return {
     emails,
     telefones: telefoneResult.telefones,
+    cargo: cargoResult.cargo,
     website: telefoneResult.website,
     fontesEmail,
     fontesTelefone: telefoneResult.fontes,
