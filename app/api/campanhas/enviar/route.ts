@@ -20,6 +20,14 @@ function substituir(template: string, alvo: { nome?: string | null; empresa?: st
     .replaceAll("[Nome da Empresa]", alvo.empresa || "sua empresa");
 }
 
+function emailRemetenteZoho(valor: string): string {
+  try {
+    const parsed = JSON.parse(valor) as Array<{ mailId?: string; isPrimary?: boolean }>;
+    if (Array.isArray(parsed)) return parsed.find((item) => item.isPrimary)?.mailId ?? parsed[0]?.mailId ?? "";
+  } catch {}
+  return valor;
+}
+
 async function obterToken(provedor: string, refreshToken: string): Promise<string> {
   const microsoft = provedor === "microsoft";
   const resposta = await fetch(microsoft ? "https://login.microsoftonline.com/common/oauth2/v2.0/token" : provedor === "zoho" ? "https://accounts.zoho.com/oauth/v2/token" : "https://oauth2.googleapis.com/token", {
@@ -46,7 +54,7 @@ export async function POST(request: Request) {
 
   const { data: conexao } = await admin.from("email_conexoes").select("email, provedor, account_id, refresh_token_criptografado").eq("usuario_id", usuarioId).maybeSingle();
   if (!conexao) return NextResponse.json({ erro: "Conecte Gmail, Outlook ou Zoho antes de enviar." }, { status: 400 });
-  const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).eq("status", "nao_contatado").limit(25);
+  const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).in("status", ["nao_contatado", "falhou"]).limit(25);
   if (!destinatarios?.length) return NextResponse.json({ erro: "A campanha não possui destinatários pendentes." }, { status: 400 });
 
   let token: string;
@@ -62,7 +70,7 @@ export async function POST(request: Request) {
         resposta = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: assunto, body: { contentType: "Text", content: corpoEmail }, toRecipients: [{ emailAddress: { address: destinatario.email } }] }, saveToSentItems: true }) });
       } else if (conexao.provedor === "zoho") {
         if (!conexao.account_id) throw new Error("Conta Zoho sem accountId.");
-        resposta = await fetch(`https://mail.zoho.com/api/accounts/${conexao.account_id}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: conexao.email, toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }) });
+        resposta = await fetch(`https://mail.zoho.com/api/accounts/${conexao.account_id}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: emailRemetenteZoho(conexao.email), toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }) });
       } else {
         const raw = [`To: ${destinatario.email}`, `Subject: ${assunto}`, "Content-Type: text/plain; charset=utf-8", "", corpoEmail].join("\r\n");
         resposta = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: base64Url(raw) }) });

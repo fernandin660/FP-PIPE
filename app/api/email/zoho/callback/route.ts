@@ -20,12 +20,18 @@ export async function GET(request: Request) {
   const tokens = await resposta.json() as { access_token?: string; refresh_token?: string; scope?: string };
   if (!tokens.refresh_token || !tokens.access_token) return NextResponse.redirect(`${origem}/disparos?email=sem_refresh_token`);
   const contasResposta = await fetch("https://mail.zoho.com/api/accounts", { headers: { Authorization: `Zoho-oauthtoken ${tokens.access_token}` } });
-  const contas = await contasResposta.json() as { data?: Array<{ accountId?: string; emailAddress?: string }> };
+  const contas = await contasResposta.json() as { data?: Array<{ accountId?: string; emailAddress?: unknown }> };
   const conta = contas.data?.[0];
   if (!conta?.accountId) return NextResponse.redirect(`${origem}/disparos?email=zoho_sem_conta`);
+  const enderecos = Array.isArray(conta.emailAddress)
+    ? conta.emailAddress as Array<{ mailId?: string; isPrimary?: boolean }>
+    : [];
+  const enderecoPrincipal = enderecos.find((endereco) => endereco.isPrimary && endereco.mailId)?.mailId
+    ?? enderecos.find((endereco) => endereco.mailId)?.mailId
+    ?? (typeof conta.emailAddress === "string" ? conta.emailAddress : "");
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.redirect(`${origem}/disparos?email=erro_banco`);
-  const { error } = await admin.from("email_conexoes").upsert({ usuario_id: usuarioId, organizacao_id: orgId, provedor: "zoho", account_id: conta.accountId, email: conta.emailAddress ?? "Zoho conectado", refresh_token_criptografado: criptografarToken(tokens.refresh_token), escopos: (tokens.scope ?? "").split(",").filter(Boolean), atualizado_em: new Date().toISOString() }, { onConflict: "usuario_id" });
+  const { error } = await admin.from("email_conexoes").upsert({ usuario_id: usuarioId, organizacao_id: orgId, provedor: "zoho", account_id: conta.accountId, email: enderecoPrincipal || "Zoho conectado", refresh_token_criptografado: criptografarToken(tokens.refresh_token), escopos: (tokens.scope ?? "").split(",").filter(Boolean), atualizado_em: new Date().toISOString() }, { onConflict: "usuario_id" });
   if (error) { console.error("Erro ao salvar conexão Zoho:", error); return NextResponse.redirect(`${origem}/disparos?email=erro_salvar`); }
   return NextResponse.redirect(`${origem}/disparos?email=conectado`);
 }

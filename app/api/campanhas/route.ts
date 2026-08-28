@@ -13,6 +13,13 @@ type CorpoEdicaoCampanha = {
   corpo?: unknown;
 };
 
+function emailValido(valor: unknown): valor is string {
+  return typeof valor === "string" &&
+    /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(valor.trim()) &&
+    !/\.(webp|png|jpe?g|gif|svg|css|js)$/i.test(valor.trim()) &&
+    !valor.toLowerCase().includes("category_");
+}
+
 export async function GET(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
@@ -88,7 +95,7 @@ export async function POST(request: Request) {
   for (const empresa of empresas ?? []) {
     const emails = [empresa.email, empresa.campeao_email, empresa.aprovador_email, ...(Array.isArray(empresa.emails_extra) ? empresa.emails_extra : [])];
     for (const email of emails) {
-      if (typeof email === "string" && email.includes("@") && !vistos.has(email.toLowerCase())) {
+      if (emailValido(email) && !vistos.has(email.toLowerCase())) {
         vistos.add(email.toLowerCase());
         destinatarios.push({ contato_id: null, company_id: empresa.id, email: email.toLowerCase(), organizacao_id: orgId, nome: null, cargo: null, empresa: empresa.nome_fantasia ?? empresa.razao_social ?? null });
       }
@@ -97,7 +104,7 @@ export async function POST(request: Request) {
   for (const contato of contatos ?? []) {
     const emails = [contato.email, ...(Array.isArray(contato.emails) ? contato.emails : [])];
     for (const email of emails) {
-      if (typeof email === "string" && email.includes("@") && !vistos.has(email.toLowerCase())) {
+      if (emailValido(email) && !vistos.has(email.toLowerCase())) {
         vistos.add(email.toLowerCase());
         destinatarios.push({ contato_id: contato.id, company_id: contato.company_id, email: email.toLowerCase(), organizacao_id: orgId, nome: contato.nome ?? null, cargo: contato.cargo ?? null, empresa: contato.empresa ?? null });
       }
