@@ -185,8 +185,10 @@ export default function PaginaDisparos() {
         pendentes = dados.pendentes ?? 0;
         setMensagem(`Enviando... ${totalEnviado} enviado(s), ${pendentes} pendente(s).`);
       }
-      setMensagem(`Campanha concluída: ${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
-      await selecionarLista(listaId);
+      setMensagem(totalFalha === 0
+        ? `✅ E-mails disparados com sucesso: ${totalEnviado} enviado(s).`
+        : `Campanha concluída: ${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
+      setCampanha((atual) => atual ? { ...atual, status: totalFalha === 0 ? "enviada" : "pronta" } : atual);
     } catch (erroEnvio) {
       setErro(erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio.");
     } finally {
@@ -203,6 +205,17 @@ export default function PaginaDisparos() {
     }
     setConexao(null);
     setMensagem("Conta de e-mail desconectada. Você pode conectar outra.");
+  }
+
+  function iniciarNovoDisparo() {
+    setListaId("");
+    setCampanha(null);
+    setDestinatarios(0);
+    setAssunto("");
+    setCorpo("");
+    setInstrucoes("");
+    setMensagem("");
+    setErro("");
   }
 
   if (carregando) return <main className="flex min-h-screen items-center justify-center bg-pipe-dark text-gray-400">Carregando...</main>;
@@ -246,7 +259,7 @@ export default function PaginaDisparos() {
           {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>{conexao.provedor === "microsoft" ? "Outlook" : conexao.provedor === "zoho" ? "Zoho" : "Gmail"} conectado: {conexao.email}</span><div className="flex gap-2"><button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-lime/40 px-3 py-2 text-xs font-semibold hover:bg-pipe-lime/10">Trocar conta</button><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div></div> : <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span className="block mb-3">Conecte a conta que será usada para o envio:</span><div className="flex flex-wrap gap-2"><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Gmail</a><a href="/api/email/microsoft/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Outlook</a><a href="/api/email/zoho/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Zoho</a></div></div>}
         </section>}
 
-        {mensagem && <p className="mt-4 text-sm text-pipe-lime">{mensagem}</p>}
+        {mensagem && <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-pipe-lime"><p>{mensagem}</p>{mensagem.startsWith("✅") && <button onClick={iniciarNovoDisparo} className="rounded-lg border border-pipe-lime/40 px-3 py-1.5 font-semibold hover:bg-pipe-lime/10">Novo disparo</button>}</div>}
         {erro && <p className="mt-4 text-sm text-red-400">{erro}</p>}
       </main>
     </div>
