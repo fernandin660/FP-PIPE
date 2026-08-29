@@ -18,6 +18,7 @@ type Campanha = {
   geracoes_usadas: number;
   status: string;
 };
+type Modelo = { id: string; nome: string; assunto: string | null; conteudo: string; objetivo: string };
 
 export default function PaginaDisparos() {
   const [listas, setListas] = useState<Lista[]>([]);
@@ -38,6 +39,8 @@ export default function PaginaDisparos() {
   const [erro, setErro] = useState("");
   const [conexao, setConexao] = useState<{ provedor: string; email: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [salvandoModelo, setSalvandoModelo] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -59,6 +62,8 @@ export default function PaginaDisparos() {
       setListas((listasData as Lista[]) ?? []);
       setPerfil((perfilData as PerfilVendedor) ?? null);
       setSaldoIa(iaData?.saldo ?? 0);
+      const { data: modelosData } = await supabase.from("modelos").select("id, nome, assunto, conteudo, objetivo").eq("canal", "email").order("criado_em", { ascending: false });
+      setModelos((modelosData as Modelo[]) ?? []);
       const conexaoResposta = await fetch("/api/email/conexao");
       if (conexaoResposta.ok) {
         const conexaoDados = await conexaoResposta.json();
@@ -174,6 +179,33 @@ export default function PaginaDisparos() {
     setMensagem("Campanha salva.");
   }
 
+  function importarModelo(modeloId: string) {
+    const modelo = modelos.find((item) => item.id === modeloId);
+    if (!modelo) return;
+    setAssunto(modelo.assunto ?? "");
+    setCorpo(modelo.conteudo);
+    setObjetivo(modelo.objetivo || "gerar_interesse");
+    setMensagem("Modelo importado. Revise e salve a campanha.");
+  }
+
+  async function salvarComoModelo() {
+    if (!campanha || salvandoModelo || !assunto.trim() || !corpo.trim()) return;
+    const nome = window.prompt("Nome do modelo:", `Modelo - ${campanha.nome}`);
+    if (!nome?.trim()) return;
+    setSalvandoModelo(true);
+    setErro("");
+    try {
+      const resposta = await fetch("/api/campanhas/modelo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: campanha.id, nome, assunto, texto: corpo }) });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível salvar o modelo.");
+      setMensagem("Abordagem salva em Modelos.");
+    } catch (erroModelo) {
+      setErro(erroModelo instanceof Error ? erroModelo.message : "Falha ao salvar modelo.");
+    } finally {
+      setSalvandoModelo(false);
+    }
+  }
+
   async function enviarCampanha() {
     if (!campanha || enviando || !conexao) return;
     if (!confirm(`Enviar para ${destinatarios} destinatário(s) usando ${conexao.email}?`)) return;
@@ -276,10 +308,12 @@ export default function PaginaDisparos() {
             <option value="reativar_contato">Reativar contato</option>
           </select>
           <textarea value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="Instruções opcionais para a IA..." className="w-full min-h-20 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white" />
+          {modelos.length > 0 && <div className="flex flex-wrap items-center gap-2"><label className="text-xs text-pipe-muted">Importar modelo:</label><select defaultValue="" onChange={(e) => importarModelo(e.target.value)} className="flex-1 min-w-48 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white"><option value="">Escolha um modelo salvo...</option>{modelos.map((modelo) => <option key={modelo.id} value={modelo.id}>{modelo.nome}</option>)}</select></div>}
           <button onClick={() => void gerar()} disabled={gerando || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerando ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
+          <button onClick={() => void salvarComoModelo()} disabled={salvandoModelo || !assunto.trim() || !corpo.trim()} className="border border-pipe-blue/50 text-pipe-blue px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-blue/10 disabled:opacity-40">⭐ Salvar como modelo</button>
           {enriquecendo ? <div className="rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue">🔎 Enriquecendo e-mails, telefones e sites das empresas... aguarde o carregamento dos destinatários.</div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
           {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>{conexao.provedor === "microsoft" ? "Outlook" : conexao.provedor === "zoho" ? "Zoho" : "Gmail"} conectado: {conexao.email}</span><div className="flex gap-2"><button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-lime/40 px-3 py-2 text-xs font-semibold hover:bg-pipe-lime/10">Trocar conta</button><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div></div> : <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span className="block mb-3">Conecte a conta que será usada para o envio:</span><div className="flex flex-wrap gap-2"><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Gmail</a><a href="/api/email/microsoft/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Outlook</a><a href="/api/email/zoho/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Zoho</a></div></div>}
         </section>}
