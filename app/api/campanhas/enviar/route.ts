@@ -61,16 +61,28 @@ export async function POST(request: Request) {
   const limiteDiario = acesso.plano.toLowerCase().includes("platinum") ? 300 : 100;
   const dataUso = new Date().toISOString().slice(0, 10);
 
-  async function reservarEnvio(): Promise<boolean> {
-    const { data: atual } = await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle();
-    const enviados = atual?.enviados ?? 0;
-    if (enviados >= limiteDiario) return false;
-    if (!atual) {
-      const { error } = await adminSeguro.from("uso_envios_email").insert({ organizacao_id: orgId, usuario_id: usuarioId, data: dataUso, enviados: 1 });
-      return !error;
+  let token: string;
+  try { token = await obterToken(conexao.provedor, descriptografarToken(conexao.refresh_token_criptografado)); } catch (erro) { return NextResponse.json({ erro: erro instanceof Error ? erro.message : "Conexão de e-mail inválida." }, { status: 400 }); }
+  await supabase.from("campanhas").update({ status: "enviando", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
+  let enviados = 0;
+  let limiteAtingido = false;
+
+  // Reserva uma posição da cota diária de forma atômica/concorrente,
+  // com retry para tratar a corrida de inserção da primeira linha.
+  async function reservarEnvioSeguro(): Promise<boolean> {
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const { data: atual } = await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle();
+      const enviadosAtuais = atual?.enviados ?? 0;
+      if (enviadosAtuais >= limiteDiario) return false;
+      if (!atual) {
+        const { error } = await adminSeguro.from("uso_envios_email").insert({ organizacao_id: orgId, usuario_id: usuarioId, data: dataUso, enviados: 1 });
+        if (!error) return true;
+        continue; // outra reserva criou a linha: tenta o update abaixo
+      }
+      const { data: atualizado } = await adminSeguro.from("uso_envios_email").update({ enviados: enviadosAtuais + 1, atualizado_em: new Date().toISOString() }).eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).lt("enviados", limiteDiario).select("enviados").maybeSingle();
+      if (atualizado) return true;
     }
-    const { data: atualizado } = await adminSeguro.from("uso_envios_email").update({ enviados: enviados + 1, atualizado_em: new Date().toISOString() }).eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).lt("enviados", limiteDiario).select("enviados").maybeSingle();
-    return Boolean(atualizado);
+    return false;
   }
 
   async function devolverEnvio() {
@@ -78,30 +90,44 @@ export async function POST(request: Request) {
     if ((atual?.enviados ?? 0) > 0) await adminSeguro.from("uso_envios_email").update({ enviados: atual!.enviados - 1, falhas: (atual?.falhas ?? 0) + 1, atualizado_em: new Date().toISOString() }).eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso);
   }
 
-  let token: string;
-  try { token = await obterToken(conexao.provedor, descriptografarToken(conexao.refresh_token_criptografado)); } catch (erro) { return NextResponse.json({ erro: erro instanceof Error ? erro.message : "Conexão de e-mail inválida." }, { status: 400 }); }
-  await supabase.from("campanhas").update({ status: "enviando", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
-  let enviados = 0;
-  let limiteAtingido = false;
-  for (const destinatario of destinatarios) {
-    if (!(await reservarEnvio())) {
-      limiteAtingido = true;
-      break;
-    }
-    const assunto = substituir(campanha.assunto, destinatario);
-    const corpoEmail = substituir(campanha.corpo, destinatario);
-    try {
-      let resposta: Response;
-      if (conexao.provedor === "microsoft") {
-        resposta = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: assunto, body: { contentType: "Text", content: corpoEmail }, toRecipients: [{ emailAddress: { address: destinatario.email } }] }, saveToSentItems: true }) });
-      } else if (conexao.provedor === "zoho") {
-        if (!conexao.account_id) throw new Error("Conta Zoho sem accountId.");
-        resposta = await fetch(`https://mail.zoho.com/api/accounts/${conexao.account_id}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: emailRemetenteZoho(conexao.email), toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }) });
-      } else {
-        const raw = [`To: ${destinatario.email}`, `Subject: ${assunto}`, "Content-Type: text/plain; charset=utf-8", "", corpoEmail].join("\r\n");
-        resposta = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: base64Url(raw) }) });
+  // Captura valores já validados (não-nulos) para uso dentro das funções
+  // aninhadas — preserva o narrowing do TypeScript.
+  const assuntoCampanha = campanha!.assunto;
+  const corpoCampanha = campanha!.corpo;
+  const provedorConexao = conexao!.provedor;
+  const emailConexao = conexao!.email;
+  const accountIdConexao = conexao!.account_id;
+
+  // Envia UM destinatário com reserva de cota + retry com backoff.
+  async function enviarUm(destinatario: { id: unknown; email: string; nome?: string | null; empresa?: string | null; cargo?: string | null }): Promise<void> {
+    if (!(await reservarEnvioSeguro())) { limiteAtingido = true; return; }
+    const assunto = substituir(assuntoCampanha, destinatario);
+    const corpoEmail = substituir(corpoCampanha, destinatario);
+
+    const tentarEnvio = async (): Promise<Response> => {
+      if (provedorConexao === "microsoft") {
+        return fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: assunto, body: { contentType: "Text", content: corpoEmail }, toRecipients: [{ emailAddress: { address: destinatario.email } }] }, saveToSentItems: true }) });
       }
-      if (!resposta.ok) throw new Error(`Gmail ${resposta.status}`);
+      if (provedorConexao === "zoho") {
+        if (!accountIdConexao) throw new Error("Conta Zoho sem accountId.");
+        return fetch(`https://mail.zoho.com/api/accounts/${accountIdConexao}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: emailRemetenteZoho(emailConexao), toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }) });
+      }
+      const raw = [`To: ${destinatario.email}`, `Subject: ${assunto}`, "Content-Type: text/plain; charset=utf-8", "", corpoEmail].join("\r\n");
+      return fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: base64Url(raw) }) });
+    };
+
+    const MAX_TENTATIVAS = 3;
+    try {
+      let resposta: Response | null = null;
+      for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+        resposta = await tentarEnvio();
+        // 429 (rate limit) e 5xx são transitórios: retenta com backoff.
+        const transitorio = resposta.status === 429 || resposta.status >= 500;
+        if (resposta.ok || !transitorio || tentativa === MAX_TENTATIVAS) break;
+        const espera = Math.min(1000, 200 * Math.pow(2, tentativa - 1));
+        await new Promise((r) => setTimeout(r, espera));
+      }
+      if (!resposta!.ok) throw new Error(`Provedor ${resposta!.status}`);
       await supabase.from("campanha_destinatarios").update({ status: "enviado", enviado_em: new Date().toISOString(), erro: null }).eq("id", destinatario.id);
       enviados++;
     } catch (erroEnvio) {
@@ -109,6 +135,19 @@ export async function POST(request: Request) {
       await supabase.from("campanha_destinatarios").update({ status: "falhou", erro: erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio." }).eq("id", destinatario.id);
     }
   }
+
+  // Envia em paralelo com concorrência limitada (equilíbrio entre
+  // velocidade e bloqueio por rate-limit do provedor).
+  const CONCORRENCIA = 5;
+  let proximo = 0;
+  const trabalhadores = Array.from({ length: Math.min(CONCORRENCIA, destinatarios.length) }, async () => {
+    while (proximo < destinatarios.length) {
+      if (limiteAtingido) break;
+      const atual = proximo++;
+      await enviarUm(destinatarios[atual]);
+    }
+  });
+  await Promise.all(trabalhadores);
   await supabase.from("campanhas").update({ status: !limiteAtingido && enviados === destinatarios.length ? "enviada" : "pronta", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
   const { count: pendentes } = await supabase
     .from("campanha_destinatarios")
