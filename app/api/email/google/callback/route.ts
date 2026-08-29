@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { criptografarToken, assinarEstado, limparVariavelOAuth } from "../../../../../lib/email-oauth";
+import { criptografarToken, assinarEstado, limparVariavelOAuth, origemApp } from "../../../../../lib/email-oauth";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
-  const origem = (process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_ENV === "production" ? "https://www.fppipe.com.br" : new URL(request.url).origin)).replace(/\/$/, "");
+  const origem = origemApp(new URL(request.url).origin);
   const url = new URL(request.url);
   const estadoBruto = url.searchParams.get("state") ?? "";
   const [estadoCodificado, assinatura] = estadoBruto.split(".");

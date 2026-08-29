@@ -29,3 +29,11 @@ export function descriptografarToken(valor: string): string {
 export function assinarEstado(valor: string): string {
   return crypto.createHmac("sha256", segredo).update(valor).digest("base64url");
 }
+
+// Origem canônica para redirect_uri e redirecionamentos de retorno.
+// Consistente entre iniciar/callback para não ocorrer redirect_uri_mismatch
+// em previews ou domínio custom (falha oauth conhecida antes da unificação).
+export function origemApp(requestOrigin: string): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_ENV === "production" ? "https://www.fppipe.com.br" : requestOrigin)).replace(/\/$/, "");
+}

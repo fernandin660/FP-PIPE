@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { criptografarToken, assinarEstado, limparVariavelOAuth } from "../../../../../lib/email-oauth";
+import { criptografarToken, assinarEstado, limparVariavelOAuth, origemApp } from "../../../../../lib/email-oauth";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
-  const origem = (process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin).replace(/\/$/, "");
+  const origem = origemApp(new URL(request.url).origin);
   const url = new URL(request.url);
   const [estadoCodificado, assinatura] = (url.searchParams.get("state") ?? "").split(".");
   let estado = "";

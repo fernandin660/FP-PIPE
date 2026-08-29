@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { exigirAcesso } from "../../../../../lib/gate";
-import { assinarEstado } from "../../../../../lib/email-oauth";
+import { assinarEstado, origemApp } from "../../../../../lib/email-oauth";
 
 export async function GET(request: Request) {
   const gate = await exigirAcesso();
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const clientId = (process.env.ZOHO_OAUTH_CLIENT_ID ?? "").trim();
   if (!clientId) return NextResponse.json({ erro: "Integração Zoho ainda não configurada." }, { status: 503 });
   const estado = `${gate.ctx!.usuarioId}.${gate.ctx!.orgId}.${crypto.randomBytes(18).toString("hex")}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_ENV === "production" ? "https://www.fppipe.com.br" : new URL(request.url).origin);
+  const appUrl = origemApp(new URL(request.url).origin);
   const url = new URL("https://accounts.zoho.com/oauth/v2/auth");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("response_type", "code");
