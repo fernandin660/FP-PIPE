@@ -5,7 +5,6 @@ import { descriptografarToken, limparVariavelOAuth } from "../../../../lib/email
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-const USUARIO_TESTE = "f395a6b1-9d16-4b80-b97a-8dfdf13ededa";
 
 function base64Url(valor: string): string {
   return Buffer.from(valor).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -59,9 +58,7 @@ export async function POST(request: Request) {
   const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).in("status", ["nao_contatado", "falhou"]).limit(25);
   if (!destinatarios?.length) return NextResponse.json({ erro: "A campanha não possui destinatários pendentes." }, { status: 400 });
 
-  const limiteDiario = usuarioId === USUARIO_TESTE
-    ? 10000
-    : acesso.plano.toLowerCase().includes("platinum") ? 300 : 100;
+  const limiteDiario = acesso.plano.toLowerCase().includes("platinum") ? 300 : 100;
   const dataUso = new Date().toISOString().slice(0, 10);
 
   async function reservarEnvio(): Promise<boolean> {

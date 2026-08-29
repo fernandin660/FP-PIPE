@@ -39,6 +39,7 @@ export default function PaginaDisparos() {
   const [erro, setErro] = useState("");
   const [conexao, setConexao] = useState<{ provedor: string; email: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [usoEnvios, setUsoEnvios] = useState<{ limiteDiario: number; enviados: number; restantes: number } | null>(null);
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [salvandoModelo, setSalvandoModelo] = useState(false);
 
@@ -69,6 +70,8 @@ export default function PaginaDisparos() {
         const conexaoDados = await conexaoResposta.json();
         setConexao(conexaoDados.conexao ?? null);
       }
+      const usoResposta = await fetch("/api/campanhas/uso");
+      if (usoResposta.ok) setUsoEnvios(await usoResposta.json());
       const resultadoEmail = new URLSearchParams(window.location.search).get("email");
       if (resultadoEmail && resultadoEmail !== "conectado") {
         const detalhe = new URLSearchParams(window.location.search).get("detalhe");
@@ -225,6 +228,7 @@ export default function PaginaDisparos() {
         pendentes = dados.pendentes ?? 0;
         limiteAtingido = Boolean(dados.limiteAtingido);
         enviosRestantesHoje = typeof dados.enviosRestantesHoje === "number" ? dados.enviosRestantesHoje : enviosRestantesHoje;
+        setUsoEnvios((atual) => atual ? { ...atual, enviados: atual.limiteDiario - (dados.enviosRestantesHoje ?? atual.restantes), restantes: dados.enviosRestantesHoje ?? atual.restantes } : atual);
         setMensagem(`Enviando... ${totalEnviado} enviado(s), ${pendentes} pendente(s).`);
         if (limiteAtingido) break;
       }
@@ -279,6 +283,7 @@ export default function PaginaDisparos() {
           </div>
           <span className="text-sm text-pipe-muted">IA disponível: <b className="text-pipe-lime">{saldoIa ?? 0}</b></span>
         </div>
+        <p className="mt-3 text-right text-xs text-pipe-muted">Envios hoje: <b className="text-white">{usoEnvios?.enviados ?? 0}</b> / {usoEnvios?.limiteDiario ?? "--"} · Restantes: <b className="text-pipe-lime">{usoEnvios?.restantes ?? "--"}</b></p>
 
         <section className="mt-6 rounded-xl border border-pipe-border bg-pipe-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
