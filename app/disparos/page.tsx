@@ -40,6 +40,7 @@ export default function PaginaDisparos() {
   const [conexao, setConexao] = useState<{ provedor: string; email: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [usoEnvios, setUsoEnvios] = useState<{ limiteDiario: number; enviados: number; restantes: number } | null>(null);
+  const [resumoCampanha, setResumoCampanha] = useState<{ total: number; enviados: number; pendentes: number; falhas: number } | null>(null);
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [salvandoModelo, setSalvandoModelo] = useState(false);
 
@@ -106,8 +107,9 @@ export default function PaginaDisparos() {
       const resposta = await fetch(`/api/campanhas?listaId=${encodeURIComponent(id)}`);
       const dados = await resposta.json();
       if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível carregar a campanha.");
-      setCampanha(dados.campanha ?? null);
-      setDestinatarios(dados.destinatarios?.length ?? 0);
+    setCampanha(dados.campanha ?? null);
+    setDestinatarios(dados.destinatarios?.length ?? 0);
+    setResumoCampanha(dados.resumo ?? null);
       setEnriquecendo(true);
       try {
         const enriquecimento = await fetch("/api/enriquecer-lista", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listaId: id }) });
@@ -248,6 +250,7 @@ export default function PaginaDisparos() {
         ? `✅ E-mails disparados com sucesso: ${totalEnviado} enviado(s). Restam ${enviosRestantesHoje ?? "--"} envios hoje.`
         : `Campanha concluída: ${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
       setCampanha((atual) => atual ? { ...atual, status: totalFalha === 0 ? "enviada" : "pronta" } : atual);
+      setResumoCampanha((atual) => atual ? { ...atual, enviados: totalEnviado, falhas: totalFalha, pendentes: pendentes, total: totalEnviado + totalFalha + pendentes } : atual);
     } catch (erroEnvio) {
       setErro(erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio.");
     } finally {
@@ -321,6 +324,13 @@ export default function PaginaDisparos() {
           {carregandoCampanha && <p className="text-xs text-pipe-muted mt-3">Carregando campanha...</p>}
           {listaId && !campanha && !carregandoCampanha && <button onClick={() => void criarCampanha()} className="mt-4 bg-pipe-blue text-white px-4 py-2 rounded-lg text-sm font-semibold">Criar campanha para esta lista</button>}
           {campanha && <p className="text-sm text-pipe-muted mt-3">{destinatarios} destinatário(s) com e-mail encontrado(s) nesta lista.</p>}
+          {resumoCampanha && resumoCampanha.enviados + resumoCampanha.falhas > 0 && (
+            <div className="mt-3 flex flex-wrap gap-3 text-xs">
+              <span className="rounded-full bg-green-500/15 border border-green-500/30 text-green-300 px-2.5 py-1">Enviados: <b>{resumoCampanha.enviados}</b></span>
+              <span className="rounded-full bg-red-500/15 border border-red-500/30 text-red-300 px-2.5 py-1">Falhas: <b>{resumoCampanha.falhas}</b></span>
+              <span className="rounded-full bg-gray-500/15 border border-gray-500/30 text-gray-300 px-2.5 py-1">Pendentes: <b>{resumoCampanha.pendentes}</b></span>
+            </div>
+          )}
         </section>
 
         {campanha && <section className="mt-5 bg-pipe-card border border-pipe-border rounded-xl p-5 space-y-4">

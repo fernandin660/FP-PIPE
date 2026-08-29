@@ -43,7 +43,15 @@ export async function GET(request: Request) {
     .eq("campanha_id", data.id)
     .order("criado_em", { ascending: true });
 
-  return NextResponse.json({ campanha: data, destinatarios: destinatarios ?? [] });
+  const lista = destinatarios ?? [];
+  const resumo = {
+    total: lista.length,
+    enviados: lista.filter((d) => d.status === "enviado").length,
+    pendentes: lista.filter((d) => d.status === "nao_contatado").length,
+    falhas: lista.filter((d) => d.status === "falhou").length,
+  };
+
+  return NextResponse.json({ campanha: data, destinatarios: lista, resumo });
 }
 
 export async function POST(request: Request) {

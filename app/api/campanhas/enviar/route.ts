@@ -65,6 +65,7 @@ export async function POST(request: Request) {
   try { token = await obterToken(conexao.provedor, descriptografarToken(conexao.refresh_token_criptografado)); } catch (erro) { return NextResponse.json({ erro: erro instanceof Error ? erro.message : "Conexão de e-mail inválida." }, { status: 400 }); }
   await supabase.from("campanhas").update({ status: "enviando", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
   let enviados = 0;
+  let falhas = 0;
   let limiteAtingido = false;
 
   // Reserva uma posição da cota diária de forma atômica/concorrente,
@@ -132,6 +133,7 @@ export async function POST(request: Request) {
       enviados++;
     } catch (erroEnvio) {
       await devolverEnvio();
+      falhas++;
       await supabase.from("campanha_destinatarios").update({ status: "falhou", erro: erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio." }).eq("id", destinatario.id);
     }
   }
@@ -155,5 +157,5 @@ export async function POST(request: Request) {
     .eq("campanha_id", campanhaId)
     .eq("organizacao_id", orgId)
     .eq("status", "nao_contatado");
-  return NextResponse.json({ enviados, falhas: destinatarios.length - enviados, pendentes: pendentes ?? 0, limiteAtingido, limiteDiario, enviosRestantesHoje: Math.max(0, limiteDiario - ((await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle()).data?.enviados ?? 0)) });
+  return NextResponse.json({ enviados, falhas, pendentes: pendentes ?? 0, limiteAtingido, limiteDiario, enviosRestantesHoje: Math.max(0, limiteDiario - ((await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle()).data?.enviados ?? 0)) });
 }
