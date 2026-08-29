@@ -378,13 +378,15 @@ begin
     set organizacao_id = nova_org_id;
 
   -- Cria saldos vinculados à org
+  -- Novo modelo de teste grátis: 1 geração de lista (creditos) e saldo de
+  -- contactos/leads suficiente para desbloquear até 25 leads dessa lista.
   insert into public.creditos_contatos (usuario_id, saldo, organizacao_id)
-  values (new.id, 5, nova_org_id)
+  values (new.id, 25, nova_org_id)
   on conflict (usuario_id) do update
     set organizacao_id = nova_org_id;
 
   insert into public.creditos (usuario_id, saldo, organizacao_id)
-  values (new.id, 2, nova_org_id)
+  values (new.id, 1, nova_org_id)
   on conflict (usuario_id) do update
     set organizacao_id = nova_org_id;
 

@@ -39,7 +39,7 @@ export default function PaginaDisparos() {
   const [erro, setErro] = useState("");
   const [conexao, setConexao] = useState<{ provedor: string; email: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [usoEnvios, setUsoEnvios] = useState<{ limiteDiario: number; enviados: number; restantes: number } | null>(null);
+  const [usoEnvios, setUsoEnvios] = useState<{ podeEnviar: boolean; limiteDiario: number; enviados: number; restantes: number } | null>(null);
   const [resumoCampanha, setResumoCampanha] = useState<{ total: number; enviados: number; pendentes: number; falhas: number } | null>(null);
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [salvandoModelo, setSalvandoModelo] = useState(false);
@@ -296,7 +296,7 @@ export default function PaginaDisparos() {
           </div>
           <span className="text-sm text-pipe-muted">IA disponível: <b className="text-pipe-lime">{saldoIa ?? 0}</b></span>
         </div>
-        <p className="mt-3 text-right text-xs text-pipe-muted">Envios hoje: <b className="text-white">{usoEnvios?.enviados ?? 0}</b> / {usoEnvios?.limiteDiario ?? "--"} · Restantes: <b className="text-pipe-lime">{usoEnvios?.restantes ?? "--"}</b></p>
+        <p className="mt-3 text-right text-xs text-pipe-muted">{usoEnvios?.podeEnviar ? <>Envios hoje: <b className="text-white">{usoEnvios?.enviados ?? 0}</b> / {usoEnvios?.limiteDiario ?? "--"} · Restantes: <b className="text-pipe-lime">{usoEnvios?.restantes ?? "--"}</b></> : <>Disparo disponível apenas em <b className="text-pipe-blue">Gold</b> e <b className="text-pipe-blue">Platinum</b>.</>}</p>
 
         <section className="mt-6 rounded-xl border border-pipe-border bg-pipe-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -356,7 +356,8 @@ export default function PaginaDisparos() {
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
           <button onClick={() => void salvarComoModelo()} disabled={salvandoModelo || !assunto.trim() || !corpo.trim()} className="border border-pipe-blue/50 text-pipe-blue px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-blue/10 disabled:opacity-40">⭐ Salvar como modelo</button>
           {enriquecendo ? <div className="rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue">🔎 Enriquecendo e-mails, telefones e sites das empresas... aguarde o carregamento dos destinatários.</div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
-          {conexao && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Conta pronta para envio.</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div>}
+          {usoEnvios && !usoEnvios.podeEnviar && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue"><span>O disparo em massa está disponível nos planos <b>Gold</b> e <b>Platinum</b>. No seu plano você já consegue gerar abordagens por IA — faça o upgrade para enviar.</span><a href="/planos" className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark">Assinar Gold →</a></div>}
+          {usoEnvios && usoEnvios.podeEnviar && conexao && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Conta pronta para envio.</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div>}
         </section>}
 
         {mensagem && <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-pipe-lime"><p>{mensagem}</p>{mensagem.startsWith("✅") && <button onClick={iniciarNovoDisparo} className="rounded-lg border border-pipe-lime/40 px-3 py-1.5 font-semibold hover:bg-pipe-lime/10">Novo disparo</button>}</div>}

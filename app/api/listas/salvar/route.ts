@@ -6,6 +6,8 @@ import { verificarCreditosBaixos } from "../../../../lib/avisos";
 
 const MAX_LEADS = 50;
 const CREDITOS_IA_POR_LEAD = 5;
+// No teste grátis, o lead pode salvar no máximo 25 leads por lista.
+const LIMITE_LEADS_TESTE = 25;
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +15,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, orgId, usuarioId } = gate.ctx!;
+    const { supabase, orgId, usuarioId, acesso } = gate.ctx!;
 
     const corpo = await request.json();
 
@@ -38,7 +40,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const leadsUnicos = Array.from(new Set(cnpjs)).slice(0, MAX_LEADS);
+    const limiteLeads =
+      acesso.plano === "teste" ? LIMITE_LEADS_TESTE : MAX_LEADS;
+    const leadsUnicos = Array.from(new Set(cnpjs)).slice(0, limiteLeads);
 
     // 1. Cria a lista.
     const { data: listaCriada, error: erroLista } = await supabase

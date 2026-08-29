@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { descriptografarToken, limparVariavelOAuth } from "../../../../lib/email-oauth";
+import { podeEnviarCampanha } from "../../../../lib/planos";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
   const clienteAdmin = criarClienteSupabaseAdmin();
   if (!clienteAdmin) return NextResponse.json({ erro: "Banco indisponível." }, { status: 503 });
   const adminSeguro = clienteAdmin;
+  // Disparo em massa é recurso Gold/Platinum. Teste e Silver podem gerar
+  // abordagens IA, mas o envio real exige plano pago avançado.
+  if (!podeEnviarCampanha(acesso.plano)) {
+    return NextResponse.json(
+      { erro: "O disparo de campanhas está disponível nos planos Gold e Platinum. Faça upgrade em /planos." },
+      { status: 403 }
+    );
+  }
   const corpo = (await request.json().catch(() => null)) as { campanhaId?: unknown } | null;
   const campanhaId = String(corpo?.campanhaId ?? "");
   const { data: campanha } = await supabase.from("campanhas").select("id, assunto, corpo, status").eq("id", campanhaId).eq("organizacao_id", orgId).maybeSingle();

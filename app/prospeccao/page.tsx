@@ -66,6 +66,10 @@ const estadosBrasil = [
 
 const CONTATOS_BLOQUEADOS = true;
 
+// No Teste grátis, o lead pode selecionar até aqui (25) leads da lista gerada.
+// Gold/Platinum não têm esse teto além do saldo de créditos.
+const LIMITE_LEADS_TESTE = 25;
+
 // Países das Américas disponíveis na busca internacional (OpenStreetMap).
 const paisesAmericas = [
   { sigla: "US", nome: "Estados Unidos" },
@@ -312,6 +316,7 @@ export default function Home() {
   // separada das buscas pra não confundir.
   const [saldoBuscador, setSaldoBuscador] = useState<number | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [planoAtual, setPlanoAtual] = useState<string>("teste");
   const [empresasDesbloqueadas, setEmpresasDesbloqueadas] =
     useState<Set<string>>(new Set());
   const [modalCompraAberto, setModalCompraAberto] = useState(false);
@@ -357,6 +362,7 @@ export default function Home() {
             const dadosOrg = await respostaOrg.json();
             org = dadosOrg.orgId ?? null;
             if (org) setOrgId(org);
+            if (dadosOrg.plano) setPlanoAtual(dadosOrg.plano);
           }
         } catch {
           // ignora — usa legado por usuario_id
@@ -659,14 +665,18 @@ export default function Home() {
     if (CONTATOS_BLOQUEADOS && !empresasDesbloqueadas.has(cnpj)) {
       return;
     }
-
+    // No Teste grátis, o lead seleciona até LIMITE_LEADS_TESTE da lista.
+    const ehTeste = planoAtual === "teste";
     setEmpresasSelecionadas((atual) => {
       const novo = new Set(atual);
       if (novo.has(cnpj)) {
         novo.delete(cnpj);
-      } else {
-        novo.add(cnpj);
+        return novo;
       }
+      if (ehTeste && atual.size >= LIMITE_LEADS_TESTE) {
+        return atual;
+      }
+      novo.add(cnpj);
       return novo;
     });
   };
@@ -3125,8 +3135,19 @@ export default function Home() {
                         onChange={alternarTodas}
                         className="w-4 h-4 accent-lime-400"
                       />
-                      {empresasSelecionadas.size} de{" "}
-                      {empresasEncontradas.length} selecionadas
+                      {planoAtual === "teste" ? (
+                        <span className="text-xs text-pipe-muted">
+                          {empresasSelecionadas.size} de {LIMITE_LEADS_TESTE} selecionadas
+                          {empresasSelecionadas.size >= LIMITE_LEADS_TESTE && (
+                            <span className="ml-2 text-amber-400">(limite do teste grátis)</span>
+                          )}
+                        </span>
+                      ) : (
+                        <>
+                          {empresasSelecionadas.size} de{" "}
+                          {empresasEncontradas.length} selecionadas
+                        </>
+                      )}
                       </label>
                       {empresasSelecionadas.size > 0 && (
                         <button

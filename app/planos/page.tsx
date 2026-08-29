@@ -36,10 +36,13 @@ const planos: Array<{
     descricao: "Para montar listas de prospecção com inteligência.",
     itens: [
       "250 empresas prontas por mês",
-      "ICP completo gerado por IA",
-      "Score 0–100 de aderência ao seu negócio",
-      "Fichas completas: CNPJ, porte, região",
-      "Listas persistentes + exportação CSV",
+      "15 gerações de lista por mês",
+      "ICP completo + Score 0–100 gerados por IA",
+      "Fichas: CNPJ, porte, região",
+      "25 abordagens de IA por mês",
+      "Exportação CSV pro CRM",
+      "— Sem Buscador de contatos",
+      "— Sem disparo em massa (é Gold+)",
     ],
     cta: "Assinar o Silver →",
   },
@@ -49,15 +52,17 @@ const planos: Array<{
     nome: "Gold",
     precoMensal: 297,
     precoAnual: 227,
-    descricao: "Para quem prospecta de verdade toda semana.",
+    descricao: "Para quem prospecta e DISPARA toda semana.",
     destaques: true,
     selo: "⭐ Mais escolhido",
     itens: [
       "Tudo do Silver, mais:",
       "400 empresas prontas por mês",
-      "🔎 400 buscas de e-mail verificado por mês",
-      "✍️ Primeiro e-mail escrito pela IA para cada lead",
-      "Abordagens personalizadas com o seu portfólio",
+      "🔎 Buscador de contatos (400 buscas/mês)",
+      "📞 50 telefones verificados do decisor",
+      "📨 Disparo em massa: 100 e-mails/dia",
+      "✍️ 100 abordagens de IA por mês",
+      "Até 3 usuários na mesma conta",
     ],
     cta: "Assinar o Gold →",
   },
@@ -71,10 +76,12 @@ const planos: Array<{
     itens: [
       "Tudo do Gold, mais:",
       "1.000 empresas prontas por mês",
-      "🔎 1.000 buscas de e-mail verificado por mês",
-      "Prioridade na geração de listas",
-      "Suporte prioritário via WhatsApp",
-      "= R$ 0,39 por lead com e-mail pronto",
+      "🔎 Buscador de contatos (1.000 buscas/mês)",
+      "📞 100 telefones verificados do decisor",
+      "📨 Disparo em massa: 300 e-mails/dia",
+      "✍️ 300 abordagens de IA por mês",
+      "Prioridade na fila + suporte prioritário",
+      "Até 6 usuários na mesma conta",
     ],
     cta: "Assinar o Platinum →",
   },
@@ -134,6 +141,16 @@ const planos: Array<{
 ];
 
 const faq = [
+  {
+    pergunta: "O que o teste grátis inclui?",
+    resposta:
+      "Você cria a conta sem cartão e ganha 1 lista com até 25 leads para explorar a plataforma de verdade: gera a lista, desbloqueia leads e testa abordagens de IA. Para escalar ou disparar campanhas, escolha um plano.",
+  },
+  {
+    pergunta: "Quem pode disparar e-mails em massa?",
+    resposta:
+      "O disparo de campanhas está nos planos Gold (100 e-mails/dia) e Platinum (300 e-mails/dia). No teste e no Silver você já gera a lista e escreve a abordagem com IA — o envio em massa é o que destrava no Gold.",
+  },
   {
     pergunta: "Precisa de cartão de crédito para começar?",
     resposta:
@@ -261,24 +278,30 @@ export default function Planos() {
 
   useEffect(() => {
     const status = new URLSearchParams(window.location.search).get("status");
-    if (status === "sucesso") {
-      setAvisoStatus({
-        tipo: "ok",
-        texto:
-          "🎉 Pagamento aprovado! Estamos ativando seu plano — recarregue a página em alguns segundos.",
-      });
-    } else if (status === "pendente") {
-      setAvisoStatus({
-        tipo: "pendente",
-        texto:
-          "⏳ Pagamento pendente. Se foi Pix, aguarde a confirmação de alguns minutos.",
-      });
-    } else if (status === "falhou") {
-      setAvisoStatus({
-        tipo: "falhou",
-        texto:
-          "😕 O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
-      });
+    const avisoStatusInicial:
+      | { tipo: "ok" | "pendente" | "falhou"; texto: string }
+      | null =
+      status === "sucesso"
+        ? {
+            tipo: "ok",
+            texto:
+              "🎉 Pagamento aprovado! Estamos ativando seu plano — recarregue a página em alguns segundos.",
+          }
+        : status === "pendente"
+          ? {
+              tipo: "pendente",
+              texto:
+                "⏳ Pagamento pendente. Se foi Pix, aguarde a confirmação de alguns minutos.",
+            }
+          : status === "falhou"
+            ? {
+                tipo: "falhou",
+                texto:
+                  "😕 O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
+              }
+            : null;
+    if (avisoStatusInicial) {
+      queueMicrotask(() => setAvisoStatus(avisoStatusInicial));
     }
 
     // Verifica se é admin
@@ -357,8 +380,8 @@ export default function Planos() {
         </h1>
 
         <p className="text-pipe-muted text-lg mt-4 max-w-2xl mx-auto">
-          Comece grátis com créditos de teste. Quando ver o resultado,
-          escolha um plano — sem fidelidade e sem letra miúda.
+          Teste grátis: 1 lista com até 25 leads, sem cartão. Quando ver o
+          resultado, escolha um plano — sem fidelidade e sem letra miúda.
         </p>
 
         {/* AVISO DE RETORNO DO PAGAMENTO */}
@@ -485,16 +508,15 @@ export default function Planos() {
             <span className="text-white font-semibold">
               R$ 1–6 por lead
             </span>{" "}
-            nas plataformas do segmento — e vêm sem e-mail escrito. No FP
-            Pipe,{" "}
+            e vêm sem e-mail escrito. No FP Pipe,{" "}
             <span className="text-pipe-lime font-semibold">
-              cada lead já sai com o primeiro e-mail redigido
+              cada lead já sai com o e-mail redigido
             </span>{" "}
-            — no Platinum, isso dá{" "}
+            e você{" "}
             <span className="text-white font-semibold">
-              R$ 0,39 por lead pronto
-            </span>
-            .
+              dispara a campanha inteira pelo Gold
+            </span>{" "}
+            — sem trocar de ferramenta.
           </p>
         </div>
       </section>

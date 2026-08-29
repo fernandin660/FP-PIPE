@@ -27,12 +27,12 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     nome: "Teste grátis",
     precoMensal: 0,
     precoAnualPorMes: 0,
-    empresasMes: 50,
-    listasMes: 2,
+    empresasMes: 25,
+    listasMes: 1,
     temBuscador: true,
-    buscasMes: 5,
+    buscasMes: 25,
     creditosTelefone: 0,
-    creditosAbordagem: 10,
+    creditosAbordagem: 2,
     internacional: false,
     usuariosInclusos: 1,
   },
@@ -130,6 +130,15 @@ export function duracaoDias(ciclo: Ciclo): number {
 
 export function podeConvidar(def: DefinicaoPlano): boolean {
   return def.usuariosInclusos > 1;
+}
+
+// Envio em massa de campanhas é um recurso Gold/Platinum. Teste e Silver
+// podem GERAR abordagens IA e testar, mas o disparo real fica para os
+// planos pagos avançados (Gold/Platinum e suas variantes internacionais).
+const PLANOS_COM_ENVIO: PlanoChave[] = ["gold", "platinum", "gold_intl", "platinum_intl"];
+
+export function podeEnviarCampanha(plano: PlanoChave): boolean {
+  return PLANOS_COM_ENVIO.includes(plano);
 }
 
 // ------------------------------------------------------------

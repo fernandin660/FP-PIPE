@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   if (gate.resposta) {
     return gate.resposta;
   }
-  const { orgId, usuarioId } = gate.ctx!;
+  const { orgId, usuarioId, acesso } = gate.ctx!;
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -76,6 +76,26 @@ export async function POST(request: Request) {
   // Já desbloqueado antes: não cobra de novo.
   if (empresa.contato_desbloqueado_em) {
     return NextResponse.json({ ok: true, jaDesbloqueado: true });
+  }
+
+  // No Teste grátis, o lead pode desbloquear no máximo 25 leads (mesmo
+  // que o saldo seja maior). Gold/Platinum não têm esse teto.
+  if (acesso.plano === "teste") {
+    const { count } = await admin
+      .from("companies")
+      .select("id", { count: "exact", head: true })
+      .eq("organizacao_id", orgId)
+      .not("contato_desbloqueado_em", "is", null);
+    if ((count ?? 0) >= 25) {
+      return NextResponse.json(
+        {
+          erro:
+            "Você atingiu o limite de 25 leads no teste grátis. Assine um plano para desbloquear mais.",
+          motivo: "limite_leads_teste",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // ============================================================
