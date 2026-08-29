@@ -8,7 +8,7 @@ function emailValido(valor: unknown): valor is string {
 export async function POST(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
-  const { supabase, orgId, usuarioId } = gate.ctx!;
+  const { supabase, orgId } = gate.ctx!;
   const corpo = (await request.json().catch(() => null)) as { campanhaId?: unknown } | null;
   const campanhaId = String(corpo?.campanhaId ?? "");
   const { data: campanha } = await supabase.from("campanhas").select("id, lista_id").eq("id", campanhaId).eq("organizacao_id", orgId).maybeSingle();
@@ -39,8 +39,7 @@ export async function POST(request: Request) {
     }
   }
   if (linhas.length) {
-    const limite = usuarioId === "f395a6b1-9d16-4b80-b97a-8dfdf13ededa" ? 10000 : 100;
-    await supabase.from("campanha_destinatarios").upsert(linhas.slice(0, limite), { onConflict: "campanha_id,email", ignoreDuplicates: true });
+    await supabase.from("campanha_destinatarios").upsert(linhas, { onConflict: "campanha_id,email", ignoreDuplicates: true });
   }
   const emailsValidos = new Set(linhas.map((linha) => linha.email));
   const { data: atuais } = await supabase.from("campanha_destinatarios").select("id, email").eq("campanha_id", campanhaId).eq("organizacao_id", orgId);

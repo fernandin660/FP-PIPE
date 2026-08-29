@@ -5,6 +5,7 @@ import { descriptografarToken, limparVariavelOAuth } from "../../../../lib/email
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+const USUARIO_TESTE = "f395a6b1-9d16-4b80-b97a-8dfdf13ededa";
 
 function base64Url(valor: string): string {
   return Buffer.from(valor).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -43,25 +44,53 @@ async function obterToken(provedor: string, refreshToken: string): Promise<strin
 export async function POST(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
-  const { supabase, usuarioId, orgId } = gate.ctx!;
-  const admin = criarClienteSupabaseAdmin();
-  if (!admin) return NextResponse.json({ erro: "Banco indisponível." }, { status: 503 });
+  const { supabase, usuarioId, orgId, acesso } = gate.ctx!;
+  const clienteAdmin = criarClienteSupabaseAdmin();
+  if (!clienteAdmin) return NextResponse.json({ erro: "Banco indisponível." }, { status: 503 });
+  const adminSeguro = clienteAdmin;
   const corpo = (await request.json().catch(() => null)) as { campanhaId?: unknown } | null;
   const campanhaId = String(corpo?.campanhaId ?? "");
   const { data: campanha } = await supabase.from("campanhas").select("id, assunto, corpo, status").eq("id", campanhaId).eq("organizacao_id", orgId).maybeSingle();
   if (!campanha) return NextResponse.json({ erro: "Campanha não encontrada." }, { status: 404 });
   if (!campanha.assunto || !campanha.corpo) return NextResponse.json({ erro: "Gere e salve a mensagem antes de enviar." }, { status: 400 });
 
-  const { data: conexao } = await admin.from("email_conexoes").select("email, provedor, account_id, refresh_token_criptografado").eq("usuario_id", usuarioId).maybeSingle();
+  const { data: conexao } = await adminSeguro.from("email_conexoes").select("email, provedor, account_id, refresh_token_criptografado").eq("usuario_id", usuarioId).maybeSingle();
   if (!conexao) return NextResponse.json({ erro: "Conecte Gmail, Outlook ou Zoho antes de enviar." }, { status: 400 });
   const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).in("status", ["nao_contatado", "falhou"]).limit(25);
   if (!destinatarios?.length) return NextResponse.json({ erro: "A campanha não possui destinatários pendentes." }, { status: 400 });
+
+  const limiteDiario = usuarioId === USUARIO_TESTE
+    ? 10000
+    : acesso.plano.toLowerCase().includes("platinum") ? 300 : 100;
+  const dataUso = new Date().toISOString().slice(0, 10);
+
+  async function reservarEnvio(): Promise<boolean> {
+    const { data: atual } = await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle();
+    const enviados = atual?.enviados ?? 0;
+    if (enviados >= limiteDiario) return false;
+    if (!atual) {
+      const { error } = await adminSeguro.from("uso_envios_email").insert({ organizacao_id: orgId, usuario_id: usuarioId, data: dataUso, enviados: 1 });
+      return !error;
+    }
+    const { data: atualizado } = await adminSeguro.from("uso_envios_email").update({ enviados: enviados + 1, atualizado_em: new Date().toISOString() }).eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).lt("enviados", limiteDiario).select("enviados").maybeSingle();
+    return Boolean(atualizado);
+  }
+
+  async function devolverEnvio() {
+    const { data: atual } = await adminSeguro.from("uso_envios_email").select("enviados, falhas").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle();
+    if ((atual?.enviados ?? 0) > 0) await adminSeguro.from("uso_envios_email").update({ enviados: atual!.enviados - 1, falhas: (atual?.falhas ?? 0) + 1, atualizado_em: new Date().toISOString() }).eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso);
+  }
 
   let token: string;
   try { token = await obterToken(conexao.provedor, descriptografarToken(conexao.refresh_token_criptografado)); } catch (erro) { return NextResponse.json({ erro: erro instanceof Error ? erro.message : "Conexão de e-mail inválida." }, { status: 400 }); }
   await supabase.from("campanhas").update({ status: "enviando", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
   let enviados = 0;
+  let limiteAtingido = false;
   for (const destinatario of destinatarios) {
+    if (!(await reservarEnvio())) {
+      limiteAtingido = true;
+      break;
+    }
     const assunto = substituir(campanha.assunto, destinatario);
     const corpoEmail = substituir(campanha.corpo, destinatario);
     try {
@@ -79,15 +108,16 @@ export async function POST(request: Request) {
       await supabase.from("campanha_destinatarios").update({ status: "enviado", enviado_em: new Date().toISOString(), erro: null }).eq("id", destinatario.id);
       enviados++;
     } catch (erroEnvio) {
+      await devolverEnvio();
       await supabase.from("campanha_destinatarios").update({ status: "falhou", erro: erroEnvio instanceof Error ? erroEnvio.message : "Falha no envio." }).eq("id", destinatario.id);
     }
   }
-  await supabase.from("campanhas").update({ status: enviados === destinatarios.length ? "enviada" : "pronta", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
+  await supabase.from("campanhas").update({ status: !limiteAtingido && enviados === destinatarios.length ? "enviada" : "pronta", atualizado_em: new Date().toISOString() }).eq("id", campanhaId);
   const { count: pendentes } = await supabase
     .from("campanha_destinatarios")
     .select("id", { count: "exact", head: true })
     .eq("campanha_id", campanhaId)
     .eq("organizacao_id", orgId)
     .eq("status", "nao_contatado");
-  return NextResponse.json({ enviados, falhas: destinatarios.length - enviados, pendentes: pendentes ?? 0 });
+  return NextResponse.json({ enviados, falhas: destinatarios.length - enviados, pendentes: pendentes ?? 0, limiteAtingido, limiteDiario, enviosRestantesHoje: Math.max(0, limiteDiario - ((await adminSeguro.from("uso_envios_email").select("enviados").eq("organizacao_id", orgId).eq("usuario_id", usuarioId).eq("data", dataUso).maybeSingle()).data?.enviados ?? 0)) });
 }

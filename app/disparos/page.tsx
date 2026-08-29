@@ -176,6 +176,8 @@ export default function PaginaDisparos() {
       let totalEnviado = 0;
       let totalFalha = 0;
       let pendentes = 1;
+      let limiteAtingido = false;
+      let enviosRestantesHoje: number | null = null;
       while (pendentes > 0) {
         const resposta = await fetch("/api/campanhas/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campanhaId: campanha.id }) });
         const dados = await resposta.json();
@@ -183,10 +185,15 @@ export default function PaginaDisparos() {
         totalEnviado += dados.enviados ?? 0;
         totalFalha += dados.falhas ?? 0;
         pendentes = dados.pendentes ?? 0;
+        limiteAtingido = Boolean(dados.limiteAtingido);
+        enviosRestantesHoje = typeof dados.enviosRestantesHoje === "number" ? dados.enviosRestantesHoje : enviosRestantesHoje;
         setMensagem(`Enviando... ${totalEnviado} enviado(s), ${pendentes} pendente(s).`);
+        if (limiteAtingido) break;
       }
-      setMensagem(totalFalha === 0
-        ? `✅ E-mails disparados com sucesso: ${totalEnviado} enviado(s).`
+      setMensagem(limiteAtingido
+        ? `Limite diário atingido. ${totalEnviado} enviado(s); ${pendentes} destinatário(s) ficaram pendentes.`
+        : totalFalha === 0
+        ? `✅ E-mails disparados com sucesso: ${totalEnviado} enviado(s). Restam ${enviosRestantesHoje ?? "--"} envios hoje.`
         : `Campanha concluída: ${totalEnviado} enviado(s), ${totalFalha} falha(s).`);
       setCampanha((atual) => atual ? { ...atual, status: totalFalha === 0 ? "enviada" : "pronta" } : atual);
     } catch (erroEnvio) {

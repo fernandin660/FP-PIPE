@@ -13,7 +13,6 @@ type CorpoEdicaoCampanha = {
   corpo?: unknown;
 };
 
-const USUARIO_TESTE = "f395a6b1-9d16-4b80-b97a-8dfdf13ededa";
 
 function emailValido(valor: unknown): valor is string {
   return typeof valor === "string" &&
@@ -121,8 +120,7 @@ export async function POST(request: Request) {
   if (error || !campanha) return NextResponse.json({ erro: "Não foi possível criar a campanha." }, { status: 500 });
 
   if (destinatarios.length > 0) {
-    const limite = usuarioId === USUARIO_TESTE ? 10000 : 100;
-    await supabase.from("campanha_destinatarios").insert(destinatarios.slice(0, limite).map((d) => ({ ...d, campanha_id: campanha.id })));
+    await supabase.from("campanha_destinatarios").insert(destinatarios.map((d) => ({ ...d, campanha_id: campanha.id })));
   }
   return NextResponse.json({ campanha, destinatarios: destinatarios.length });
 }
