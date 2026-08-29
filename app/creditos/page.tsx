@@ -39,7 +39,7 @@ const MOEDAS_INICIAIS: Moeda[] = [
     icone: "📞",
     nome: "Créditos de telefone",
     descricao:
-      "Cada telefone verificado gasta 10 créditos. Gold inclui 500 (50 telefones), Platinum 1000 (100 telefones).",
+      "Cada telefone verificado gasta 1 crédito. Gold inclui 50 telefones e Platinum 100 telefones.",
     tabela: "creditos_telefone",
     saldo: null,
   },

@@ -1,8 +1,8 @@
 -- ============================================================
 -- Tabela de créditos de telefone (moeda separada)
--- Cada telefone verificado custa 10 créditos
--- Gold: 500 créditos = 50 telefones
--- Platinum: 1000 créditos = 100 telefones
+-- Cada telefone verificado custa 1 crédito
+-- Gold: 50 créditos = 50 telefones
+-- Platinum: 100 créditos = 100 telefones
 -- ============================================================
 
 create table if not exists public.creditos_telefone (
@@ -34,7 +34,7 @@ create policy "Service role gerencia creditos_telefone"
   with check (true);
 
 -- Conceder saldo inicial de telefone para assinaturas existentes
--- Gold: 500, Platinum: 1000, Gold INTL: 500, Platinum INTL: 1000
+-- Gold: 50, Platinum: 100, Gold INTL: 50, Platinum INTL: 100
 do $$
 declare
   r record;
@@ -48,7 +48,7 @@ begin
       and a.plano in ('gold', 'platinum', 'gold_intl', 'platinum_intl')
   loop
     insert into public.creditos_telefone (organizacao_id, saldo)
-    values (r.org_id, case when r.plano like 'platinum%' then 1000 else 500 end)
+     values (r.org_id, case when r.plano like 'platinum%' then 100 else 50 end)
     on conflict (organizacao_id) do nothing;
   end loop;
 end $$;

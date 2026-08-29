@@ -375,6 +375,7 @@ function BuscadorContent() {
 
   const [objetivoContato, setObjetivoContato] = useState("");
   const [canalContato, setCanalContato] = useState("");
+  const [orientacoesContato, setOrientacoesContato] = useState("");
   const [gerandoAbordagem, setGerandoAbordagem] = useState(false);
   const [erroAbordagem, setErroAbordagem] = useState("");
   const [abordagemContato, setAbordagemContato] = useState<{
@@ -993,8 +994,7 @@ function BuscadorContent() {
     if (
       !resultado?.id ||
       gerandoAbordagem ||
-      !objetivoContato ||
-      !canalContato
+       !objetivoContato
     ) {
       return;
     }
@@ -1012,7 +1012,8 @@ function BuscadorContent() {
           contatoId: resultado.id,
           produto: "__portfolio__",
           objetivo: objetivoContato,
-          canal: canalContato,
+           canal: "email",
+           instrucoes: orientacoesContato,
         }),
       });
 
@@ -1104,7 +1105,7 @@ function BuscadorContent() {
                 📞 Telefones:{" "}
                 <span className="text-pipe-lime font-bold">{saldoTelefones}</span>
                 <span className="text-[10px] text-pipe-muted ml-1">
-                  ({Math.floor(saldoTelefones / 10)} disponíveis)
+                  ({saldoTelefones} disponíveis)
                 </span>
               </p>
             )}
@@ -1113,7 +1114,7 @@ function BuscadorContent() {
           <p className="text-pipe-muted mt-3 max-w-2xl">
             Busque uma empresa para ver telefones e e-mails gerais (grátis).{" "}
             Depois, cole o LinkedIn de um funcionário para buscar o{" "}
-            <strong className="text-gray-200">telefone pessoal</strong> (10 créditos).
+             <strong className="text-gray-200">telefone pessoal</strong> (1 crédito).
           </p>
 
           <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
@@ -1249,7 +1250,7 @@ function BuscadorContent() {
                 <p className="text-[11px] text-pipe-muted mb-3">
                   Informe o nome da pessoa. O LinkedIn é opcional (melhora a precisão).
                   {saldoTelefones !== null && saldoTelefones > 0
-                    ? ` Custo: 10 créditos de telefone (você tem ${saldoTelefones}).`
+                    ? ` Custo: 1 crédito de telefone (você tem ${saldoTelefones}).`
                     : " Sempre grátis se não encontrar telefone."}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1278,7 +1279,7 @@ function BuscadorContent() {
                   disabled={buscandoPessoa}
                   className="mt-3 bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
                 >
-                  {buscandoPessoa ? "🔍 Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "📞 Buscar pessoa (10 créd)" : "📞 Buscar pessoa (grátis se não achar tel.)"}
+                   {buscandoPessoa ? "🔍 Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "📞 Buscar pessoa (1 créd)" : "📞 Buscar pessoa (grátis se não achar tel.)"}
                 </button>
 
                 {erroPessoa && (
@@ -1540,6 +1541,24 @@ function BuscadorContent() {
                                 Nenhum telefone ou e-mail encontrado. Tente informar o LinkedIn para melhorar a busca.
                               </p>
                             )}
+
+                            <section className="border-t border-pipe-border pt-4">
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">✍️ Gerar abordagem por e-mail</p>
+                              <select value={objetivoContato} onChange={(e) => setObjetivoContato(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white">
+                                <option value="">Escolha a finalidade...</option>
+                                <option value="gerar_interesse">Gerar interesse</option>
+                                <option value="agendar_reuniao">Agendar reunião</option>
+                                <option value="descobrir_responsavel">Descobrir o responsável</option>
+                                <option value="fazer_diagnostico">Fazer diagnóstico</option>
+                                <option value="apresentar_solucao">Apresentar solução</option>
+                                <option value="follow_up">Fazer follow-up</option>
+                                <option value="reativar_contato">Reativar contato</option>
+                              </select>
+                              <textarea value={orientacoesContato} onChange={(e) => setOrientacoesContato(e.target.value)} placeholder="Orientações para a IA (opcional): tom, oferta, contexto..." className="w-full min-h-20 mt-2 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white" />
+                              <button onClick={() => void gerarAbordagemContato()} disabled={!objetivoContato || gerandoAbordagem || !resultadoPessoa.id} className="mt-2 bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerandoAbordagem ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
+                              {erroAbordagem && <p className="mt-2 text-xs text-red-400">{erroAbordagem}</p>}
+                              {abordagemContato && <div className="mt-3 rounded-lg bg-pipe-dark border border-pipe-border p-3 space-y-2"><p className="text-sm font-semibold text-white">{abordagemContato.assunto}</p><p className="text-sm text-gray-300 whitespace-pre-wrap">{abordagemContato.conteudo}</p><button onClick={() => void copiarAbordagem()} className="text-xs text-pipe-lime hover:underline">{copiadoAbordagem ? "Copiado" : "Copiar e-mail"}</button></div>}
+                            </section>
                           </div>
                         </aside>
                       </div>

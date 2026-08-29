@@ -184,7 +184,7 @@ export async function POST(requisicao: Request) {
     : "both";
 
   const precisaTelefone = tipo === "telefone" || tipo === "both";
-  const custoTelefone = 10; // cada telefone verificado custa 10 créditos de telefone
+  const custoTelefone = 1; // cada telefone verificado custa 1 crédito de telefone
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {

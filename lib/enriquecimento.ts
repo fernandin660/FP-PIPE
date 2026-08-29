@@ -685,7 +685,7 @@ function adicionarSeNovo(telefones: string[], novo: string, fontes: string[], fo
 //  3. Maps → telefone + website da empresa
 //  4. Casa dos Dados → acha CNPJ pelo nome
 //  5. Brasil API → telefone do responsável legal
-//  6. MillionPhones → telefone via LinkedIn (pago, 10 créditos)
+//  6. MillionPhones → telefone via LinkedIn (pago, 1 crédito)
 //  7. Salva no cache
 // ============================================================
 
