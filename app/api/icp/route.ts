@@ -82,7 +82,7 @@ ${produtosServicos || "Não informado"}
       const dados = await chamarIa(prompt, {
         maxTokens: 800,
         temperature: 0.7,
-        timeoutMs: 60000,
+        timeoutMs: 45000,
       });
 
       textoResposta = dados.response;
@@ -92,7 +92,20 @@ ${produtosServicos || "Não informado"}
         "OpenAI falhou:",
         erroIA instanceof Error ? erroIA.message : erroIA
       );
+
+      // O Ollama roda apenas LOCALMENTE (127.0.0.1). Em produção (Vercel)
+      // esse endpoint não existe; tentar cair nele penduraria a função e a
+      // Cloudflare responderia 504. Em produção, falha rápido.
+      const emProducao =
+        process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+      if (emProducao) {
+        throw new Error("IA indisponível no momento. Tente novamente.");
+      }
+
       console.log("Usando Ollama local...");
+
+      const controle = new AbortController();
+      const temporizador = setTimeout(() => controle.abort(), 30000);
 
       const resposta = await fetch("http://127.0.0.1:11434/api/generate", {
         method: "POST",
@@ -106,7 +119,10 @@ ${produtosServicos || "Não informado"}
           stream: false,
           format: "json",
         }),
+        signal: controle.signal,
       });
+
+      clearTimeout(temporizador);
 
       if (!resposta.ok) {
         throw new Error(`Erro do Ollama: ${resposta.status}`);

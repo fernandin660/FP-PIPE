@@ -68,10 +68,8 @@ function chamarOllama(prompt: string): Promise<{ response: string }> {
       reject(erro);
     });
 
-    req.setTimeout(600000, () => {
-      req.destroy(
-        new Error("O Ollama demorou mais de 10 minutos.")
-      );
+    req.setTimeout(30000, () => {
+      req.destroy(new Error("O Ollama demorou mais de 30 segundos."));
     });
 
     req.write(body);
@@ -250,7 +248,7 @@ Retorne APENAS um JSON válido:
       respostaIA = await chamarIa(prompt, {
         maxTokens: 2500,
         temperature: 0.7,
-        timeoutMs: 120000,
+        timeoutMs: 45000,
       });
       console.log("Resposta recebida da OpenAI!");
     } catch (erroOpenAI) {
@@ -258,6 +256,18 @@ Retorne APENAS um JSON válido:
         "OpenAI falhou:",
         erroOpenAI instanceof Error ? erroOpenAI.message : erroOpenAI
       );
+
+      // O Ollama roda apenas LOCALMENTE (127.0.0.1). Em produção (Vercel)
+      // esse endpoint não existe, então tentar cair nele deixaria a função
+      // pendurada e a Cloudflare responderia 504. Em produção, falha rápido.
+      const emProducao =
+        process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+      if (emProducao) {
+        throw new Error(
+          "A IA de geração está indisponível no momento. Tente novamente em instantes."
+        );
+      }
+
       console.log("Usando Ollama local...");
       respostaIA = await chamarOllama(prompt);
       console.log("Resposta recebida do Ollama!");
