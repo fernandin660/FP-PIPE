@@ -6,6 +6,7 @@ import {
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { registrarUso } from "../../../lib/avisos";
 import { resolverOrg } from "../../../lib/org";
+import { emailValido, sanitizarEmail } from "../../../lib/emails";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   const nomePessoa = (corpo?.nome ?? "").trim() || null;
   const cargoPessoa = (corpo?.cargo ?? "").trim() || null;
-  const emailPessoa = (corpo?.email ?? "").trim() || null;
+  const emailPessoa = emailValido(corpo?.email) ? (sanitizarEmail(corpo?.email) ?? null) : null;
   const empresaNome = (corpo?.empresa ?? "").trim();
   const linkedinUrl = (corpo?.linkedinUrl ?? "")
     .trim()
@@ -219,8 +220,8 @@ export async function POST(req: NextRequest) {
       if (respostaReceita.ok) {
         const d = (await respostaReceita.json()) as DadosMinhaReceita;
 
-        if (d.email && d.email.includes("@")) {
-          emailsExtra.push(d.email.trim());
+        if (emailValido(d.email)) {
+          emailsExtra.push(sanitizarEmail(d.email)!);
         }
 
         for (const t of [d.ddd_telefone_1, d.ddd_telefone_2]) {

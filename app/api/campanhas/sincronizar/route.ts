@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
-
-function emailValido(valor: unknown): valor is string {
-  return typeof valor === "string" && /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(valor.trim()) && !/\.(webp|png|jpe?g|gif|svg|css|js)$/i.test(valor.trim()) && !valor.toLowerCase().includes("category_");
-}
+import { emailValido } from "../../../../lib/emails";
 
 export async function POST(request: Request) {
   const gate = await exigirAcesso();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { registrarUso } from "../../../lib/avisos";
+import { emailValido, sanitizarEmail } from "../../../lib/emails";
 
 type RespostaReceita = {
   email?: string | null;
@@ -87,10 +88,7 @@ export async function POST(req: NextRequest) {
 
   const receita = (await resposta.json()) as RespostaReceita;
 
-  const emailEncontrado =
-    typeof receita.email === "string" && receita.email.includes("@")
-      ? receita.email.trim()
-      : null;
+  const emailEncontrado = emailValido(receita.email) ? sanitizarEmail(receita.email) : null;
 
   const telefoneEncontrado =
     telefoneUtil(receita.ddd_telefone_1) ?? telefoneUtil(receita.ddd_telefone_2);

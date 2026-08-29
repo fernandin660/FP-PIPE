@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { emailValido } from "../../../../lib/emails";
 
 export async function POST(requisicao: Request) {
   const gate = await exigirAcesso();
@@ -50,10 +51,7 @@ export async function POST(requisicao: Request) {
   }
 
   const emailBruto = texto(dados.email, 200);
-  const email =
-    emailBruto && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailBruto)
-      ? emailBruto.toLowerCase()
-      : null;
+  const email = emailValido(emailBruto) ? emailBruto.trim().toLowerCase() : null;
 
   if (!email) {
     return NextResponse.json({ ok: true, capturado: false });

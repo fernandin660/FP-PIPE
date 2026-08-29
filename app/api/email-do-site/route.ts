@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { emailValido } from "../../../lib/emails";
 
 const MAX_BYTES_HTML = 300 * 1024;
 const DOMINIOS_LIXO = [
@@ -161,12 +162,13 @@ export async function POST(request: Request) {
 
     const html = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
     const emails = extrairEmails(html, alvo.hostname);
+    const emailValidoFinal = emailValido(emails[0]) ? emails[0] : null;
 
-    if (emails.length === 0) {
+    if (!emailValidoFinal) {
       return NextResponse.json(
         {
           erro:
-            "Não achamos nenhum e-mail público na página inicial desse site.",
+            "Não achamos nenhum e-mail público válido na página inicial desse site.",
           motivo: "sem_email",
         },
         { status: 404 }
@@ -176,11 +178,11 @@ export async function POST(request: Request) {
     // Persiste o melhor e-mail na ficha da empresa (linha é do usuário).
     await supabase
       .from("companies")
-      .update({ email: emails[0], atualizado_em: new Date().toISOString() })
+      .update({ email: emailValidoFinal, atualizado_em: new Date().toISOString() })
       .eq("usuario_id", usuarioId)
       .eq("cnpj", cnpj);
 
-    return NextResponse.json({ email: emails[0], extras: emails.slice(1, 4) });
+    return NextResponse.json({ email: emailValidoFinal, extras: emails.slice(1, 4) });
   } catch {
     return NextResponse.json(
       { erro: "Não conseguimos analisar o site agora." },

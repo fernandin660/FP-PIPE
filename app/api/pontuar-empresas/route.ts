@@ -4,6 +4,7 @@ import { chamarIa } from "../../../lib/ia";
 import { registrarUso } from "../../../lib/avisos";
 import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
+import { emailValido, sanitizarEmail } from "../../../lib/emails";
 
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
@@ -154,10 +155,7 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
         ? dados.nome_fantasia.trim()
         : undefined,
     telefone: telefonesUnicos.length > 0 ? telefonesUnicos.join(" / ") : null,
-    email:
-      typeof emailBruto === "string" && emailBruto.includes("@")
-        ? emailBruto
-        : null,
+    email: emailValido(emailBruto) ? (sanitizarEmail(emailBruto) ?? null) : null,
     decisorNome: decisor?.nome,
     decisorCargo: decisor?.cargo,
   };

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
+import { filtrarEmails } from "../../../lib/emails";
 import {
   buscarContatosNoSite,
   buscarDadosEmpresaGoogle,
@@ -44,11 +45,11 @@ async function enriquecerEmpresa(empresa: Empresa, admin: NonNullable<ReturnType
     ...(maps.telefone ? [maps.telefone] : []),
     ...site.telefones,
   ]);
-  const emails = unicos([
+  const emails = filtrarEmails([
     ...(empresa.emails_extra ?? []),
     ...(empresa.email ? [empresa.email] : []),
     ...site.emails,
-  ]).filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  ]);
 
   await admin.from("companies").update({
     website,
