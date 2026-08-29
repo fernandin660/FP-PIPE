@@ -239,6 +239,10 @@ export async function POST(requisicao: Request) {
         saldoTelefoneCache = telCache?.saldo ?? 0;
       }
 
+      if (precisaTelefone && saldoTelefoneCache < custoTelefone) {
+        return NextResponse.json({ erro: "Você não possui créditos de telefone suficientes.", motivo: "sem_creditos_telefone", saldoTelefones: saldoTelefoneCache }, { status: 403 });
+      }
+
       const contatoCache = {
         linkedin_url: linkedinNormalizado,
         nome: cacheHit.nome,
@@ -340,6 +344,10 @@ export async function POST(requisicao: Request) {
       .eq("organizacao_id", orgId)
       .maybeSingle();
     saldoTelefone = telAtual?.saldo ?? 0;
+  }
+
+  if (precisaTelefone && saldoTelefone < custoTelefone) {
+    return NextResponse.json({ erro: "Você não possui créditos de telefone suficientes.", motivo: "sem_creditos_telefone", saldoTelefones: saldoTelefone }, { status: 403 });
   }
 
   // Busca: LinkedIn URL + empresa + nome (o que tiver)
