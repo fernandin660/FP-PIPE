@@ -9,6 +9,7 @@ create table if not exists public.campanhas (
   nome text not null,
   assunto text,
   corpo text,
+  objetivo text not null default 'gerar_interesse',
   geracoes_usadas integer not null default 0 check (geracoes_usadas between 0 and 3),
   status text not null default 'rascunho' check (status in ('rascunho','pronta','enviando','enviada','cancelada')),
   criado_em timestamptz not null default now(),
@@ -36,6 +37,7 @@ create table if not exists public.campanha_destinatarios (
 alter table public.campanha_destinatarios add column if not exists nome text;
 alter table public.campanha_destinatarios add column if not exists empresa text;
 alter table public.campanha_destinatarios add column if not exists cargo text;
+alter table public.campanhas add column if not exists objetivo text not null default 'gerar_interesse';
 
 create index if not exists campanhas_org_idx on public.campanhas (organizacao_id, criado_em desc);
 create index if not exists campanha_destinatarios_campanha_idx on public.campanha_destinatarios (campanha_id, status);

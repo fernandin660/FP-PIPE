@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   const { data } = await supabase
     .from("campanhas")
-    .select("id, lista_id, nome, assunto, corpo, geracoes_usadas, status, criado_em, atualizado_em")
+    .select("id, lista_id, nome, assunto, corpo, objetivo, geracoes_usadas, status, criado_em, atualizado_em")
     .eq("organizacao_id", orgId)
     .eq("lista_id", listaId)
     .maybeSingle();
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
   const { data: existente } = await supabase
     .from("campanhas")
-    .select("id, lista_id, nome, assunto, corpo, geracoes_usadas, status")
+    .select("id, lista_id, nome, assunto, corpo, objetivo, geracoes_usadas, status")
     .eq("organizacao_id", orgId)
     .eq("lista_id", listaId)
     .maybeSingle();
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
   const { data: campanha, error } = await supabase
     .from("campanhas")
     .insert({ organizacao_id: orgId, usuario_id: usuarioId, lista_id: listaId, nome: nome || `Campanha - ${lista.nome}` })
-    .select("id, lista_id, nome, assunto, corpo, geracoes_usadas, status")
+    .select("id, lista_id, nome, assunto, corpo, objetivo, geracoes_usadas, status")
     .single();
   if (error || !campanha) return NextResponse.json({ erro: "Não foi possível criar a campanha." }, { status: 500 });
 

@@ -14,6 +14,7 @@ type Campanha = {
   nome: string;
   assunto: string | null;
   corpo: string | null;
+  objetivo: string;
   geracoes_usadas: number;
   status: string;
 };
@@ -24,6 +25,7 @@ export default function PaginaDisparos() {
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [destinatarios, setDestinatarios] = useState(0);
   const [instrucoes, setInstrucoes] = useState("");
+  const [objetivo, setObjetivo] = useState("gerar_interesse");
   const [assunto, setAssunto] = useState("");
   const [corpo, setCorpo] = useState("");
   const [perfil, setPerfil] = useState<PerfilVendedor | null>(null);
@@ -75,6 +77,7 @@ export default function PaginaDisparos() {
     setCampanha(null);
     setAssunto("");
     setCorpo("");
+    setObjetivo("gerar_interesse");
     setMensagem("");
     setErro("");
     if (!id) return;
@@ -101,6 +104,7 @@ export default function PaginaDisparos() {
       }
       setAssunto(dados.campanha?.assunto ?? "");
       setCorpo(dados.campanha?.corpo ?? "");
+      setObjetivo(dados.campanha?.objetivo ?? "gerar_interesse");
     } catch (erroBusca) {
       setErro(erroBusca instanceof Error ? erroBusca.message : "Falha ao carregar campanha.");
     } finally {
@@ -134,7 +138,7 @@ export default function PaginaDisparos() {
       const resposta = await fetch("/api/campanhas/gerar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campanhaId: campanha.id, instrucoes }),
+        body: JSON.stringify({ campanhaId: campanha.id, instrucoes, objetivo }),
       });
       const dados = await resposta.json();
       if (!resposta.ok) throw new Error(dados.erro ?? "Não foi possível gerar a abordagem.");
@@ -220,6 +224,7 @@ export default function PaginaDisparos() {
     setDestinatarios(0);
     setAssunto("");
     setCorpo("");
+    setObjetivo("gerar_interesse");
     setInstrucoes("");
     setMensagem("");
     setErro("");
@@ -257,6 +262,16 @@ export default function PaginaDisparos() {
             <h2 className="font-semibold text-lg">Mensagem da campanha</h2>
             <span className="text-xs rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1">{campanha.geracoes_usadas}/3 gerações usadas</span>
           </div>
+          <label className="block text-xs uppercase tracking-wide text-pipe-muted">Finalidade do e-mail</label>
+          <select value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white">
+            <option value="gerar_interesse">Gerar interesse e iniciar conversa</option>
+            <option value="agendar_reuniao">Agendar reunião</option>
+            <option value="descobrir_responsavel">Descobrir o responsável</option>
+            <option value="fazer_diagnostico">Fazer diagnóstico</option>
+            <option value="apresentar_solucao">Apresentar solução</option>
+            <option value="follow_up">Fazer follow-up</option>
+            <option value="reativar_contato">Reativar contato</option>
+          </select>
           <textarea value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="Instruções opcionais para a IA..." className="w-full min-h-20 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white" />
           <button onClick={() => void gerar()} disabled={gerando || campanha.geracoes_usadas >= 3 || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerando ? "Gerando..." : campanha.geracoes_usadas >= 3 ? "Limite de gerações atingido" : "Gerar abordagem (1 crédito)"}</button>
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
