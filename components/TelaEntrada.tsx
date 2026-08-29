@@ -229,7 +229,7 @@ export default function TelaEntrada() {
           </h2>
 
           <p className="text-pipe-muted text-sm mt-2">
-            Crie sua conta grátis e ganhe 5 créditos para testar.{" "}
+            Crie sua conta grátis: 1 lista com até 25 leads pra testar de verdade.{" "}
             <a
               href="/planos"
               className="text-pipe-blue hover:underline font-medium"
@@ -287,7 +287,7 @@ export default function TelaEntrada() {
                 placeholder={
                   modo === "entrar"
                     ? "Sua senha"
-                    : "Crie uma senha (8+ caracteres, com letra e número)"
+                    : "Crie uma senha: 8+ carac., com maiúscula, minúscula, número e símbolo"
                 }
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
