@@ -150,13 +150,26 @@ export interface AcessoUsuario {
 
 export async function avaliarAcesso(
   supabase: ClienteServidor,
-  usuarioId: string
+  usuarioId: string,
+  orgId?: string
 ): Promise<AcessoUsuario> {
-  const { data } = await supabase
-    .from("assinaturas")
-    .select("plano, status, renova_em")
-    .eq("usuario_id", usuarioId)
-    .maybeSingle();
+  // O plano pertence à ORGANIZAÇÃO (assinatura salva por organizacao_id),
+  // não ao usuário individual. Membros de uma org participante devem herdar
+  // o plano pago da empresa. usuario_id é apenas fallback para contas
+  // ainda não associadas a uma organização.
+  const whereOrg = orgId
+    ? supabase
+        .from("assinaturas")
+        .select("plano, status, renova_em")
+        .eq("organizacao_id", orgId)
+        .maybeSingle()
+    : supabase
+        .from("assinaturas")
+        .select("plano, status, renova_em")
+        .eq("usuario_id", usuarioId)
+        .maybeSingle();
+
+  const { data } = await whereOrg;
 
   const chavePlano = ((data?.plano as PlanoChave) || "teste") as PlanoChave;
   const def = DEFINICAO_PLANOS[chavePlano] ?? DEFINICAO_PLANOS.teste;

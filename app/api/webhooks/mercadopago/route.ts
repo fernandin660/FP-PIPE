@@ -13,7 +13,14 @@ import crypto from "crypto";
 
 function validarAssinaturaMp(req: Request, dataId: string): boolean {
   const segredo = process.env.MP_WEBHOOK_SECRET;
-  if (!segredo) return true;
+  // Segurança: sem segredo configurado, falha fechado.
+  // Nunca processa um webhook sem validar a assinatura.
+  if (!segredo) {
+    console.warn(
+      "MP_WEBHOOK_SECRET ausente: webhook rejeitado por segurança."
+    );
+    return false;
+  }
 
   const assinatura = req.headers.get("x-signature") || "";
   const requestId = req.headers.get("x-request-id") || "";
@@ -123,9 +130,20 @@ export async function POST(req: Request) {
   // Verifica se já existe assinatura ativa pra esta org → é RENOVAÇÃO
   const { data: assinaturaExistente } = await admin
     .from("assinaturas")
-    .select("plano, status, renova_em")
+    .select("plano, status, renova_em, mp_payment_id")
     .eq("organizacao_id", orgId)
     .maybeSingle();
+
+  // Idempotência: se este pagamento já foi processado (retry de webhook
+  // da Mercado Pago), não concede créditos/renova novamente.
+  if (assinaturaExistente?.mp_payment_id === idPagamento) {
+    return NextResponse.json({
+      ok: true,
+      plano,
+      ciclo,
+      jaProcessado: true,
+    });
+  }
 
   const isRenovacao = assinaturaExistente?.status === "ativa";
 

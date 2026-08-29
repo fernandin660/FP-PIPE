@@ -48,10 +48,11 @@ export async function exigirAcesso(): Promise<{
     };
   }
 
-  const [acesso, contextoOrg] = await Promise.all([
-    avaliarAcesso(supabase, user.id),
-    resolverOrg(supabase, user.id),
-  ]);
+  // Resolve a organização primeiro (o plano pertence à org), depois avalia
+  // o acesso herdando o plano pago da empresa.
+  const contextoOrg = await resolverOrg(supabase, user.id);
+
+  const acesso = await avaliarAcesso(supabase, user.id, contextoOrg.orgId);
 
   if (acesso.expirada) {
     return {
