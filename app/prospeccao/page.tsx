@@ -6,6 +6,7 @@ import { criarClienteSupabase } from "../../lib/supabase/client";
 import AuthModal from "../../components/AuthModal";
 import TelaEntrada from "../../components/TelaEntrada";
 import ModalCompraCreditos from "../../components/ModalCompraCreditos";
+import TesteGratisBanner from "../../components/TesteGratisBanner";
 import PopEspera from "../../components/PopEspera";
 import ModalLeadManual, {
   type LeadManual,
@@ -315,6 +316,7 @@ export default function Home() {
   // Moeda de lead (desbloqueio/salvamento via Anymail Finder),
   // separada das buscas pra não confundir.
   const [saldoBuscador, setSaldoBuscador] = useState<number | null>(null);
+  const [saldoAbordagens, setSaldoAbordagens] = useState<number | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [planoAtual, setPlanoAtual] = useState<string>("teste");
   const [empresasDesbloqueadas, setEmpresasDesbloqueadas] =
@@ -369,7 +371,8 @@ export default function Home() {
         }
       }
 
-      const [{ data: listas }, contatosOrg, contatosUser] = await Promise.all([
+      const [{ data: listas }, contatosOrg, contatosUser, abordagens] =
+        await Promise.all([
         supabase
           .from("creditos")
           .select("saldo")
@@ -391,6 +394,14 @@ export default function Home() {
           .limit(1)
           .maybeSingle()
           .then((r) => r.data ?? null),
+        supabase
+          .from("creditos_ia")
+          .select("saldo")
+          .eq(org ? "organizacao_id" : "usuario_id", org ?? usuarioId)
+          .order("saldo", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then((r) => r.data ?? null),
       ]);
 
       // Usa a maior linha disponível, igual ao servidor, para exibir o saldo real.
@@ -402,9 +413,11 @@ export default function Home() {
 
       setSaldoCreditos(listas?.saldo ?? 0);
       setSaldoBuscador(maiorSaldoContato);
+      setSaldoAbordagens(abordagens?.saldo ?? 0);
     } catch {
       setSaldoCreditos(0);
       setSaldoBuscador(0);
+      setSaldoAbordagens(0);
     }
   }
 
@@ -2247,6 +2260,17 @@ export default function Home() {
             mostrandoResultados ? "max-w-7xl" : etapa === 2 ? "max-w-6xl" : "max-w-3xl"
           } ${usuarioEmail ? "lg:pl-72 lg:mx-0" : ""}`}
         >
+          {planoAtual === "teste" &&
+            saldoCreditos !== null &&
+            saldoBuscador !== null &&
+            saldoAbordagens !== null && (
+              <TesteGratisBanner
+                saldoListas={saldoCreditos}
+                saldoLeads={saldoBuscador}
+                saldoAbordagens={saldoAbordagens}
+              />
+            )}
+
           {!mostrandoResultados && (
           <div className="flex gap-2 mb-10">
             {[1, 2].map((numero) => (
