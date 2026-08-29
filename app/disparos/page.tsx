@@ -70,7 +70,6 @@ export default function PaginaDisparos() {
         setConexao(conexaoDados.conexao ?? null);
       }
       const resultadoEmail = new URLSearchParams(window.location.search).get("email");
-      if (resultadoEmail === "conectado") setMensagem("Gmail conectado com sucesso.");
       if (resultadoEmail && resultadoEmail !== "conectado") {
         const detalhe = new URLSearchParams(window.location.search).get("detalhe");
         setErro(`Não foi possível concluir a conexão Gmail (${detalhe ?? resultadoEmail}).`);
@@ -281,6 +280,23 @@ export default function PaginaDisparos() {
           <span className="text-sm text-pipe-muted">IA disponível: <b className="text-pipe-lime">{saldoIa ?? 0}</b></span>
         </div>
 
+        <section className="mt-6 rounded-xl border border-pipe-border bg-pipe-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted">E-mail de envio</p>
+              <p className="mt-1 text-sm text-white">
+                {conexao ? `${conexao.provedor === "microsoft" ? "Outlook" : conexao.provedor === "zoho" ? "Zoho" : "Gmail"}: ${conexao.email}` : "Nenhum e-mail conectado"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${conexao ? "bg-green-500/15 text-green-300 border border-green-500/30" : "bg-gray-500/15 text-gray-300 border border-gray-500/30"}`}>
+                {conexao ? "Ativo" : "Inativo"}
+              </span>
+              {conexao ? <button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-pipe-dark">Trocar</button> : <div className="flex gap-2"><a href="/api/email/zoho/iniciar" className="rounded-lg bg-pipe-lime px-3 py-2 text-xs font-bold text-pipe-dark">Conectar Zoho</a><a href="/api/email/microsoft/iniciar" className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-pipe-dark">Outlook</a></div>}
+            </div>
+          </div>
+        </section>
+
         <section className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-5">
           <label className="block text-xs uppercase tracking-wide text-pipe-muted mb-2">Lista de destinatários</label>
           <select value={listaId} onChange={(e) => void selecionarLista(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white">
@@ -315,7 +331,7 @@ export default function PaginaDisparos() {
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
           <button onClick={() => void salvarComoModelo()} disabled={salvandoModelo || !assunto.trim() || !corpo.trim()} className="border border-pipe-blue/50 text-pipe-blue px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-blue/10 disabled:opacity-40">⭐ Salvar como modelo</button>
           {enriquecendo ? <div className="rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue">🔎 Enriquecendo e-mails, telefones e sites das empresas... aguarde o carregamento dos destinatários.</div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
-          {conexao ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>{conexao.provedor === "microsoft" ? "Outlook" : conexao.provedor === "zoho" ? "Zoho" : "Gmail"} conectado: {conexao.email}</span><div className="flex gap-2"><button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-lime/40 px-3 py-2 text-xs font-semibold hover:bg-pipe-lime/10">Trocar conta</button><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div></div> : <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200"><span className="block mb-3">Conecte a conta que será usada para o envio:</span><div className="flex flex-wrap gap-2"><a href="/api/email/google/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Gmail</a><a href="/api/email/microsoft/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Outlook</a><a href="/api/email/zoho/iniciar" className="rounded-lg bg-yellow-300 px-4 py-2 font-bold text-pipe-dark">Zoho</a></div></div>}
+          {conexao && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Conta pronta para envio.</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div>}
         </section>}
 
         {mensagem && <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-pipe-lime"><p>{mensagem}</p>{mensagem.startsWith("✅") && <button onClick={iniciarNovoDisparo} className="rounded-lg border border-pipe-lime/40 px-3 py-1.5 font-semibold hover:bg-pipe-lime/10">Novo disparo</button>}</div>}
