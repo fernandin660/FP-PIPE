@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     .eq("organizacao_id", orgId)
     .maybeSingle();
   if (!campanha) return NextResponse.json({ erro: "Campanha não encontrada." }, { status: 404 });
-  if (campanha.geracoes_usadas >= 3) return NextResponse.json({ erro: "Esta campanha já usou as 3 gerações disponíveis.", limite: true }, { status: 403 });
   const objetivos: Record<string, string> = {
     agendar_reuniao: "agendar uma reunião de 15 minutos",
     descobrir_responsavel: "descobrir quem é o responsável correto pela área",
@@ -105,5 +104,5 @@ Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as va
     await admin.from("creditos_ia").update({ saldo }).eq("organizacao_id", orgId);
     return NextResponse.json({ erro: "Não foi possível salvar a campanha. O crédito foi devolvido." }, { status: 500 });
   }
-  return NextResponse.json({ campanha: atualizada, saldoIa: novoSaldo.saldo, geracoesRestantes: 3 - novaGeracao });
+  return NextResponse.json({ campanha: atualizada, saldoIa: novoSaldo.saldo });
 }
