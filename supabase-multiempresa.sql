@@ -363,37 +363,64 @@ declare
   nova_org_id uuid;
 begin
   -- Cria organização do novo usuário
-  insert into public.organizacoes (nome, dono_id)
-  values ('Minha Empresa', new.id)
-  returning id into nova_org_id;
+  begin
+    insert into public.organizacoes (nome, dono_id)
+    values ('Minha Empresa', new.id)
+    returning id into nova_org_id;
+  exception when others then
+    raise warning 'preparar_novo_usuario: falha ao criar organizacao (%): %', sqlerrm, new.id;
+    nova_org_id := null;
+  end;
 
   -- Insere o usuário como admin da organização
-  insert into public.organizacao_membros (organizacao_id, usuario_id, papel, status)
-  values (nova_org_id, new.id, 'admin', 'ativo');
+  if nova_org_id is not null then
+    begin
+      insert into public.organizacao_membros (organizacao_id, usuario_id, papel, status)
+      values (nova_org_id, new.id, 'admin', 'ativo');
+    exception when others then
+      raise warning 'preparar_novo_usuario: falha ao criar membro (%): %', sqlerrm, new.id;
+    end;
 
-  -- Cria assinatura teste vinculada à org
-  insert into public.assinaturas (usuario_id, plano, status, origem, organizacao_id)
-  values (new.id, 'teste', 'ativa', 'signup', nova_org_id)
-  on conflict (usuario_id) do update
-    set organizacao_id = nova_org_id;
+    -- Cria assinatura teste vinculada à org
+    begin
+      insert into public.assinaturas (usuario_id, plano, status, origem, organizacao_id)
+      values (new.id, 'teste', 'ativa', 'signup', nova_org_id)
+      on conflict (usuario_id) do update
+        set organizacao_id = nova_org_id;
+    exception when others then
+      raise warning 'preparar_novo_usuario: falha ao criar assinatura (%): %', sqlerrm, new.id;
+    end;
 
-  -- Cria saldos vinculados à org
-  -- Novo modelo de teste grátis: 1 geração de lista (creditos) e saldo de
-  -- contactos/leads suficiente para desbloquear até 25 leads dessa lista.
-  insert into public.creditos_contatos (usuario_id, saldo, organizacao_id)
-  values (new.id, 25, nova_org_id)
-  on conflict (usuario_id) do update
-    set organizacao_id = nova_org_id;
+    -- Cria saldos vinculados à org
+    -- Novo modelo de teste grátis: 1 geração de lista (creditos) e saldo de
+    -- contactos/leads suficiente para desbloquear até 25 leads dessa lista.
+    begin
+      insert into public.creditos_contatos (usuario_id, saldo, organizacao_id)
+      values (new.id, 25, nova_org_id)
+      on conflict (usuario_id) do update
+        set organizacao_id = nova_org_id;
+    exception when others then
+      raise warning 'preparar_novo_usuario: falha creditos_contatos (%): %', sqlerrm, new.id;
+    end;
 
-  insert into public.creditos (usuario_id, saldo, organizacao_id)
-  values (new.id, 1, nova_org_id)
-  on conflict (usuario_id) do update
-    set organizacao_id = nova_org_id;
+    begin
+      insert into public.creditos (usuario_id, saldo, organizacao_id)
+      values (new.id, 1, nova_org_id)
+      on conflict (usuario_id) do update
+        set organizacao_id = nova_org_id;
+    exception when others then
+      raise warning 'preparar_novo_usuario: falha creditos (%): %', sqlerrm, new.id;
+    end;
 
-  insert into public.creditos_ia (usuario_id, saldo, organizacao_id)
-  values (new.id, 2, nova_org_id)
-  on conflict (usuario_id) do update
-    set organizacao_id = nova_org_id;
+    begin
+      insert into public.creditos_ia (usuario_id, saldo, organizacao_id)
+      values (new.id, 2, nova_org_id)
+      on conflict (usuario_id) do update
+        set organizacao_id = nova_org_id;
+    exception when others then
+      raise warning 'preparar_novo_usuario: falha creditos_ia (%): %', sqlerrm, new.id;
+    end;
+  end if;
 
   return new;
 end;

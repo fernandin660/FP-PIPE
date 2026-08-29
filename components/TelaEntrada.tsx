@@ -49,7 +49,12 @@ export default function TelaEntrada() {
     setErro("");
     setMensagem("");
 
-    await limparSessaoAnterior();
+    // Se o signOut local (ou o signUp) travar por qualquer motivo, nunca
+    // deixamos o usuário preso em "Aguarde...": usamos timeouts de segurança.
+    await Promise.race([
+      limparSessaoAnterior(),
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
 
     const destinoFinal = proximoDestino || "/prospeccao";
 
@@ -98,6 +103,7 @@ export default function TelaEntrada() {
       setCarregando(false);
 
       if (error) {
+        console.error("Erro ao criar conta:", error.message);
         setErro(
           error.message.includes("already")
             ? "Este e-mail já tem conta. Faça login."
