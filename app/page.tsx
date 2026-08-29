@@ -1,5 +1,6 @@
 ﻿import Link from "next/link";
 import AvatarConsultor from "../components/AvatarConsultor";
+import LinkUsuario from "../components/LinkUsuario";
 
 const passos = [
   {
@@ -121,12 +122,7 @@ export default function Inicio() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-semibold text-pipe-muted hover:text-white transition hidden sm:block"
-            >
-              Entrar
-            </Link>
+            <LinkUsuario />
             <Link
               href="/planos"
               className="text-sm font-semibold text-white border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue transition hidden sm:block"

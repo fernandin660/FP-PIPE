@@ -4,6 +4,7 @@ import "./globals.css";
 
 import ManipuladorCodigoAuth from "../components/ManipuladorCodigoAuth";
 import GatilhoNovoUsuario from "../components/GatilhoNovoUsuario";
+import GerenciadorSessao from "../components/GerenciadorSessao";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ManipuladorCodigoAuth />
         <GatilhoNovoUsuario />
+        <GerenciadorSessao />
         {children}
       </body>
     </html>
