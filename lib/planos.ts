@@ -17,6 +17,7 @@ export interface DefinicaoPlano {
   temBuscador: boolean;
   buscasMes: number | null;
   creditosTelefone: number;
+  creditosAbordagem: number;
   internacional: boolean;
   usuariosInclusos: number;
 }
@@ -31,6 +32,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 5,
     creditosTelefone: 0,
+    creditosAbordagem: 10,
     internacional: false,
     usuariosInclusos: 1,
   },
@@ -43,6 +45,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: false,
     buscasMes: null,
     creditosTelefone: 0,
+    creditosAbordagem: 25,
     internacional: false,
     usuariosInclusos: 1,
   },
@@ -55,6 +58,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 400,
     creditosTelefone: 500,
+    creditosAbordagem: 100,
     internacional: false,
     usuariosInclusos: 3,
   },
@@ -67,6 +71,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 1000,
     creditosTelefone: 1000,
+    creditosAbordagem: 300,
     internacional: false,
     usuariosInclusos: 6,
   },
@@ -79,6 +84,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: false,
     buscasMes: null,
     creditosTelefone: 0,
+    creditosAbordagem: 25,
     internacional: true,
     usuariosInclusos: 1,
   },
@@ -91,6 +97,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 400,
     creditosTelefone: 500,
+    creditosAbordagem: 100,
     internacional: true,
     usuariosInclusos: 3,
   },
@@ -103,6 +110,7 @@ export const DEFINICAO_PLANOS: Record<PlanoChave, DefinicaoPlano> = {
     temBuscador: true,
     buscasMes: 1000,
     creditosTelefone: 1000,
+    creditosAbordagem: 300,
     internacional: true,
     usuariosInclusos: 6,
   },

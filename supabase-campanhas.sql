@@ -10,7 +10,7 @@ create table if not exists public.campanhas (
   assunto text,
   corpo text,
   objetivo text not null default 'gerar_interesse',
-  geracoes_usadas integer not null default 0 check (geracoes_usadas between 0 and 3),
+  geracoes_usadas integer not null default 0 check (geracoes_usadas >= 0),
   status text not null default 'rascunho' check (status in ('rascunho','pronta','enviando','enviada','cancelada')),
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),

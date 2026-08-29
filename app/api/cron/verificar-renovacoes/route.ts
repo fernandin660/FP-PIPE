@@ -130,6 +130,20 @@ export async function GET(req: Request) {
             }
           }
 
+          if (definicao.creditosAbordagem > 0) {
+            const { data: abordagemAtual } = await admin
+              .from("creditos_ia")
+              .select("saldo")
+              .eq("organizacao_id", assinatura.organizacao_id)
+              .maybeSingle();
+            if (abordagemAtual) {
+              await admin.from("creditos_ia").update({
+                saldo: definicao.creditosAbordagem,
+                atualizado_em: agora.toISOString(),
+              }).eq("organizacao_id", assinatura.organizacao_id);
+            }
+          }
+
           resultados.push({
             orgId: assinatura.organizacao_id,
             status: "renovado_manualmente",

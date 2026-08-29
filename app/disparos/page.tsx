@@ -48,10 +48,13 @@ export default function PaginaDisparos() {
         window.location.href = "/login";
         return;
       }
+      const respostaOrg = await fetch("/api/org");
+      const dadosOrg = respostaOrg.ok ? await respostaOrg.json() : null;
+      const orgId = dadosOrg?.orgId as string | undefined;
       const [{ data: listasData }, { data: perfilData }, { data: iaData }] = await Promise.all([
         supabase.from("listas").select("id, nome").order("criado_em", { ascending: false }),
         supabase.from("perfil").select("nome_empresa, area_atuacao, produtos_servicos, nichos, foto_url").eq("usuario_id", userData.user.id).maybeSingle(),
-        supabase.from("creditos_ia").select("saldo").eq("usuario_id", userData.user.id).maybeSingle(),
+        supabase.from("creditos_ia").select("saldo").eq(orgId ? "organizacao_id" : "usuario_id", orgId ?? userData.user.id).maybeSingle(),
       ]);
       setListas((listasData as Lista[]) ?? []);
       setPerfil((perfilData as PerfilVendedor) ?? null);
@@ -130,7 +133,7 @@ export default function PaginaDisparos() {
   }
 
   async function gerar() {
-    if (!campanha || campanha.geracoes_usadas >= 3 || gerando) return;
+    if (!campanha || gerando) return;
     setGerando(true);
     setErro("");
     setMensagem("");
@@ -146,7 +149,7 @@ export default function PaginaDisparos() {
       setAssunto(dados.campanha.assunto ?? "");
       setCorpo(dados.campanha.corpo ?? "");
       setSaldoIa(dados.saldoIa);
-      setMensagem(`Geração concluída. Restam ${dados.geracoesRestantes} geração(ões) nesta campanha.`);
+      setMensagem("Geração concluída. O crédito foi descontado do saldo mensal de abordagens.");
     } catch (erroGeracao) {
       setErro(erroGeracao instanceof Error ? erroGeracao.message : "Falha na geração.");
     } finally {
@@ -241,7 +244,7 @@ export default function PaginaDisparos() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-pipe-lime">Campanhas</p>
             <h1 className="font-display text-4xl text-white mt-2">Disparos em massa</h1>
-            <p className="text-pipe-muted mt-2">Uma campanha por lista, com até 3 gerações de IA.</p>
+          <p className="text-pipe-muted mt-2">Gere e edite abordagens usando seu saldo mensal de créditos.</p>
           </div>
           <span className="text-sm text-pipe-muted">IA disponível: <b className="text-pipe-lime">{saldoIa ?? 0}</b></span>
         </div>
@@ -260,7 +263,7 @@ export default function PaginaDisparos() {
         {campanha && <section className="mt-5 bg-pipe-card border border-pipe-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-semibold text-lg">Mensagem da campanha</h2>
-            <span className="text-xs rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1">{campanha.geracoes_usadas}/3 gerações usadas</span>
+          <span className="text-xs rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1">{campanha.geracoes_usadas} geração(ões) usadas</span>
           </div>
           <label className="block text-xs uppercase tracking-wide text-pipe-muted">Finalidade do e-mail</label>
           <select value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white">
@@ -273,7 +276,7 @@ export default function PaginaDisparos() {
             <option value="reativar_contato">Reativar contato</option>
           </select>
           <textarea value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="Instruções opcionais para a IA..." className="w-full min-h-20 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white" />
-          <button onClick={() => void gerar()} disabled={gerando || campanha.geracoes_usadas >= 3 || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerando ? "Gerando..." : campanha.geracoes_usadas >= 3 ? "Limite de gerações atingido" : "Gerar abordagem (1 crédito)"}</button>
+          <button onClick={() => void gerar()} disabled={gerando || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerando ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
           <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>

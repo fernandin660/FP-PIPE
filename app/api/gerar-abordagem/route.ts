@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { chamarOpenaiJson } from "../../../lib/providers/openai";
+import { resolverOrg } from "../../../lib/org";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ type CorpoGeracao = {
   produto?: unknown;
   objetivo?: unknown;
   canal?: unknown;
+  instrucoes?: unknown;
 };
 
 type CorpoEdicao = {
@@ -136,6 +138,7 @@ export async function POST(requisicao: Request) {
   const produto = String(corpo.produto ?? "").trim();
   const objetivoChave = String(corpo.objetivo ?? "").trim();
   const canal = String(corpo.canal ?? "").trim();
+  const instrucoes = String(corpo.instrucoes ?? "").trim();
 
   if (
     (!companyId && !contatoId) ||
@@ -148,6 +151,8 @@ export async function POST(requisicao: Request) {
       { status: 400 }
     );
   }
+
+  const { orgId } = await resolverOrg(supabase, user.id);
 
   let dadosEmpresa: Empresa | null = null;
   let dadosContato: ContatoAlvo | null = null;
@@ -197,19 +202,25 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  const { data: creditosAtuais } = await supabase
+  const { data: creditosOrg } = await supabase
     .from("creditos_ia")
     .select("saldo")
-    .eq("usuario_id", user.id)
+    .eq("organizacao_id", orgId)
     .maybeSingle();
 
-  let saldo = creditosAtuais?.saldo;
+  const { data: creditosUsuario } = !creditosOrg
+    ? await supabase.from("creditos_ia").select("saldo").eq("usuario_id", user.id).maybeSingle()
+    : { data: null };
+  let saldo = creditosOrg?.saldo ?? creditosUsuario?.saldo;
+  const chaveCredito = creditosOrg ? "organizacao_id" : "usuario_id";
+  const valorCredito = creditosOrg ? orgId : user.id;
 
   if (saldo === null || saldo === undefined) {
     const { data: criada, error: erroCriar } = await admin
       .from("creditos_ia")
       .insert({
         usuario_id: user.id,
+        organizacao_id: orgId,
         saldo: CREDITOS_BOAS_VINDAS,
         atualizado_em: new Date().toISOString(),
       })
@@ -315,6 +326,7 @@ ${blocoAlvo}
 
 OBJETIVO DA ABORDAGEM: ${objetivoLegivel}.
 Adapte o CTA e o foco ao objetivo (ex.: follow-up retoma contexto; diagnóstico propõe perguntas; apresentar solução mostra aplicação concreta).
+${instrucoes ? `\nORIENTAÇÕES ESPECÍFICAS DO VENDEDOR:\n${instrucoes}` : ""}
 
 ${instrucoesDeCanal(canal)}
 ${instrucoesSaudacao(canal, nomeParaSaudacao, contextoEmpresaAlvo)}
@@ -355,7 +367,7 @@ RESPONDA APENAS COM ESTE JSON:
   await admin
     .from("creditos_ia")
     .update({ saldo: novoSaldo, atualizado_em: new Date().toISOString() })
-    .eq("usuario_id", user.id);
+    .eq(chaveCredito, valorCredito);
 
   const { data: salva, error: erroSalvar } = await supabase
     .from("abordagens")

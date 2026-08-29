@@ -198,6 +198,29 @@ export async function POST(req: Request) {
     }
   }
 
+  // Renova o saldo mensal compartilhado de créditos de abordagem.
+  if (definicao.creditosAbordagem > 0) {
+    const { data: abordagemAtual } = await admin
+      .from("creditos_ia")
+      .select("saldo")
+      .eq("organizacao_id", orgId)
+      .maybeSingle();
+
+    if (abordagemAtual) {
+      await admin
+        .from("creditos_ia")
+        .update({ saldo: definicao.creditosAbordagem, atualizado_em: agora.toISOString() })
+        .eq("organizacao_id", orgId);
+    } else {
+      await admin.from("creditos_ia").insert({
+        usuario_id: usuarioId,
+        organizacao_id: orgId,
+        saldo: definicao.creditosAbordagem,
+        atualizado_em: agora.toISOString(),
+      });
+    }
+  }
+
   // 4. Se é renovação, envia e-mail de confirmação
   if (isRenovacao) {
     void enviarAvisoRenovacao(orgId, plano, ciclo, renovaEm);
