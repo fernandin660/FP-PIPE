@@ -46,38 +46,48 @@ export default function PaginaDisparos() {
   useEffect(() => {
     async function carregar() {
       const supabase = criarClienteSupabase();
-      if (!supabase) return;
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        window.location.href = "/login";
+      if (!supabase) {
+        setErro("Banco de dados não configurado.");
+        setCarregando(false);
         return;
       }
-      const respostaOrg = await fetch("/api/org");
-      const dadosOrg = respostaOrg.ok ? await respostaOrg.json() : null;
-      const orgId = dadosOrg?.orgId as string | undefined;
-      const [{ data: listasData }, { data: perfilData }, { data: iaData }] = await Promise.all([
-        supabase.from("listas").select("id, nome").order("criado_em", { ascending: false }),
-        supabase.from("perfil").select("nome_empresa, area_atuacao, produtos_servicos, nichos, foto_url").eq("usuario_id", userData.user.id).maybeSingle(),
-        supabase.from("creditos_ia").select("saldo").eq(orgId ? "organizacao_id" : "usuario_id", orgId ?? userData.user.id).maybeSingle(),
-      ]);
-      setListas((listasData as Lista[]) ?? []);
-      setPerfil((perfilData as PerfilVendedor) ?? null);
-      setSaldoIa(iaData?.saldo ?? 0);
-      const { data: modelosData } = await supabase.from("modelos").select("id, nome, assunto, conteudo, objetivo").eq("canal", "email").order("criado_em", { ascending: false });
-      setModelos((modelosData as Modelo[]) ?? []);
-      const conexaoResposta = await fetch("/api/email/conexao");
-      if (conexaoResposta.ok) {
-        const conexaoDados = await conexaoResposta.json();
-        setConexao(conexaoDados.conexao ?? null);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          window.location.href = "/login";
+          return;
+        }
+        const respostaOrg = await fetch("/api/org");
+        const dadosOrg = respostaOrg.ok ? await respostaOrg.json() : null;
+        const orgId = dadosOrg?.orgId as string | undefined;
+        const [{ data: listasData }, { data: perfilData }, { data: iaData }] = await Promise.all([
+          supabase.from("listas").select("id, nome").order("criado_em", { ascending: false }),
+          supabase.from("perfil").select("nome_empresa, area_atuacao, produtos_servicos, nichos, foto_url").eq("usuario_id", userData.user.id).maybeSingle(),
+          supabase.from("creditos_ia").select("saldo").eq(orgId ? "organizacao_id" : "usuario_id", orgId ?? userData.user.id).maybeSingle(),
+        ]);
+        setListas((listasData as Lista[]) ?? []);
+        setPerfil((perfilData as PerfilVendedor) ?? null);
+        setSaldoIa(iaData?.saldo ?? 0);
+        const { data: modelosData } = await supabase.from("modelos").select("id, nome, assunto, conteudo, objetivo").eq("canal", "email").order("criado_em", { ascending: false });
+        setModelos((modelosData as Modelo[]) ?? []);
+        const conexaoResposta = await fetch("/api/email/conexao");
+        if (conexaoResposta.ok) {
+          const conexaoDados = await conexaoResposta.json();
+          setConexao(conexaoDados.conexao ?? null);
+        }
+        const usoResposta = await fetch("/api/campanhas/uso");
+        if (usoResposta.ok) setUsoEnvios(await usoResposta.json());
+        const resultadoEmail = new URLSearchParams(window.location.search).get("email");
+        if (resultadoEmail && resultadoEmail !== "conectado") {
+          const detalhe = new URLSearchParams(window.location.search).get("detalhe");
+          setErro(`Não foi possível concluir a conexão de e-mail (${detalhe ?? resultadoEmail}).`);
+        }
+      } catch (erroCarregamento) {
+        console.error("Erro ao carregar disparos:", erroCarregamento);
+        setErro("Não foi possível carregar os disparos. Tente atualizar a página.");
+      } finally {
+        setCarregando(false);
       }
-      const usoResposta = await fetch("/api/campanhas/uso");
-      if (usoResposta.ok) setUsoEnvios(await usoResposta.json());
-      const resultadoEmail = new URLSearchParams(window.location.search).get("email");
-      if (resultadoEmail && resultadoEmail !== "conectado") {
-        const detalhe = new URLSearchParams(window.location.search).get("detalhe");
-        setErro(`Não foi possível concluir a conexão Gmail (${detalhe ?? resultadoEmail}).`);
-      }
-      setCarregando(false);
     }
     void carregar();
   }, []);
