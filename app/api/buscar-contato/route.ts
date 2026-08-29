@@ -239,10 +239,6 @@ export async function POST(requisicao: Request) {
         saldoTelefoneCache = telCache?.saldo ?? 0;
       }
 
-      if (precisaTelefone && saldoTelefoneCache < custoTelefone) {
-        return NextResponse.json({ erro: "Você não possui créditos de telefone suficientes.", motivo: "sem_creditos_telefone", saldoTelefones: saldoTelefoneCache }, { status: 403 });
-      }
-
       const contatoCache = {
         linkedin_url: linkedinNormalizado,
         nome: cacheHit.nome,
@@ -301,19 +297,20 @@ export async function POST(requisicao: Request) {
       }
 
         if (telefones.length > 0 && salvoCache?.id) {
-        await supabase
-          .from("contatos")
-          .update({ telefones })
-          .eq("id", salvoCache.id);
+          await supabase
+            .from("contatos")
+            .update({ telefones })
+            .eq("id", salvoCache.id);
 
-        if (precisaTelefone && saldoTelefoneCache >= custoTelefone && !(existenteCache?.telefones?.length)) {
-          saldoTelefoneCache -= custoTelefone;
-          await admin
-            .from("creditos_telefone")
-            .update({ saldo: saldoTelefoneCache })
-            .eq("organizacao_id", orgId);
+          const veioDoMillionPhonesCache = fontesTelefone.includes("millionphones");
+          if (veioDoMillionPhonesCache && saldoTelefoneCache >= custoTelefone && !(existenteCache?.telefones?.length)) {
+            saldoTelefoneCache -= custoTelefone;
+            await admin
+              .from("creditos_telefone")
+              .update({ saldo: saldoTelefoneCache })
+              .eq("organizacao_id", orgId);
+          }
         }
-      }
 
       return NextResponse.json({
         encontrado: true,
@@ -346,10 +343,6 @@ export async function POST(requisicao: Request) {
     saldoTelefone = telAtual?.saldo ?? 0;
   }
 
-  if (precisaTelefone && saldoTelefone < custoTelefone) {
-    return NextResponse.json({ erro: "Você não possui créditos de telefone suficientes.", motivo: "sem_creditos_telefone", saldoTelefones: saldoTelefone }, { status: 403 });
-  }
-
   // Busca: LinkedIn URL + empresa + nome (o que tiver)
   const resultado = await buscarContatoCompleto(
     linkedinNormalizado,
@@ -362,9 +355,9 @@ export async function POST(requisicao: Request) {
     : null;
 
   let novoSaldoTelefone = saldoTelefone;
+  const veioDoMillionPhones = resultado.fontesTelefone.includes("millionphones");
   if (
-    precisaTelefone &&
-    resultado.telefones.length > 0 &&
+    veioDoMillionPhones &&
     saldoTelefone >= custoTelefone &&
     !(existenteAntes?.telefones?.length)
   ) {
