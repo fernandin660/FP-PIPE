@@ -104,3 +104,5 @@ export async function POST(req: Request) {
     ...(saldoTelefones !== null ? { saldoTelefones } : {}),
   });
 }
+
+export const maxDuration = 60;

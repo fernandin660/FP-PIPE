@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     void registrarUso("minhareceita");
     resposta = await fetch(
       `https://minhareceita.org/${encodeURIComponent(cnpjLimpo)}`,
-      { cache: "no-store", headers: { Accept: "application/json" } }
+      { cache: "no-store", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) }
     );
   } catch {
     return NextResponse.json(

@@ -71,13 +71,13 @@ export async function POST(request: Request) {
 
   const corpo = (await request.json().catch(() => null)) as { cnpjs?: unknown; listaId?: unknown } | null;
   let cnpjs = Array.isArray(corpo?.cnpjs)
-    ? [...new Set(corpo.cnpjs.filter((valor): valor is string => typeof valor === "string").map((valor) => valor.replace(/\D/g, "")).filter((valor) => valor.length === 14))].slice(0, 50)
+    ? [...new Set(corpo.cnpjs.filter((valor): valor is string => typeof valor === "string").map((valor) => valor.replace(/\D/g, "")).filter((valor) => valor.length === 14))].slice(0, 10)
     : [];
   if (cnpjs.length === 0 && typeof corpo?.listaId === "string") {
     const { data: vinculos } = await admin.from("lista_empresas").select("company_id").eq("lista_id", corpo.listaId).eq("organizacao_id", orgId);
     const ids = [...new Set((vinculos ?? []).map((v) => v.company_id))];
     const { data: empresasDaLista } = await admin.from("companies").select("cnpj").in("id", ids);
-    cnpjs = [...new Set((empresasDaLista ?? []).map((empresa) => empresa.cnpj?.replace(/\D/g, "")).filter((cnpj): cnpj is string => Boolean(cnpj && cnpj.length === 14)))].slice(0, 50);
+    cnpjs = [...new Set((empresasDaLista ?? []).map((empresa) => empresa.cnpj?.replace(/\D/g, "")).filter((cnpj): cnpj is string => Boolean(cnpj && cnpj.length === 14)))].slice(0, 10);
   }
   if (cnpjs.length === 0) return NextResponse.json({ enriquecidas: 0 });
 
@@ -88,8 +88,8 @@ export async function POST(request: Request) {
 
   let enriquecidas = 0;
   const pendentes = (empresas ?? []).filter((empresa) => !empresa.website || !empresa.email);
-  for (let inicio = 0; inicio < pendentes.length; inicio += 3) {
-    const lote = pendentes.slice(inicio, inicio + 3);
+  for (let inicio = 0; inicio < pendentes.length; inicio += 2) {
+    const lote = pendentes.slice(inicio, inicio + 2);
     await Promise.all(lote.map(async (empresa) => {
       await enriquecerEmpresa(empresa as Empresa, admin);
       enriquecidas += 1;

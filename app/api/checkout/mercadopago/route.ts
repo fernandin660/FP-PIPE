@@ -107,6 +107,7 @@ export async function POST(req: Request) {
         auto_return: "approved",
         notification_url: `${appUrl}/api/webhooks/mercadopago`,
       }),
+      signal: AbortSignal.timeout(15000),
     }
   );
 

@@ -14,7 +14,7 @@ import { exigirRateLimit } from "../../../lib/rate-limit";
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
 const LIMITE_POR_RECORTE = 20;
-const MAX_CHAMADAS = 12;
+const MAX_CHAMADAS = 6;
 const LIMITE_TOTAL_EMPRESAS = 50;
 
 const MAPA_PORTE: Record<string, string[]> = {
@@ -116,7 +116,7 @@ async function pesquisarRecorte(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
     },
     body: JSON.stringify(corpo),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!resposta.ok) return null;

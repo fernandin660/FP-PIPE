@@ -36,7 +36,7 @@ Regras:
 
 Responda APENAS com JSON válido no formato {"nichos": ["..."]}.
 `.trim(),
-      { maxTokens: 800, temperature: 0.7, timeoutMs: 60000 }
+      { maxTokens: 800, temperature: 0.7, timeoutMs: 25000 }
     );
 
     const conteudo = String(resposta.response ?? "{}");

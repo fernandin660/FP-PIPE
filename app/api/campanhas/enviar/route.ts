@@ -34,6 +34,7 @@ async function obterToken(provedor: string, refreshToken: string): Promise<strin
   const resposta = await fetch(microsoft ? "https://login.microsoftonline.com/common/oauth2/v2.0/token" : provedor === "zoho" ? "https://accounts.zoho.com/oauth/v2/token" : "https://oauth2.googleapis.com/token", {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(microsoft ? { client_id: limparVariavelOAuth(process.env.MICROSOFT_OAUTH_CLIENT_ID), client_secret: limparVariavelOAuth(process.env.MICROSOFT_OAUTH_CLIENT_SECRET), refresh_token: refreshToken, grant_type: "refresh_token", scope: "openid profile email offline_access User.Read Mail.Send" } : provedor === "zoho" ? { client_id: limparVariavelOAuth(process.env.ZOHO_OAUTH_CLIENT_ID), client_secret: limparVariavelOAuth(process.env.ZOHO_OAUTH_CLIENT_SECRET), refresh_token: refreshToken, grant_type: "refresh_token" } : { client_id: limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_ID), client_secret: limparVariavelOAuth(process.env.GOOGLE_OAUTH_CLIENT_SECRET), refresh_token: refreshToken, grant_type: "refresh_token" }),
+    signal: AbortSignal.timeout(15000),
   });
   if (!resposta.ok) throw new Error("Não foi possível renovar a conexão Gmail.");
   const dados = await resposta.json() as { access_token?: string };
@@ -116,14 +117,14 @@ export async function POST(request: Request) {
 
     const tentarEnvio = async (): Promise<Response> => {
       if (provedorConexao === "microsoft") {
-        return fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: assunto, body: { contentType: "Text", content: corpoEmail }, toRecipients: [{ emailAddress: { address: destinatario.email } }] }, saveToSentItems: true }) });
+        return fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject: assunto, body: { contentType: "Text", content: corpoEmail }, toRecipients: [{ emailAddress: { address: destinatario.email } }] }, saveToSentItems: true }), signal: AbortSignal.timeout(30000) });
       }
       if (provedorConexao === "zoho") {
         if (!accountIdConexao) throw new Error("Conta Zoho sem accountId.");
-        return fetch(`https://mail.zoho.com/api/accounts/${accountIdConexao}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: emailRemetenteZoho(emailConexao), toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }) });
+        return fetch(`https://mail.zoho.com/api/accounts/${accountIdConexao}/messages`, { method: "POST", headers: { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ fromAddress: emailRemetenteZoho(emailConexao), toAddress: destinatario.email, subject: assunto, content: corpoEmail, mailFormat: "plaintext" }), signal: AbortSignal.timeout(30000) });
       }
       const raw = [`To: ${destinatario.email}`, `Subject: ${assunto}`, "Content-Type: text/plain; charset=utf-8", "", corpoEmail].join("\r\n");
-      return fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: base64Url(raw) }) });
+      return fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: base64Url(raw) }), signal: AbortSignal.timeout(30000) });
     };
 
     const MAX_TENTATIVAS = 3;

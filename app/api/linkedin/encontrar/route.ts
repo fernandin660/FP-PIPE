@@ -184,6 +184,7 @@ export async function POST(requisicao: Request) {
           num: 10,
         }),
         cache: "no-store",
+        signal: AbortSignal.timeout(10000),
       });
 
       if (!respostaBusca.ok) {
@@ -213,6 +214,7 @@ export async function POST(requisicao: Request) {
           tools: [{ type: "web_search_preview" }],
         }),
         cache: "no-store",
+        signal: AbortSignal.timeout(25000),
       });
 
       if (!respostaIA.ok) {

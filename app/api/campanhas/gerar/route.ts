@@ -71,7 +71,7 @@ Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as va
 
   let gerado: { assunto?: string; corpo?: string };
   try {
-    const resposta = await chamarIa(textoPrompt, { maxTokens: 700, temperature: 0.7, timeoutMs: 60000 });
+    const resposta = await chamarIa(textoPrompt, { maxTokens: 700, temperature: 0.7, timeoutMs: 25000 });
     gerado = JSON.parse(resposta.response) as { assunto?: string; corpo?: string };
   } catch {
     return NextResponse.json({ erro: "Não conseguimos gerar a campanha agora. Nenhum crédito foi descontado." }, { status: 500 });

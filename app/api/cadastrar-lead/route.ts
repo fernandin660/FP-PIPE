@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
         },
         body: JSON.stringify(corpoBusca),
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(8000),
       });
 
       if (resposta.ok) {
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
     try {
       const respostaBrasilApi = await fetch(
         `${URL_BRASILAPI}/${cnpjEscolhido}`,
-        { signal: AbortSignal.timeout(15000) }
+        { signal: AbortSignal.timeout(8000) }
       );
 
       if (respostaBrasilApi.ok) {
@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
         `${URL_MINHARECEITA}/${cnpjEscolhido}`,
         {
           headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(8000),
         }
       );
 
@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
               languageCode: "pt-BR",
               regionCode: "BR",
             }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(8000),
           }
         );
 

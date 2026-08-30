@@ -8,8 +8,8 @@ import { emailValido, sanitizarEmail } from "../../../lib/emails";
 
 const URL_BRASILAPI = "https://brasilapi.com.br/api/cnpj/v1";
 const URL_MINHARECEITA = "https://minhareceita.org";
-const MAX_EMPRESAS = 50;
-const TAMANHO_LOTE_OPENAI = 10;
+const MAX_EMPRESAS = 20;
+const TAMANHO_LOTE_OPENAI = 5;
 const CONCORRENCIA_ENRIQUECIMENTO = 5;
 
 type EmpresaEntrada = { cnpj: string; razaoSocial: string };
@@ -67,7 +67,7 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
 
   try {
     const respostaBrasilApi = await fetch(`${URL_BRASILAPI}/${cnpj}`, {
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(6000),
     });
     if (respostaBrasilApi.ok) {
       dados = await respostaBrasilApi.json();
@@ -80,7 +80,7 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
     try {
       const respostaMinhaReceita = await fetch(
         `${URL_MINHARECEITA}/${cnpj}`,
-        { signal: AbortSignal.timeout(15000) }
+        { signal: AbortSignal.timeout(6000) }
       );
       if (respostaMinhaReceita.ok) {
         dados = await respostaMinhaReceita.json();
@@ -419,7 +419,7 @@ RESPONDA APENAS COM ESTE FORMATO JSON:
       const resposta = await chamarIa(prompt, {
         maxTokens: 4000,
         temperature: 0.4,
-        timeoutMs: 120000,
+        timeoutMs: 45000,
       });
 
       try {
@@ -521,3 +521,5 @@ RESPONDA APENAS COM ESTE FORMATO JSON:
     );
   }
 }
+
+export const maxDuration = 60;

@@ -71,7 +71,7 @@ async function geocodificarCidade(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
     {
       headers: { "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     }
   );
   if (!resposta.ok) return null;
@@ -122,7 +122,7 @@ out center ${LIMITE_TOTAL_EMPRESAS * 4};`;
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `data=${encodeURIComponent(consulta)}`,
-    signal: AbortSignal.timeout(40000),
+    signal: AbortSignal.timeout(30000),
   });
   if (!resposta.ok) return null;
   const dados = (await resposta.json()) as { elements?: ElementoOsm[] };

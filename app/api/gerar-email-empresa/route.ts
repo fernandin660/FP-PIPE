@@ -94,7 +94,7 @@ RESPONDA APENAS COM ESTE JSON:
     const { response } = await chamarIa(prompt, {
       maxTokens: 700,
       temperature: 0.7,
-      timeoutMs: 60000,
+      timeoutMs: 25000,
     });
 
     const parsed = JSON.parse(response) as {

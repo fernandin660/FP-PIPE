@@ -112,13 +112,16 @@ export async function chamarIa(
   prompt: string,
   opcoes?: OpcoesIa
 ): Promise<RespostaIa> {
+  // Teto seguro: 45s por provedor, ~50s no total (OpenAI + fallback Gemini).
   const config: Required<OpcoesIa> = {
     maxTokens: opcoes?.maxTokens ?? 2500,
     temperature: opcoes?.temperature ?? 0.5,
-    timeoutMs: opcoes?.timeoutMs ?? 90000,
+    timeoutMs: Math.min(opcoes?.timeoutMs ?? 45000, 45000),
   };
 
   let erroFinal: unknown;
+
+  const inicio = Date.now();
 
   try {
     return {
@@ -134,8 +137,10 @@ export async function chamarIa(
   }
 
   try {
+    // Se a OpenAI já consumiu o orçamento, o Gemini não tem direito a 45s de novo.
+    const restante = Math.max(10000, 50000 - (Date.now() - inicio));
     return {
-      response: await chamarGemini(prompt, config),
+      response: await chamarGemini(prompt, { ...config, timeoutMs: restante }),
       provedor: "gemini",
     };
   } catch (erroGemini) {

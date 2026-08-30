@@ -36,7 +36,7 @@ export async function buscarTelefoneSerper(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ q, gl: "br", hl: "pt-br", num: 5 }),
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(5000),
       });
 
       if (!resposta.ok) continue;
@@ -120,7 +120,7 @@ export async function buscarTelefoneMaps(
           languageCode: "pt-BR",
           regionCode: "BR",
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(6000),
       }
     );
 
@@ -228,7 +228,7 @@ export async function buscarCnpjPorEmpresa(
           situacao_cadastral: ["ATIVA"],
           limite: 1,
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(6000),
       }
     );
 
@@ -343,7 +343,7 @@ export async function buscarDadosEmpresaGoogle(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ q, gl: "br", hl: "pt-br", num: 5 }),
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(5000),
       });
 
       if (!resposta.ok) continue;
@@ -406,7 +406,7 @@ export async function buscarTelefoneMillionPhones(
           Authorization: `Bearer ${CHAVE_MILLIONPHONES}`,
           "Content-Type": "application/json",
         },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(5000),
       }
     );
 
@@ -515,7 +515,7 @@ export async function buscarContatosNoSite(website: string): Promise<{
     for (const pagina of [...paginas].slice(1)) {
       try {
         const paginaResposta = await fetch(pagina, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(4000),
           headers: { "User-Agent": "FP-Pipe/1.0" },
         });
         if (paginaResposta.ok) textos.push((await paginaResposta.text()).slice(0, 300_000));
@@ -553,7 +553,7 @@ export async function buscarDominioEmpresa(
           situacao_cadastral: ["ATIVA"],
           limite: 1,
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(6000),
       }
     );
 
@@ -594,7 +594,7 @@ export async function buscarWebsitePorCnpj(
   try {
     const resposta = await fetch(
       `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
-      { signal: AbortSignal.timeout(8000) }
+      { signal: AbortSignal.timeout(6000) }
     );
 
     if (!resposta.ok) return {};

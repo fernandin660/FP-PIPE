@@ -49,7 +49,7 @@ async function extrairDeImagem(
         },
       ],
     }),
-    signal: AbortSignal.timeout(90000),
+    signal: AbortSignal.timeout(40000),
   });
 
   if (!resposta.ok) throw new Error(`Erro da OpenAI: ${resposta.status}`);
@@ -94,7 +94,7 @@ async function extrairDePdf(
         },
       ],
     }),
-    signal: AbortSignal.timeout(90000),
+    signal: AbortSignal.timeout(40000),
   });
 
   if (!resposta.ok) {
@@ -141,7 +141,7 @@ async function extrairComGemini(
         ],
         generationConfig: { temperature: 0.3, maxOutputTokens: 700 },
       }),
-      signal: AbortSignal.timeout(90000),
+      signal: AbortSignal.timeout(40000),
     }
   );
 

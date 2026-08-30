@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   const tokenResposta = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" }),
+    signal: AbortSignal.timeout(15000),
   });
   if (!tokenResposta.ok) {
     const corpoErro = await tokenResposta.json().catch(() => ({})) as { error?: string; error_description?: string };
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
   }
   const tokens = await tokenResposta.json() as { access_token?: string; refresh_token?: string; scope?: string };
   if (!tokens.refresh_token) return NextResponse.redirect(`${origem}/disparos?email=sem_refresh_token`);
-  const perfilResposta = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token ?? ""}` } });
+  const perfilResposta = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token ?? ""}` }, signal: AbortSignal.timeout(10000) });
   const perfil = await perfilResposta.json() as { email?: string };
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.redirect(`${origem}/disparos?email=erro_banco`);

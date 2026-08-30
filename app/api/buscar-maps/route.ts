@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
           languageCode: "pt-BR",
           regionCode: "BR",
         }),
+        signal: AbortSignal.timeout(8000),
       }
     );
   } catch {

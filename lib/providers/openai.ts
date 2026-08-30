@@ -29,7 +29,7 @@ export async function chamarOpenaiJson<Formato>(
       temperature: 0.7,
       max_tokens: maxTokens,
     }),
-    signal: AbortSignal.timeout(90000),
+    signal: AbortSignal.timeout(45000),
   });
 
   if (!resposta.ok) {

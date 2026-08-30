@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
   const respostaMp = await fetch(
     `https://api.mercadopago.com/v1/payments/${idPagamento}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) }
   );
 
   if (!respostaMp.ok) {
