@@ -1,0 +1,1144 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+import { criarClienteSupabase } from "../../lib/supabase/client";
+import { formatarCnpj } from "../../lib/conhecimento-cnae";
+import {
+  gerarLinkBuscaEmpresa,
+  gerarLinkBuscaPessoas,
+} from "../../lib/linkedin-links";
+import Sidebar from "../../components/Sidebar";
+import ModalPerfil, {
+  type PerfilVendedor,
+} from "../../components/ModalPerfil";
+
+type Estagio = {
+  id: string;
+  nome: string;
+  cor: string;
+  ordem_estagio: number;
+  criado_em: string;
+};
+
+type EmpresaCrm = {
+  id: string;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  segmento_icp: string | null;
+  municipio: string | null;
+  uf: string | null;
+  score: number | null;
+  score_motivo: string | null;
+  email: string | null;
+  telefone: string | null;
+  linkedin: string | null;
+  origem: string | null;
+  decisor_nome: string | null;
+  decisor_cargo: string | null;
+  campeao_nome: string | null;
+  campeao_cargo: string | null;
+  cargo_prioritario: string | null;
+  endereco: string | null;
+  informacoes_adicionais: string | null;
+};
+
+type MembroOrg = {
+  usuario_id: string;
+  nome: string | null;
+  email: string | null;
+};
+
+type UltimoEvento = {
+  tipo_evento: string;
+  dados: Record<string, unknown>;
+  stage_origem_nome: string | null;
+  stage_destino_nome: string | null;
+  usuario_nome: string | null;
+  criado_em: string;
+};
+
+type LeadCrm = {
+  id: string;
+  company_id: string;
+  stage_id: string;
+  responsavel_id: string | null;
+  responsavel: { nome: string | null; email: string | null } | null;
+  ordenacao: number;
+  criado_em: string;
+  atualizado_em: string;
+  company: EmpresaCrm | null;
+  ultimo_evento: UltimoEvento | null;
+};
+
+type EventoHistorico = {
+  id: string;
+  tipo_evento: string;
+  dados: Record<string, unknown>;
+  stage_origem_id: string | null;
+  stage_destino_id: string | null;
+  usuario_id: string | null;
+  criado_em: string;
+};
+
+type EmpresaPick = {
+  id: string;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  segmento_icp: string | null;
+  municipio: string | null;
+  uf: string | null;
+  score: number | null;
+};
+
+const ROTULO_EVENTO: Record<string, string> = {
+  lead_adicionado: "Adicionado ao pipeline",
+  mudanca_estagio: "Mudança de estágio",
+  responsavel_definido: "Responsável definido",
+  lead_removido: "Removido do pipeline",
+};
+
+function nomeEmpresa(e: EmpresaCrm | EmpresaPick | null): string {
+  return e?.nome_fantasia || e?.razao_social || "Empresa sem nome";
+}
+
+function nomePessoa(l: LeadCrm): string {
+  const c = l.company;
+  return (
+    c?.campeao_nome ||
+    c?.decisor_nome ||
+    "Sem responsável na empresa"
+  );
+}
+
+function cargoPessoa(l: LeadCrm): string | null {
+  const c = l.company;
+  return (
+    c?.campeao_cargo ||
+    c?.decisor_cargo ||
+    c?.cargo_prioritario ||
+    null
+  );
+}
+
+function corScore(score: number | null): string {
+  if (score === null) return "bg-gray-500/20 text-gray-300";
+  if (score >= 80) return "bg-pipe-lime/15 text-pipe-lime";
+  if (score >= 50) return "bg-yellow-500/15 text-yellow-300";
+  return "bg-red-500/15 text-red-300";
+}
+
+function formatarData(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default function PaginaCrm() {
+  const router = useRouter();
+
+  const [etagias, setEtagias] = useState<Estagio[]>([]);
+  const [leads, setLeads] = useState<LeadCrm[]>([]);
+  const [membros, setMembros] = useState<MembroOrg[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  const [perfil, setPerfil] = useState<PerfilVendedor | null>(null);
+  const [saldoCreditos, setSaldoCreditos] = useState<number | null>(null);
+  const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
+
+  // Filtros
+  const [filtroTexto, setFiltroTexto] = useState("");
+  const [filtroResponsavel, setFiltroResponsavel] = useState("todos");
+  const [filtroScore, setFiltroScore] = useState("todos");
+  const [filtroEstagio, setFiltroEstagio] = useState("todos");
+
+  // Drag and drop
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null);
+  const [sobreStageId, setSobreStageId] = useState<string | null>(null);
+  const [sobreLeadId, setSobreLeadId] = useState<string | null>(null);
+  const [salvandoMovimento, setSalvandoMovimento] = useState<number>(0);
+  const leadsAnterior = useRef<LeadCrm[] | null>(null);
+  const arrastouRef = useRef(false);
+
+  // Detalhe
+  const [leadDetalhe, setLeadDetalhe] = useState<LeadCrm | null>(null);
+  const [historico, setHistorico] = useState<EventoHistorico[]>([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [mudandoResponsavel, setMudandoResponsavel] = useState(false);
+
+  // Adicionar empresa
+  const [modalAdicionarAberto, setModalAdicionarAberto] = useState(false);
+  const [empresasPick, setEmpresasPick] = useState<EmpresaPick[]>([]);
+  const [buscaAdicionar, setBuscaAdicionar] = useState("");
+  const [carregandoEmpresasPick, setCarregandoEmpresasPick] = useState(false);
+  const [adicionandoEmpresa, setAdicionandoEmpresa] = useState(false);
+  const [avisoAdicionar, setAvisoAdicionar] = useState("");
+
+  async function carregarCrm() {
+    setErro("");
+    try {
+      const res = await fetch("/api/crm", { cache: "no-store" });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao carregar o CRM.");
+      }
+      const dados = await res.json();
+      setEtagias(dados.stages ?? []);
+      setLeads(dados.leads ?? []);
+      setMembros(dados.membros ?? []);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao carregar o CRM.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      const supabase = criarClienteSupabase();
+      if (!supabase) {
+        setCarregando(false);
+        return;
+      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: dadosPerfil } = await supabase
+        .from("perfil")
+        .select("nome_empresa, produtos_servicos, foto_url, nichos, anexos, site, area_atuacao")
+        .eq("usuario_id", user.id)
+        .maybeSingle();
+      setPerfil((dadosPerfil as PerfilVendedor) ?? null);
+
+      const { data: dadosCreditos } = await supabase
+        .from("creditos")
+        .select("saldo")
+        .eq("usuario_id", user.id)
+        .maybeSingle();
+      setSaldoCreditos(dadosCreditos?.saldo ?? null);
+
+      await carregarCrm();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  const mapaStage = useMemo(() => {
+    const m = new Map<string, Estagio>();
+    for (const s of etagias) m.set(s.id, s);
+    return m;
+  }, [etagias]);
+
+  const mapaMembro = useMemo(() => {
+    const m = new Map<string, MembroOrg>();
+    for (const mb of membros) m.set(mb.usuario_id, mb);
+    return m;
+  }, [membros]);
+
+  const nomeResponsavel = (lead: LeadCrm): string | null => {
+    if (lead.responsavel?.nome) return lead.responsavel.nome;
+    if (lead.responsavel?.email) return lead.responsavel.email;
+    return null;
+  };
+
+  // ---- Filtros ----
+  const leadsFiltrados = useMemo(() => {
+    const texto = filtroTexto.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (filtroEstagio !== "todos" && l.stage_id !== filtroEstagio) return false;
+      if (filtroResponsavel !== "todos") {
+        if (filtroResponsavel === "sem") {
+          if (l.responsavel_id) return false;
+        } else if (l.responsavel_id !== filtroResponsavel) {
+          return false;
+        }
+      }
+      if (filtroScore === "alto" && (l.company?.score ?? 0) < 80) return false;
+      if (filtroScore === "medio" && ((l.company?.score ?? 0) < 50 || (l.company?.score ?? 0) >= 80))
+        return false;
+      if (filtroScore === "baixo" && (l.company?.score ?? 100) >= 50) return false;
+      if (texto) {
+        const campos = [
+          l.company?.nome_fantasia,
+          l.company?.razao_social,
+          l.company?.cnpj,
+          l.company?.segmento_icp,
+          nomePessoa(l),
+          cargoPessoa(l),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!campos.includes(texto)) return false;
+      }
+      return true;
+    });
+  }, [leads, filtroTexto, filtroResponsavel, filtroScore, filtroEstagio]);
+
+  const leadsPorStage = useMemo(() => {
+    const m = new Map<string, LeadCrm[]>();
+    for (const s of etagias) m.set(s.id, []);
+    for (const l of leadsFiltrados) {
+      const arr = m.get(l.stage_id) ?? [];
+      arr.push(l);
+    }
+    for (const [k, arr] of m) {
+      arr.sort((a, b) => a.ordenacao - b.ordenacao || a.criado_em.localeCompare(b.criado_em));
+    }
+    return m;
+  }, [etagias, leadsFiltrados]);
+
+  const totalFiltrado = leadsFiltrados.length;
+
+  async function buscarHistorico(lead: LeadCrm) {
+    setCarregandoHistorico(true);
+    try {
+      const supabase = criarClienteSupabase();
+      if (!supabase) return;
+      const { data } = await supabase
+        .from("pipeline_historico")
+        .select("id, tipo_evento, dados, stage_origem_id, stage_destino_id, usuario_id, criado_em")
+        .eq("company_id", lead.company_id)
+        .order("criado_em", { ascending: false })
+        .limit(200);
+      setHistorico((data as EventoHistorico[]) ?? []);
+    } finally {
+      setCarregandoHistorico(false);
+    }
+  }
+
+  // ---- Drag and drop ----
+  function aoDropEmStage(stageId: string) {
+    setSobreLeadId(null);
+    if (!arrastandoId) return;
+    moverLead(arrastandoId, stageId, null);
+  }
+
+  function aoDropEmLead(leadAlvo: LeadCrm) {
+    if (!arrastandoId || arrastandoId === leadAlvo.id) return;
+    moverLead(arrastandoId, leadAlvo.stage_id, leadAlvo.id);
+  }
+
+  async function moverLead(leadId: string, stageDestinoId: string, antesLeadId: string | null) {
+    const lead = leads.find((l) => l.id === leadId);
+    if (!lead) return;
+    if (lead.stage_id === stageDestinoId && !antesLeadId) return;
+
+    // Snapshot para rollback
+    leadsAnterior.current = leads;
+
+    // Ordem atual do destino (sem o lead movido)
+    const destino = (leadsPorStage.get(stageDestinoId) ?? []).filter(
+      (l) => l.id !== leadId
+    );
+
+    // Calcula nova ordenação do destino com o lead inserido na posição certa
+    let ordenacaoNovo: number;
+    const destinoNovo: LeadCrm[] = [];
+    if (antesLeadId) {
+      const idx = destino.findIndex((l) => l.id === antesLeadId);
+      const posicao = idx === -1 ? destino.length : idx;
+      destinoNovo.push(
+        ...destino.slice(0, posicao).map((l, i) => ({ ...l, ordenacao: i })),
+        {
+          ...lead,
+          stage_id: stageDestinoId,
+          ordenacao: posicao,
+        } as LeadCrm,
+        ...destino.slice(posicao).map((l, i) => ({
+          ...l,
+          ordenacao: posicao + 1 + i,
+        }))
+      );
+      ordenacaoNovo = posicao;
+    } else {
+      destinoNovo.push(
+        ...destino.map((l, i) => ({ ...l, ordenacao: i })),
+        { ...lead, stage_id: stageDestinoId, ordenacao: destino.length } as LeadCrm
+      );
+      ordenacaoNovo = destino.length;
+    }
+
+    // Atualiza localmente: move o lead e aplica nova ordenação no destino
+    setLeads((atual) => {
+      const fora = atual.filter((l) => l.id !== leadId);
+      const idsDestino = new Set(destinoNovo.map((l) => l.id));
+      return [
+        ...fora.filter((l) => !idsDestino.has(l.id)),
+        ...destinoNovo,
+      ];
+    });
+
+    setSalvandoMovimento((n) => n + 1);
+    setSobreStageId(null);
+    setSobreLeadId(null);
+    setArrastandoId(null);
+
+    // Atualiza detalhe aberto, se for o caso
+    setLeadDetalhe((atual) =>
+      atual && atual.id === leadId
+        ? { ...atual, stage_id: stageDestinoId }
+        : atual
+    );
+
+    try {
+      const res = await fetch(`/api/crm/${ledIdEscape(leadId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stage_id: stageDestinoId,
+          stage_origem_id: lead.stage_id,
+          ordenacao: ordenacaoNovo,
+        }),
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao mover o lead.");
+      }
+    } catch (e) {
+      if (leadsAnterior.current) setLeads(leadsAnterior.current);
+      setErro(e instanceof Error ? e.message : "Falha ao mover o lead.");
+    } finally {
+      setSalvandoMovimento((n) => n - 1);
+      leadsAnterior.current = null;
+    }
+  }
+
+  function ledIdEscape(id: string): string {
+    return encodeURIComponent(id);
+  }
+
+  async function mudarResponsavel(lead: LeadCrm, usuarioId: string) {
+    setMudandoResponsavel(true);
+    try {
+      const res = await fetch(`/api/crm/${ledIdEscape(lead.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responsavel_id: usuarioId || null }),
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao definir responsável.");
+      }
+      const mb = usuarioId ? mapaMembro.get(usuarioId) : null;
+      const novaLead = {
+        ...lead,
+        responsavel_id: usuarioId || null,
+        responsavel: mb ? { nome: mb.nome, email: mb.email } : null,
+      };
+      setLeads((atual) => atual.map((l) => (l.id === lead.id ? novaLead : l)));
+      setLeadDetalhe(novaLead);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao definir responsável.");
+    } finally {
+      setMudandoResponsavel(false);
+    }
+  }
+
+  async function removerDoPipeline(lead: LeadCrm) {
+    if (!confirm(`Remover "${nomeEmpresa(lead.company)}" do pipeline?`)) return;
+    try {
+      const res = await fetch(`/api/crm/${ledIdEscape(lead.id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao remover do pipeline.");
+      }
+      setLeads((atual) => atual.filter((l) => l.id !== lead.id));
+      setLeadDetalhe(null);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao remover do pipeline.");
+    }
+  }
+
+  // ---- Adicionar empresa ----
+  async function abrirAdicionar() {
+    setModalAdicionarAberto(true);
+    setBuscaAdicionar("");
+    setAvisoAdicionar("");
+    setCarregandoEmpresasPick(true);
+    try {
+      const supabase = criarClienteSupabase();
+      if (!supabase) return;
+      const { data } = await supabase
+        .from("companies")
+        .select("id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score")
+        .order("criado_em", { ascending: false })
+        .limit(500);
+      const idsNoPipeline = new Set(leads.map((l) => l.company_id));
+      setEmpresasPick(
+        ((data as EmpresaPick[]) ?? []).filter((e) => !idsNoPipeline.has(e.id))
+      );
+    } finally {
+      setCarregandoEmpresasPick(false);
+    }
+  }
+
+  const empresasAdicionar = useMemo(() => {
+    const t = buscaAdicionar.trim().toLowerCase();
+    if (!t) return empresasPick;
+    return empresasPick.filter((e) =>
+      [e.nome_fantasia, e.razao_social, e.cnpj, e.segmento_icp, e.municipio, e.uf]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(t)
+    );
+  }, [empresasPick, buscaAdicionar]);
+
+  async function adicionarEmpresa(empresa: EmpresaPick) {
+    setAdicionandoEmpresa(true);
+    setAvisoAdicionar("");
+    try {
+      const res = await fetch("/api/crm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: empresa.id }),
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao adicionar ao pipeline.");
+      }
+      setEmpresasPick((atual) => atual.filter((e) => e.id !== empresa.id));
+      await carregarCrm();
+      setAvisoAdicionar(`"${nomeEmpresa(empresa)}" adicionado ao pipeline.`);
+    } catch (e) {
+      setAvisoAdicionar(e instanceof Error ? e.message : "Falha ao adicionar.");
+    } finally {
+      setAdicionandoEmpresa(false);
+    }
+  }
+
+  // ---- Detalhe ----
+  function abrirDetalhe(lead: LeadCrm) {
+    setLeadDetalhe(lead);
+    setHistorico([]);
+    void buscarHistorico(lead);
+  }
+
+  function renderCard(lead: LeadCrm) {
+    const c = lead.company;
+    const responsavel = nomeResponsavel(lead);
+    return (
+      <div
+        key={lead.id}
+        draggable
+        onDragStart={(e) => {
+          arrastouRef.current = true;
+          setArrastandoId(lead.id);
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", lead.id);
+        }}
+        onDragEnd={() => {
+          setArrastandoId(null);
+          setSobreStageId(null);
+          setSobreLeadId(null);
+        }}
+        onClick={() => {
+          if (arrastouRef.current) {
+            arrastouRef.current = false;
+            return;
+          }
+          abrirDetalhe(lead);
+        }}
+        className={`group bg-pipe-bg border rounded-xl p-3 cursor-pointer transition select-none ${
+          arrastandoId === lead.id
+            ? "opacity-40 border-pipe-blue"
+            : sobreLeadId === lead.id
+              ? "border-pipe-lime ring-2 ring-pipe-lime/40"
+              : "border-pipe-border hover:border-pipe-blue/50"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-bold text-white leading-snug line-clamp-2">
+            {nomeEmpresa(c)}
+          </p>
+          {c?.score !== null && c?.score !== undefined ? (
+            <span
+              className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${corScore(
+                c.score
+              )}`}
+              title={c.score_motivo ?? undefined}
+            >
+              {c.score}
+            </span>
+          ) : null}
+        </div>
+
+        {(nomePessoa(lead) !== "Sem responsável na empresa" ||
+          cargoPessoa(lead)) && (
+          <p className="mt-1.5 text-xs text-pipe-muted line-clamp-1">
+            👤 {nomePessoa(lead)}
+            {cargoPessoa(lead) ? ` · ${cargoPessoa(lead)}` : ""}
+          </p>
+        )}
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-pipe-muted truncate">
+            {c?.municipio ? `${c.municipio}${c.uf ? `-${c.uf}` : ""}` : c?.uf ?? "—"}
+          </span>
+          {responsavel ? (
+            <span className="text-[11px] text-pipe-blue truncate">
+              👤 {responsavel}
+            </span>
+          ) : (
+            <span className="text-[11px] text-pipe-muted">Sem responsável</span>
+          )}
+        </div>
+
+        {lead.ultimo_evento && (
+          <p className="mt-1.5 text-[10px] text-pipe-muted line-clamp-1">
+            {ROTULO_EVENTO[lead.ultimo_evento.tipo_evento] ??
+              lead.ultimo_evento.tipo_evento}
+            {lead.ultimo_evento.stage_destino_nome
+              ? ` → ${lead.ultimo_evento.stage_destino_nome}`
+              : ""}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Sidebar
+        perfil={perfil}
+        saldoCreditos={saldoCreditos}
+        aoAbrirPerfil={() => setModalPerfilAberto(true)}
+      />
+
+      <ModalPerfil
+        key={`perfil-crm-${modalPerfilAberto}`}
+        aberto={modalPerfilAberto}
+        perfil={perfil}
+        aoFechar={() => setModalPerfilAberto(false)}
+        aoSalvar={setPerfil}
+      />
+
+      <main className="min-h-screen bg-pipe-dark px-6 py-8 lg:pl-72">
+        <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
+          {/* Cabeçalho */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="font-display text-2xl text-white flex items-center gap-2">
+                🗂️ CRM de Prospecção
+              </h1>
+              <p className="text-sm text-pipe-muted mt-0.5">
+                Pipeline comercial B2B · {totalFiltrado} lead
+                {totalFiltrado === 1 ? "" : "s"}
+                {salvandoMovimento > 0 ? " · salvando…" : ""}
+              </p>
+            </div>
+            <button
+              onClick={abrirAdicionar}
+              className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
+            >
+              + Adicionar empresa
+            </button>
+          </div>
+
+          {/* Filtros */}
+          <div className="bg-pipe-card border border-pipe-border rounded-2xl p-3 flex flex-wrap items-center gap-3">
+            <input
+              value={filtroTexto}
+              onChange={(e) => setFiltroTexto(e.target.value)}
+              placeholder="Buscar empresa, contato, cargo…"
+              className="flex-1 min-w-[200px] bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+            />
+            <select
+              value={filtroEstagio}
+              onChange={(e) => setFiltroEstagio(e.target.value)}
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            >
+              <option value="todos">Todos os estágios</option>
+              {etagias.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => setFiltroResponsavel(e.target.value)}
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            >
+              <option value="todos">Todos os responsáveis</option>
+              <option value="sem">Sem responsável</option>
+              {membros.map((m) => (
+                <option key={m.usuario_id} value={m.usuario_id}>
+                  {m.nome || m.email || "Membro"}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filtroScore}
+              onChange={(e) => setFiltroScore(e.target.value)}
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            >
+              <option value="todos">Todos os scores</option>
+              <option value="alto">Score alto (80+)</option>
+              <option value="medio">Score médio (50–79)</option>
+              <option value="baixo">Score baixo (&lt;50)</option>
+            </select>
+            {erro && (
+              <p className="w-full text-sm text-red-400">{erro}</p>
+            )}
+          </div>
+
+          {/* Loading */}
+          {carregando ? (
+            <div className="flex items-center justify-center py-24 text-pipe-muted">
+              Carregando pipeline…
+            </div>
+          ) : etagias.length === 0 ? (
+            <div className="bg-pipe-card border border-pipe-border rounded-2xl p-10 text-center text-pipe-muted">
+              Nenhum estágio configurado ainda.
+            </div>
+          ) : (
+            /* Kanban */
+            <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+              {etagias.map((stage) => {
+                const cards = leadsPorStage.get(stage.id) ?? [];
+                const sobre = sobreStageId === stage.id;
+                return (
+                  <div
+                    key={stage.id}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setSobreStageId(stage.id);
+                    }}
+                    onDragLeave={() => setSobreStageId((a) => (a === stage.id ? null : a))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      aoDropEmStage(stage.id);
+                    }}
+                    className={`w-[300px] shrink-0 rounded-2xl border transition ${
+                      sobre
+                        ? "border-pipe-lime bg-pipe-lime/5"
+                        : "border-pipe-border bg-pipe-card/50"
+                    }`}
+                  >
+                    <div
+                      className="px-4 py-3 flex items-center justify-between"
+                      style={{ borderTop: `4px solid ${stage.cor}` }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: stage.cor }}
+                        />
+                        <p className="text-sm font-bold text-white truncate">
+                          {stage.nome}
+                        </p>
+                      </div>
+                      <span className="text-xs text-pipe-muted shrink-0">
+                        {cards.length}
+                      </span>
+                    </div>
+
+                    <div className="px-2.5 pb-2.5 flex flex-col gap-2 min-h-[160px]">
+                      {cards.length === 0 ? (
+                        <div className="text-center text-xs text-pipe-muted py-8 rounded-lg border border-dashed border-pipe-border">
+                          Solte aqui
+                        </div>
+                      ) : (
+                        cards.map((l) => (
+                          <div
+                            key={l.id}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSobreLeadId(l.id);
+                              setSobreStageId(stage.id);
+                            }}
+                            onDragLeave={() =>
+                              setSobreLeadId((a) => (a === l.id ? null : a))
+                            }
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              aoDropEmLead(l);
+                            }}
+                          >
+                            {renderCard(l)}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Modal adicionar empresa */}
+      {modalAdicionarAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setModalAdicionarAberto(false)}
+        >
+          <div
+            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-pipe-border flex items-center justify-between">
+              <h2 className="font-display text-xl text-white">Adicionar ao pipeline</h2>
+              <button
+                onClick={() => setModalAdicionarAberto(false)}
+                className="text-pipe-muted hover:text-white text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 py-4 border-b border-pipe-border">
+              <input
+                autoFocus
+                value={buscaAdicionar}
+                onChange={(e) => setBuscaAdicionar(e.target.value)}
+                placeholder="Buscar nas suas empresas…"
+                className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-3 space-y-2">
+              {carregandoEmpresasPick ? (
+                <p className="text-center text-pipe-muted py-8 text-sm">
+                  Carregando empresas…
+                </p>
+              ) : empresasAdicionar.length === 0 ? (
+                <p className="text-center text-pipe-muted py-8 text-sm">
+                  {buscaAdicionar
+                    ? "Nenhuma empresa encontrada."
+                    : "Você ainda não tem empresas geradas. Crie uma prospecção primeiro."}
+                </p>
+              ) : (
+                empresasAdicionar.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center justify-between gap-3 bg-pipe-bg border border-pipe-border rounded-xl p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">
+                        {nomeEmpresa(e)}
+                      </p>
+                      <p className="text-xs text-pipe-muted truncate">
+                        {[
+                          e.segmento_icp,
+                          e.municipio ? `${e.municipio}${e.uf ? `-${e.uf}` : ""}` : null,
+                          e.cnpj ? formatarCnpj(e.cnpj) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {e.score !== null && e.score !== undefined ? (
+                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md ${corScore(e.score)}`}>
+                          {e.score}
+                        </span>
+                      ) : null}
+                      <button
+                        onClick={() => adicionarEmpresa(e)}
+                        disabled={adicionandoEmpresa}
+                        className="bg-pipe-blue/15 text-pipe-blue border border-pipe-blue/30 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-pipe-blue/25 disabled:opacity-50 transition"
+                      >
+                        + Adicionar
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+              {avisoAdicionar && (
+                <p className="text-sm text-pipe-lime pt-1">{avisoAdicionar}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal detalhe */}
+      {leadDetalhe && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setLeadDetalhe(null)}
+        >
+          <div
+            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-pipe-border flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="font-display text-xl text-white break-words">
+                  {nomeEmpresa(leadDetalhe.company)}
+                </h2>
+                <p className="text-xs text-pipe-muted mt-0.5">
+                  {leadDetalhe.company?.cnpj
+                    ? `${formatarCnpj(leadDetalhe.company.cnpj)} · `
+                    : ""}
+                  {leadDetalhe.company?.segmento_icp || "Sem segmento"}
+                </p>
+              </div>
+              <button
+                onClick={() => setLeadDetalhe(null)}
+                className="text-pipe-muted hover:text-white text-xl leading-none shrink-0"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {/* Estágio e responsável */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                    Estágio
+                  </p>
+                  <select
+                    value={leadDetalhe.stage_id}
+                    onChange={(e) => {
+                      const novoStage = e.target.value;
+                      setLeadDetalhe({ ...leadDetalhe, stage_id: novoStage });
+                      void moverLead(leadDetalhe.id, novoStage, null);
+                    }}
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  >
+                    {etagias.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                    Responsável
+                  </p>
+                  <select
+                    value={leadDetalhe.responsavel_id ?? ""}
+                    disabled={mudandoResponsavel}
+                    onChange={(e) =>
+                      void mudarResponsavel(leadDetalhe, e.target.value)
+                    }
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue disabled:opacity-50"
+                  >
+                    <option value="">Sem responsável</option>
+                    {membros.map((m) => (
+                      <option key={m.usuario_id} value={m.usuario_id}>
+                        {m.nome || m.email || "Membro"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+
+              {/* Score */}
+              {leadDetalhe.company?.score !== null &&
+                leadDetalhe.company?.score !== undefined && (
+                  <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1">
+                      Score de aderência
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-lg font-bold px-2.5 py-1 rounded-lg ${corScore(
+                          leadDetalhe.company.score
+                        )}`}
+                      >
+                        {leadDetalhe.company.score}
+                      </span>
+                      {leadDetalhe.company.score_motivo && (
+                        <p className="text-sm text-gray-300">
+                          {leadDetalhe.company.score_motivo}
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+              {/* Empresa */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                  Empresa
+                </p>
+                <dl className="flex flex-col gap-1.5 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="text-pipe-muted w-32 shrink-0">Razão social</dt>
+                    <dd className="text-gray-200">
+                      {leadDetalhe.company?.razao_social || "—"}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-pipe-muted w-32 shrink-0">Localização</dt>
+                    <dd className="text-gray-200">
+                      {[leadDetalhe.company?.municipio, leadDetalhe.company?.uf]
+                        .filter(Boolean)
+                        .join(" - ") || "—"}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-pipe-muted w-32 shrink-0">Origem</dt>
+                    <dd className="text-gray-200">{leadDetalhe.company?.origem || "—"}</dd>
+                  </div>
+                  {leadDetalhe.company?.endereco && (
+                    <div className="flex gap-2">
+                      <dt className="text-pipe-muted w-32 shrink-0">Endereço</dt>
+                      <dd className="text-gray-200">{leadDetalhe.company.endereco}</dd>
+                    </div>
+                  )}
+                </dl>
+
+                {(leadDetalhe.company?.telefone ||
+                  leadDetalhe.company?.email ||
+                  leadDetalhe.company?.linkedin) && (
+                  <div className="flex flex-col gap-1.5 text-sm mt-3">
+                    {leadDetalhe.company.telefone ? (
+                      <a
+                        href={`tel:${leadDetalhe.company.telefone.replace(/\D/g, "")}`}
+                        className="text-pipe-blue hover:underline"
+                      >
+                        📞 {leadDetalhe.company.telefone}
+                      </a>
+                    ) : null}
+                    {leadDetalhe.company.email ? (
+                      <a
+                        href={`mailto:${leadDetalhe.company.email}`}
+                        className="text-pipe-blue hover:underline break-all"
+                      >
+                        ✉ {leadDetalhe.company.email}
+                      </a>
+                    ) : null}
+                    {leadDetalhe.company.linkedin ? (
+                      <a
+                        href={leadDetalhe.company.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pipe-blue hover:underline break-all"
+                      >
+                        🔗 LinkedIn da empresa →
+                      </a>
+                    ) : leadDetalhe.company.razao_social ? (
+                      <a
+                        href={gerarLinkBuscaEmpresa(
+                          leadDetalhe.company.nome_fantasia,
+                          leadDetalhe.company.razao_social
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pipe-blue hover:underline"
+                      >
+                        🔎 Buscar empresa no LinkedIn →
+                      </a>
+                    ) : null}
+                  </div>
+                )}
+              </section>
+
+              {/* Contato prioritário */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                  👤 Contato prioritário
+                </p>
+                <p className="text-gray-200 font-semibold">{nomePessoa(leadDetalhe)}</p>
+                {cargoPessoa(leadDetalhe) && (
+                  <p className="text-sm text-pipe-muted">{cargoPessoa(leadDetalhe)}</p>
+                )}
+                {leadDetalhe.company?.razao_social && (
+                  <a
+                    href={gerarLinkBuscaPessoas(
+                      cargoPessoa(leadDetalhe) || "Comprador",
+                      leadDetalhe.company.nome_fantasia,
+                      leadDetalhe.company.razao_social
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pipe-blue hover:underline text-sm mt-1 inline-block"
+                  >
+                    🔎 Buscar no LinkedIn →
+                  </a>
+                )}
+              </section>
+
+              {/* Histórico */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                  Histórico
+                </p>
+                {carregandoHistorico ? (
+                  <p className="text-sm text-pipe-muted">Carregando histórico…</p>
+                ) : historico.length === 0 ? (
+                  <p className="text-sm text-pipe-muted">
+                    Nenhum histórico ainda.
+                  </p>
+                ) : (
+                  <ol className="relative border-l border-pipe-border ml-2 space-y-4">
+                    {historico.map((h) => {
+                      const origem = h.stage_origem_id
+                        ? mapaStage.get(h.stage_origem_id)?.nome ?? null
+                        : null;
+                      const destino = h.stage_destino_id
+                        ? mapaStage.get(h.stage_destino_id)?.nome ?? null
+                        : null;
+                      const autor = h.usuario_id
+                        ? mapaMembro.get(h.usuario_id)
+                        : null;
+                      return (
+                        <li key={h.id} className="relative pl-6">
+                          <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-pipe-blue" />
+                          <p className="text-sm text-white font-medium">
+                            {ROTULO_EVENTO[h.tipo_evento] ?? h.tipo_evento}
+                          </p>
+                          {h.tipo_evento === "mudanca_estagio" &&
+                            origem &&
+                            destino && (
+                              <p className="text-xs text-pipe-muted">
+                                {origem} → {destino}
+                              </p>
+                            )}
+                          <p className="text-[11px] text-pipe-muted mt-0.5">
+                            {formatarData(h.criado_em)}
+                            {autor
+                              ? ` · ${autor.nome || autor.email || "Membro"}`
+                              : ""}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </section>
+
+              {/* Ações */}
+              <section className="flex gap-2">
+                <button
+                  onClick={() => void removerDoPipeline(leadDetalhe)}
+                  className="bg-red-500/10 text-red-400 border border-red-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition"
+                >
+                  Remover do pipeline
+                </button>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

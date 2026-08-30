@@ -26,6 +26,7 @@ export default function Sidebar({
   const [temBuscador, setTemBuscador] = useState<boolean | null>(null);
   const [popupBuscadorAberto, setPopupBuscadorAberto] = useState(false);
   const [popupDisparosAberto, setPopupDisparosAberto] = useState(false);
+  const [crmAberto, setCrmAberto] = useState(false);
   const [ehAdmin, setEhAdmin] = useState(false);
   const [orgNome, setOrgNome] = useState<string | null>(null);
   const [orgPapel, setOrgPapel] = useState<string | null>(null);
@@ -209,6 +210,12 @@ export default function Sidebar({
             pathname === "/prospeccao"
           )}
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
+          {item(
+            "/crm",
+            "CRM",
+            "🗂️",
+            pathname === "/crm" || pathname.startsWith("/crm/")
+          )}
           {temBuscador === false ? (
             <button
               key="/disparos"
