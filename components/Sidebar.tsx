@@ -30,6 +30,10 @@ export default function Sidebar({
   const [ehAdmin, setEhAdmin] = useState(false);
   const [orgNome, setOrgNome] = useState<string | null>(null);
   const [orgPapel, setOrgPapel] = useState<string | null>(null);
+  const [crmResumo, setCrmResumo] = useState<{
+    total: number;
+    porEstagio: Array<{ id: string; nome: string; cor: string; total: number }>;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -72,6 +76,14 @@ export default function Sidebar({
           if (dadosOrg.nome) setOrgNome(dadosOrg.nome);
           if (dadosOrg.papel) setOrgPapel(dadosOrg.papel);
         }
+      } catch {
+        // ignora
+      }
+
+      // Resumo do pipeline para dar visibilidade do CRM no menu
+      try {
+        const resCrm = await fetch("/api/crm/resumo", { cache: "no-store" });
+        if (resCrm.ok) setCrmResumo(await resCrm.json());
       } catch {
         // ignora
       }
@@ -215,6 +227,27 @@ export default function Sidebar({
             "CRM",
             "🗂️",
             pathname === "/crm" || pathname.startsWith("/crm/")
+          )}
+          {crmResumo && crmResumo.total > 0 && (
+            <div className="ml-4 py-1.5 px-4 bg-pipe-dark/60 border border-pipe-border/60 rounded-lg mb-1.5">
+              <Link
+                href="/crm"
+                className="flex items-center justify-between text-[11px] font-bold text-pipe-blue hover:text-white transition"
+              >
+                <span>Pipeline</span>
+                <span className="text-white">{crmResumo.total} lead(s)</span>
+              </Link>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {crmResumo.porEstagio.slice(0, 4).map((s) => (
+                  <span
+                    key={s.id}
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-pipe-card border border-pipe-border text-gray-300"
+                  >
+                    {s.nome}: {s.total}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
           {temBuscador === false ? (
             <button

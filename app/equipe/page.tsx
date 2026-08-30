@@ -25,6 +25,24 @@ type OrgData = {
   membros: Membro[];
 };
 
+type MetricaMembro = {
+  usuario_id: string;
+  nome: string | null;
+  email: string | null;
+  papel: string;
+  status: string;
+  criado_em: string;
+  empresas: number;
+  contatos: number;
+  listas: number;
+  leadsPipeline: number;
+  atividade: number;
+  ultimaAtividade: string | null;
+  creditos: number | null;
+  creditosContatos: number | null;
+  creditosIa: number | null;
+};
+
 function EquipeContent() {
   const searchParams = useSearchParams();
   const [org, setOrg] = useState<OrgData | null>(null);
@@ -38,12 +56,29 @@ function EquipeContent() {
   // timestamp (ms) de quando cada convite foi reenviado — 控制 cooldown
   const [reenvios, setReenvios] = useState<Record<string, number>>({});
   const [agora, setAgora] = useState(Date.now());
+  const [metricas, setMetricas] = useState<MetricaMembro[] | null>(null);
 
   // Ticker a cada segundo para atualizar os countdowns
   useEffect(() => {
     const id = setInterval(() => setAgora(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Carrega métricas dos usuários quando a org é do admin
+  useEffect(() => {
+    if (!org || org.papel !== "admin") return;
+    (async () => {
+      try {
+        const res = await fetch("/api/org/metricas", { cache: "no-store" });
+        if (res.ok) {
+          const dados = await res.json();
+          setMetricas(dados.metricas ?? []);
+        }
+      } catch {
+        // ignora
+      }
+    })();
+  }, [org]);
 
   useEffect(() => {
     // Se veio com ?convite=aceitar, tenta aceitar automaticamente
@@ -331,6 +366,94 @@ function EquipeContent() {
           </p>
         )}
       </section>
+
+      {/* Métricas dos usuários (somente admin) */}
+      {org.papel === "admin" && (
+        <section className="mb-10">
+          <h2 className="text-lg font-semibold text-white mb-1">
+            Métricas dos usuários
+          </h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Acompanhe a atividade de cada membro na organização.
+          </p>
+
+          {metricas === null ? (
+            <p className="text-sm text-gray-500">Carregando métricas…</p>
+          ) : (
+            <div className="bg-gray-800/60 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[820px]">
+                <thead>
+                  <tr className="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-700">
+                    <th className="px-4 py-2.5">Membro</th>
+                    <th className="px-3 py-2.5 text-right">Empresas</th>
+                    <th className="px-3 py-2.5 text-right">Contatos</th>
+                    <th className="px-3 py-2.5 text-right">Listas</th>
+                    <th className="px-3 py-2.5 text-right">Pipeline</th>
+                    <th className="px-3 py-2.5 text-right">Atividades</th>
+                    <th className="px-3 py-2.5 text-right">Créditos</th>
+                    <th className="px-3 py-2.5 text-right">Últ. atendimento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700/50">
+                  {metricas.map((m) => (
+                    <tr key={m.usuario_id} className="hover:bg-gray-700/20">
+                      <td className="px-4 py-3">
+                        <p className="text-white font-medium truncate">
+                          {m.nome ?? "—"}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {m.email ?? "(sem e-mail)"}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3 text-right text-gray-200">
+                        {m.empresas}
+                      </td>
+                      <td className="px-3 py-3 text-right text-gray-200">
+                        {m.contatos}
+                      </td>
+                      <td className="px-3 py-3 text-right text-gray-200">
+                        {m.listas}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-sm font-semibold text-blue-300">
+                          {m.leadsPipeline}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right text-gray-200">
+                        {m.atividade}
+                      </td>
+                      <td className="px-3 py-3 text-right text-sm">
+                        {m.creditosContatos !== null ? (
+                          <span className="text-lime-300 font-semibold">
+                            {m.creditosContatos}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right text-xs text-gray-400">
+                        {m.ultimaAtividade
+                          ? new Date(m.ultimaAtividade).toLocaleDateString(
+                              "pt-BR",
+                              { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }
+                            )
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {metricas.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                        Nenhum usuário ativo na organização.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Upgrade prompt */}
       {org.papel === "admin" && !org.permiteConvidar && org.plano !== "teste" && (
