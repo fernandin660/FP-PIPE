@@ -18,6 +18,7 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 import Sidebar from "../../components/Sidebar";
+import AdicionarAoCrmModal from "../../components/AdicionarAoCrmModal";
 import {
   CATALOGO_CARGOS,
   buscarCargos,
@@ -709,6 +710,12 @@ export default function Home() {
 
   const [salvandoLista, setSalvandoLista] = useState(false);
   const [listaJaSalva, setListaJaSalva] = useState(false);
+  const [modalCrmAberto, setModalCrmAberto] = useState(false);
+
+  const abrirModalCrm = () => {
+    if (empresasSelecionadas.size === 0) return;
+    setModalCrmAberto(true);
+  };
 
   const salvarListaAtual = async () => {
     if (!usuarioEmail || listaJaSalva || salvandoLista) return;
@@ -3107,6 +3114,17 @@ export default function Home() {
                     </button>
 
                     <button
+                      onClick={abrirModalCrm}
+                      disabled={empresasSelecionadas.size === 0}
+                      className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
+                    >
+                      📥 Adicionar ao CRM
+                      {empresasSelecionadas.size > 0
+                        ? ` (${empresasSelecionadas.size})`
+                        : ""}
+                    </button>
+
+                    <button
                       onClick={exportarCsv}
                       className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-card hover:text-white transition"
                     >
@@ -3718,6 +3736,19 @@ export default function Home() {
           }}
         />
       )}
+
+      <AdicionarAoCrmModal
+        aberto={modalCrmAberto}
+        aoFechar={() => setModalCrmAberto(false)}
+        titulo="Empresas do buscador"
+        descricao="As empresas selecionadas serão adicionadas ao seu pipeline de prospecção no CRM."
+        alvos={{
+          cnpjs: empresasEncontradas
+            .filter((e) => empresasSelecionadas.has(e.cnpj))
+            .map((e) => e.cnpj),
+        }}
+        origem="busca_empresa"
+      />
 
       <ModalCompraCreditos
         aberto={modalCompraAberto}

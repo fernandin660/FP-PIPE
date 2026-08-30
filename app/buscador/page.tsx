@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
 import Sidebar from "../../components/Sidebar";
+import AdicionarAoCrmModal from "../../components/AdicionarAoCrmModal";
 import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
@@ -372,6 +373,19 @@ function BuscadorContent() {
   const [copiado, setCopiado] = useState(false);
   const [historico, setHistorico] = useState<ContatoEncontrado[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaResumida[]>([]);
+  const [contatosSelecionados, setContatosSelecionados] = useState<Set<string>>(
+    new Set()
+  );
+  const [modalCrmAberto, setModalCrmAberto] = useState(false);
+
+  const alternarContato = (id: string) => {
+    setContatosSelecionados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  };
 
   const [objetivoContato, setObjetivoContato] = useState("");
   const [canalContato, setCanalContato] = useState("");
@@ -1571,9 +1585,36 @@ function BuscadorContent() {
 
           {historico.length > 0 && (
             <div className="mt-10">
-              <h2 className="font-display text-2xl text-white mb-4">
-                Buscas recentes
-              </h2>
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+                <h2 className="font-display text-2xl text-white">
+                  Buscas recentes
+                </h2>
+
+                {historico.some((c) => c.company_id) && (
+                  <div className="flex items-center gap-3">
+                    {contatosSelecionados.size > 0 && (
+                      <button
+                        onClick={() =>
+                          setContatosSelecionados(new Set())
+                        }
+                        className="text-xs font-semibold text-pipe-muted hover:text-white transition"
+                      >
+                        Limpar seleção ({contatosSelecionados.size})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setModalCrmAberto(true)}
+                      disabled={contatosSelecionados.size === 0}
+                      className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
+                    >
+                      📥 Adicionar ao CRM
+                      {contatosSelecionados.size > 0
+                        ? ` (${contatosSelecionados.size})`
+                        : ""}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 {historico.map((contato) => (
@@ -1581,6 +1622,20 @@ function BuscadorContent() {
                     key={contato.id ?? contato.email}
                     className="bg-pipe-card border border-pipe-border rounded-xl px-5 py-3 flex items-center justify-between gap-4 flex-wrap"
                   >
+                    {contato.company_id ? (
+                      <input
+                        type="checkbox"
+                        checked={contatosSelecionados.has(contato.id ?? "")}
+                        onChange={() =>
+                          contato.id && alternarContato(contato.id)
+                        }
+                        title="Selecionar para adicionar ao CRM"
+                        className="shrink-0 w-4 h-4 accent-lime-400"
+                      />
+                    ) : (
+                      <span className="w-4 shrink-0" />
+                    )}
+
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white truncate">
                         {contato.nome ?? "—"}
@@ -1660,6 +1715,17 @@ function BuscadorContent() {
           </div>
         </div>
       )}
+
+      <AdicionarAoCrmModal
+        aberto={modalCrmAberto}
+        aoFechar={() => setModalCrmAberto(false)}
+        titulo="Contatos do buscador"
+        descricao="A empresa de cada contato selecionado será adicionada ao seu pipeline de prospecção no CRM."
+        alvos={{
+          contact_ids: Array.from(contatosSelecionados),
+        }}
+        origem="busca_contato"
+      />
     </>
   );
 }

@@ -17,6 +17,7 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 import ModalAbordagem from "../../components/ModalAbordagem";
+import AdicionarAoCrmModal from "../../components/AdicionarAoCrmModal";
 
 function montarPerfilVendedor(perfil: PerfilVendedor | null): string {
   if (!perfil?.nome_empresa && !perfil?.produtos_servicos) return "";
@@ -123,6 +124,10 @@ export default function PaginaListas() {
     "todos"
   );
   const [modalAbordagemAberto, setModalAbordagemAberto] = useState(false);
+  const [modalCrmLista, setModalCrmLista] = useState<{
+    listaNome: string;
+    company_ids: string[];
+  } | null>(null);
   const [edicaoLead, setEdicaoLead] = useState({
     nome: "",
     email: "",
@@ -1208,6 +1213,20 @@ export default function PaginaListas() {
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
+                      {empresas.length > 0 && (
+                        <button
+                          onClick={() =>
+                            setModalCrmLista({
+                              listaNome: lista.nome,
+                              company_ids: empresas.map((e) => e.id),
+                            })
+                          }
+                          title="Adicionar as empresas desta lista ao CRM"
+                          className="border border-pipe-blue/40 text-pipe-blue text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-blue/10 transition whitespace-nowrap"
+                        >
+                          📥 CRM
+                        </button>
+                      )}
                       <button
                         onClick={() => apagarLista(lista)}
                         title="Apagar esta lista"
@@ -2256,6 +2275,17 @@ export default function PaginaListas() {
           </div>
         </div>
       )}
+
+      <AdicionarAoCrmModal
+        aberto={modalCrmLista !== null}
+        aoFechar={() => setModalCrmLista(null)}
+        titulo={modalCrmLista ? `Lista: ${modalCrmLista.listaNome}` : ""}
+        descricao="Todas as empresas desta lista serão adicionadas ao seu pipeline de prospecção no CRM."
+        alvos={{
+          company_ids: modalCrmLista?.company_ids ?? [],
+        }}
+        origem="lista"
+      />
     </main>
     </>
   );
