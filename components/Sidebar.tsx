@@ -127,7 +127,7 @@ export default function Sidebar({
           <span>🔎</span>
           Buscador de contatos
           <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
-            Pro
+            Gold
           </span>
         </button>
       );
@@ -208,7 +208,21 @@ export default function Sidebar({
             pathname === "/prospeccao"
           )}
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
-          {item("/disparos", "Disparos em massa", "✉️", pathname === "/disparos")}
+          <Link
+            key="/disparos"
+            href="/disparos"
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+              pathname === "/disparos"
+                ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
+                : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+            }`}
+          >
+            <span>✉️</span>
+            Disparos em massa
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+              Gold
+            </span>
+          </Link>
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
