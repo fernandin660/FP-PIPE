@@ -25,6 +25,7 @@ export default function Sidebar({
   const router = useRouter();
   const [temBuscador, setTemBuscador] = useState<boolean | null>(null);
   const [popupBuscadorAberto, setPopupBuscadorAberto] = useState(false);
+  const [popupDisparosAberto, setPopupDisparosAberto] = useState(false);
   const [ehAdmin, setEhAdmin] = useState(false);
   const [orgNome, setOrgNome] = useState<string | null>(null);
   const [orgPapel, setOrgPapel] = useState<string | null>(null);
@@ -208,21 +209,35 @@ export default function Sidebar({
             pathname === "/prospeccao"
           )}
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
-          <Link
-            key="/disparos"
-            href="/disparos"
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
-              pathname === "/disparos"
-                ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
-                : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
-            }`}
-          >
-            <span>✉️</span>
-            Disparos em massa
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
-              Gold
-            </span>
-          </Link>
+          {temBuscador === false ? (
+            <button
+              key="/disparos"
+              onClick={() => setPopupDisparosAberto(true)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:bg-pipe-dark hover:text-white border border-dashed border-pipe-border"
+            >
+              <span>✉️</span>
+              Disparos em massa
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+                Gold
+              </span>
+            </button>
+          ) : (
+            <Link
+              key="/disparos"
+              href="/disparos"
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+                pathname === "/disparos"
+                  ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
+                  : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+              }`}
+            >
+              <span>✉️</span>
+              Disparos em massa
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+                Gold
+              </span>
+            </Link>
+          )}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
@@ -285,13 +300,15 @@ export default function Sidebar({
             </div>
 
             <p className="text-gray-300 text-sm leading-relaxed text-center">
-              Encontre <strong className="text-white">e-mails verificados</strong>{" "}
+              Encontre <strong className="text-white">e-mails</strong> e{" "}
+              <strong className="text-white">telefones corporativos</strong>{" "}
               dos decisores direto do LinkedIn deles. Cole o perfil, e o FP Pipe
               descobre o contato comercial real — pronto pra abordagem.
             </p>
 
             <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
               <p>✅ E-mail corporativo verificado</p>
+              <p>✅ Telefone verificado</p>
               <p>✅ Nome, cargo e empresa completos</p>
               <p>✅ Salva automático na sua lista</p>
             </div>
@@ -307,10 +324,63 @@ export default function Sidebar({
                 href="/planos"
                 className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
               >
-                ⭐ Fazer upgrade para ter e-mails verificados do LinkedIn
+                ⭐ Fazer upgrade para ter e-mails e telefones verificados do LinkedIn
               </Link>
               <button
                 onClick={() => setPopupBuscadorAberto(false)}
+                className="text-xs text-pipe-muted hover:text-white transition"
+              >
+                Talvez depois
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {popupDisparosAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setPopupDisparosAberto(false)}
+        >
+          <div
+            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-md w-full p-8 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="text-5xl mb-3">✉️</div>
+              <h2 className="font-display text-2xl text-white">
+                Disparos em Massa
+              </h2>
+            </div>
+
+            <p className="text-gray-300 text-sm leading-relaxed text-center">
+              Dispare <strong className="text-white">e-mails personalizados</strong>{" "}
+              em massa para as empresas da sua lista, com abordagem gerada por IA
+              e acompanhamento de quem abriu e respondeu — tudo automático.
+            </p>
+
+            <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
+              <p>✅ Envio em massa com mensagens personalizadas</p>
+              <p>✅ Abordagens geradas por IA por empresa</p>
+              <p>✅ Acompanhe envios, aberturas e respostas</p>
+              <p>✅ Conecte seu Gmail, Outlook ou Zoho</p>
+            </div>
+
+            <p className="text-[12px] text-pipe-muted text-center">
+              Disponível nos planos{" "}
+              <strong className="text-pipe-lime">Gold</strong> (até 100/dia) e{" "}
+              <strong className="text-pipe-lime">Platinum</strong> (até 300/dia).
+            </p>
+
+            <div className="flex flex-col gap-3 pt-1">
+              <Link
+                href="/planos"
+                className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
+              >
+                ⭐ Fazer upgrade para ativar o disparo em massa
+              </Link>
+              <button
+                onClick={() => setPopupDisparosAberto(false)}
                 className="text-xs text-pipe-muted hover:text-white transition"
               >
                 Talvez depois
