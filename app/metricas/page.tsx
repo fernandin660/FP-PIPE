@@ -197,7 +197,7 @@ async function exportarPdf(dados: PayloadMetricas) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(180, 180, 180);
-    doc.text("Painel de métricas de prospecção B2B", MARGIN, 68);
+    doc.text("Dashboard de prospecção B2B", MARGIN, 68);
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, W - MARGIN, 52, {
@@ -416,10 +416,10 @@ function PaginaMetricas() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="font-display text-2xl text-white flex items-center gap-2">
-                📊 Painel de Métricas
+                📊 Dashboard
               </h1>
               <p className="text-sm text-pipe-muted mt-0.5">
-                Indicadores de prospecção e conversão · FP PIPE+
+                Indicadores de prospecção, conversão e resultado · FP PIPE+
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

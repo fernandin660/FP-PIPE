@@ -223,6 +223,12 @@ export default function Sidebar({
           )}
           {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
           {item(
+            "/metricas",
+            "Dashboard",
+            "📊",
+            pathname === "/metricas"
+          )}
+          {item(
             "/crm",
             "CRM",
             "🗂️",
@@ -280,12 +286,6 @@ export default function Sidebar({
           )}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
-          {item(
-            "/metricas",
-            "Painel de métricas",
-            "📊",
-            pathname === "/metricas"
-          )}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
           {ehAdmin && (
             <>
