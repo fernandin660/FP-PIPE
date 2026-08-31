@@ -100,6 +100,54 @@ const ROTULO_EVENTO: Record<string, string> = {
   mudanca_estagio: "Mudança de estágio",
   responsavel_definido: "Responsável definido",
   lead_removido: "Removido do pipeline",
+  atividade: "Atividade",
+  atividade_programada: "Atividade programada (cadência)",
+  cadencia_iniciada: "Cadência iniciada",
+};
+
+const ROTULO_TIPO_ATIVIDADE: Record<string, string> = {
+  email: "E-mail",
+  telefone: "Telefone",
+  whatsapp: "WhatsApp",
+  linkedin: "LinkedIn",
+  reuniao: "Reunião",
+  tarefa: "Tarefa",
+  observacao: "Observação",
+};
+
+const TIPOS_ATIVIDADE = [
+  "email",
+  "telefone",
+  "whatsapp",
+  "linkedin",
+  "reuniao",
+  "tarefa",
+  "observacao",
+];
+
+type EtapaCadencia = {
+  id: string;
+  ordem: number;
+  tipo_atividade: string;
+  titulo: string;
+  atraso_dias: number;
+  script: string;
+};
+
+type CadenciaModelo = {
+  id: string;
+  nome: string;
+  descricao: string;
+  criado_em: string;
+  etapas: EtapaCadencia[];
+};
+
+type CadenciaAtiva = {
+  id: string;
+  cadencia_id: string;
+  etapa_atual_id: string | null;
+  proxima_em: string | null;
+  status: string;
 };
 
 function nomeEmpresa(e: EmpresaCrm | EmpresaPick | null): string {
@@ -175,6 +223,22 @@ export default function PaginaCrm() {
   const [historico, setHistorico] = useState<EventoHistorico[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [mudandoResponsavel, setMudandoResponsavel] = useState(false);
+
+  // Atividade manual
+  const [formAtividade, setFormAtividade] = useState({
+    tipo_atividade: "tarefa",
+    titulo: "",
+    observacao: "",
+    data_hora_atividade: "",
+  });
+  const [salvandoAtividade, setSalvandoAtividade] = useState(false);
+  const [editandoAtividadeId, setEditandoAtividadeId] = useState<string | null>(null);
+
+  // Cadência
+  const [cadencias, setCadencias] = useState<CadenciaModelo[]>([]);
+  const [cadenciaAtiva, setCadenciaAtiva] = useState<CadenciaAtiva | null>(null);
+  const [cadenciaSelecionada, setCadenciaSelecionada] = useState("");
+  const [aplicandoCadencia, setAplicandoCadencia] = useState(false);
 
   // Adicionar empresa
   const [modalAdicionarAberto, setModalAdicionarAberto] = useState(false);
@@ -318,6 +382,208 @@ export default function PaginaCrm() {
       setHistorico((data as EventoHistorico[]) ?? []);
     } finally {
       setCarregandoHistorico(false);
+    }
+  }
+
+  async function carregarCadencias(lead: LeadCrm) {
+    try {
+      const res = await fetch(`/api/crm/cadencia?lead_pipeline_id=${lead.id}`);
+      const dados = await res.json().catch(() => null);
+      if (dados?.cadencias) setCadencias(dados.cadencias);
+      setCadenciaAtiva(dados?.cadenciaAtiva ?? null);
+      setCadenciaSelecionada(dados?.cadenciaAtiva?.cadencia_id ?? "");
+    } catch {
+      // silencioso
+    }
+  }
+
+  function abrirFormularioAtividade(lead: LeadCrm) {
+    setEditandoAtividadeId(null);
+    setFormAtividade({
+      tipo_atividade: "tarefa",
+      titulo: "",
+      observacao: "",
+      data_hora_atividade: "",
+    });
+    void carregarCadencias(lead);
+  }
+
+  async function criarAtividade(companyId: string) {
+    if (!formAtividade.titulo.trim()) return;
+    setSalvandoAtividade(true);
+    try {
+      let dataHora = formAtividade.data_hora_atividade;
+      if (dataHora) {
+        const d = new Date(dataHora);
+        if (!Number.isNaN(d.getTime())) dataHora = d.toISOString();
+      }
+      const res = await fetch("/api/crm/atividades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_id: companyId,
+          tipo_atividade: formAtividade.tipo_atividade,
+          titulo: formAtividade.titulo,
+          observacao: formAtividade.observacao,
+          data_hora_atividade: dataHora || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao registrar atividade.");
+      }
+      setFormAtividade({
+        tipo_atividade: "tarefa",
+        titulo: "",
+        observacao: "",
+        data_hora_atividade: "",
+      });
+      const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
+      if (lead) void buscarHistorico(lead);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao registrar atividade.";
+      alert(msg);
+    } finally {
+      setSalvandoAtividade(false);
+    }
+  }
+
+  function comecarEditarAtividade(ev: EventoHistorico) {
+    const dados = ev.dados as Record<string, unknown>;
+    setEditandoAtividadeId(ev.id);
+    let dataHora = "";
+    const iso = dados.data_hora_atividade;
+    if (typeof iso === "string" && iso) {
+      const d = new Date(iso);
+      if (!Number.isNaN(d.getTime())) {
+        const pad = (n: number) => String(n).padStart(2, "0");
+        dataHora = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+          d.getDate()
+        )}T${d.getHours()}:${pad(d.getMinutes())}`;
+      }
+    }
+    setFormAtividade({
+      tipo_atividade:
+        typeof dados.tipo_atividade === "string" ? dados.tipo_atividade : "tarefa",
+      titulo: typeof dados.titulo === "string" ? dados.titulo : "",
+      observacao: typeof dados.observacao === "string" ? dados.observacao : "",
+      data_hora_atividade: dataHora,
+    });
+  }
+
+  async function salvarEdicaoAtividade(companyId: string) {
+    if (!editandoAtividadeId || !formAtividade.titulo.trim()) return;
+    setSalvandoAtividade(true);
+    try {
+      let dataHora = formAtividade.data_hora_atividade;
+      if (dataHora) {
+        const d = new Date(dataHora);
+        if (!Number.isNaN(d.getTime())) dataHora = d.toISOString();
+      }
+      const res = await fetch("/api/crm/atividades", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          atividade_id: editandoAtividadeId,
+          tipo_atividade: formAtividade.tipo_atividade,
+          titulo: formAtividade.titulo,
+          observacao: formAtividade.observacao,
+          data_hora_atividade: dataHora || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao editar atividade.");
+      }
+      setEditandoAtividadeId(null);
+      setFormAtividade({
+        tipo_atividade: "tarefa",
+        titulo: "",
+        observacao: "",
+        data_hora_atividade: "",
+      });
+      const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
+      if (lead) void buscarHistorico(lead);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao editar atividade.";
+      alert(msg);
+    } finally {
+      setSalvandoAtividade(false);
+    }
+  }
+
+  async function removerAtividade(ev: EventoHistorico) {
+    if (!confirm("Remover esta atividade?")) return;
+    try {
+      const res = await fetch("/api/crm/atividades", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ atividade_id: ev.id }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao remover atividade.");
+      }
+      const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
+      if (lead) void buscarHistorico(lead);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao remover atividade.";
+      alert(msg);
+    }
+  }
+
+  async function aplicarCadencia(companyId: string) {
+    if (!cadenciaSelecionada) return;
+    setAplicandoCadencia(true);
+    try {
+      const res = await fetch("/api/crm/cadencia?acao=entrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_id: companyId,
+          cadencia_id: cadenciaSelecionada,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao aplicar cadência.");
+      }
+      const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
+      if (lead) {
+        void buscarHistorico(lead);
+        void carregarCadencias(lead);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao aplicar cadência.";
+      alert(msg);
+    } finally {
+      setAplicandoCadencia(false);
+    }
+  }
+
+  async function sairCadencia(companyId: string) {
+    if (!confirm("Sair da cadência e cancelar as atividades programadas?")) return;
+    setAplicandoCadencia(true);
+    try {
+      const res = await fetch("/api/crm/cadencia?acao=sair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao sair da cadência.");
+      }
+      const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
+      if (lead) {
+        void buscarHistorico(lead);
+        void carregarCadencias(lead);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao sair da cadência.";
+      alert(msg);
+    } finally {
+      setAplicandoCadencia(false);
     }
   }
 
@@ -529,6 +795,7 @@ export default function PaginaCrm() {
     setLeadDetalhe(lead);
     setHistorico([]);
     void buscarHistorico(lead);
+    abrirFormularioAtividade(lead);
   }
 
   function renderCard(lead: LeadCrm) {
@@ -1077,6 +1344,153 @@ export default function PaginaCrm() {
                 )}
               </section>
 
+              {/* Cadência */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                  Cadência
+                </p>
+                {cadenciaAtiva ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-white font-medium">
+                      {cadencias.find((c) => c.id === cadenciaAtiva.cadencia_id)
+                        ?.nome ?? "Cadência ativa"}
+                    </p>
+                    <p className="text-[11px] text-pipe-muted">
+                      {cadenciaAtiva.proxima_em
+                        ? `Próxima etapa: ${formatarData(cadenciaAtiva.proxima_em)}`
+                        : "Sem próxima etapa."}
+                    </p>
+                    <button
+                      onClick={() =>
+                        void sairCadencia(leadDetalhe.company_id)
+                      }
+                      disabled={aplicandoCadencia}
+                      className="bg-red-500/10 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition disabled:opacity-50"
+                    >
+                      Sair da cadência
+                    </button>
+                  </div>
+                ) : cadencias.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={cadenciaSelecionada}
+                      onChange={(e) => setCadenciaSelecionada(e.target.value)}
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    >
+                      <option value="">Selecione uma cadência…</option>
+                      {cadencias.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome} ({c.etapas.length} toques)
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => void aplicarCadencia(leadDetalhe.company_id)}
+                      disabled={!cadenciaSelecionada || aplicandoCadencia}
+                      className="w-full bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-pipe-lime/25 transition disabled:opacity-50"
+                    >
+                      Aplicar cadência
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-pipe-muted">
+                    Nenhuma cadência disponível.
+                  </p>
+                )}
+              </section>
+
+              {/* Registrar atividade */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                  {editandoAtividadeId
+                    ? "Editar atividade"
+                    : "Registrar atividade"}
+                </p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <select
+                      value={formAtividade.tipo_atividade}
+                      onChange={(e) =>
+                        setFormAtividade((f) => ({
+                          ...f,
+                          tipo_atividade: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    >
+                      {TIPOS_ATIVIDADE.map((t) => (
+                        <option key={t} value={t}>
+                          {ROTULO_TIPO_ATIVIDADE[t] ?? t}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="datetime-local"
+                      value={formAtividade.data_hora_atividade}
+                      onChange={(e) =>
+                        setFormAtividade((f) => ({
+                          ...f,
+                          data_hora_atividade: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Título da atividade (ex.: E-mail de apresentação)"
+                    value={formAtividade.titulo}
+                    onChange={(e) =>
+                      setFormAtividade((f) => ({ ...f, titulo: e.target.value }))
+                    }
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                  />
+                  <textarea
+                    placeholder="Observações / notas"
+                    value={formAtividade.observacao}
+                    onChange={(e) =>
+                      setFormAtividade((f) => ({
+                        ...f,
+                        observacao: e.target.value,
+                      }))
+                    }
+                    rows={2}
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        editandoAtividadeId
+                          ? void salvarEdicaoAtividade(leadDetalhe.company_id)
+                          : void criarAtividade(leadDetalhe.company_id)
+                      }
+                      disabled={
+                        salvandoAtividade || !formAtividade.titulo.trim()
+                      }
+                      className="bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-pipe-lime/25 transition disabled:opacity-50"
+                    >
+                      {editandoAtividadeId ? "Salvar alterações" : "Registrar"}
+                    </button>
+                    {editandoAtividadeId && (
+                      <button
+                        onClick={() => {
+                          setEditandoAtividadeId(null);
+                          setFormAtividade({
+                            tipo_atividade: "tarefa",
+                            titulo: "",
+                            observacao: "",
+                            data_hora_atividade: "",
+                          });
+                        }}
+                        className="bg-pipe-card border border-pipe-border px-4 py-2 rounded-lg text-xs font-semibold text-pipe-muted hover:text-white transition"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </section>
+
               {/* Histórico */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
@@ -1100,12 +1514,61 @@ export default function PaginaCrm() {
                       const autor = h.usuario_id
                         ? mapaMembro.get(h.usuario_id)
                         : null;
+                      const d = (h.dados ?? {}) as Record<string, unknown>;
+                      const ehAtividade =
+                        h.tipo_evento === "atividade" ||
+                        h.tipo_evento === "atividade_programada";
+                      const cancelada = d.cancelada === true;
+                      const dataAtividade =
+                        typeof d.data_hora_atividade === "string"
+                          ? d.data_hora_atividade
+                          : null;
                       return (
                         <li key={h.id} className="relative pl-6">
-                          <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-pipe-blue" />
-                          <p className="text-sm text-white font-medium">
-                            {ROTULO_EVENTO[h.tipo_evento] ?? h.tipo_evento}
-                          </p>
+                          <span
+                            className={`absolute -left-1.5 top-1 w-3 h-3 rounded-full ${
+                              ehAtividade
+                                ? cancelada
+                                  ? "bg-pipe-muted"
+                                  : "bg-pipe-lime"
+                                : "bg-pipe-blue"
+                            }`}
+                          />
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm text-white font-medium">
+                              {ROTULO_EVENTO[h.tipo_evento] ?? h.tipo_evento}
+                              {typeof d.tipo_atividade === "string" &&
+                                d.tipo_atividade &&
+                                h.tipo_evento !== "cadencia_iniciada" && (
+                                  <span className="text-pipe-muted font-normal">
+                                    {" · "}
+                                    {ROTULO_TIPO_ATIVIDADE[d.tipo_atividade] ??
+                                      d.tipo_atividade}
+                                  </span>
+                                )}
+                            </p>
+                            {h.tipo_evento === "atividade" && (
+                              <div className="flex gap-1 shrink-0">
+                                <button
+                                  onClick={() => comecarEditarAtividade(h)}
+                                  className="text-[11px] text-pipe-muted hover:text-white"
+                                  title="Editar"
+                                >
+                                  editar
+                                </button>
+                                <button
+                                  onClick={() => void removerAtividade(h)}
+                                  className="text-[11px] text-pipe-muted hover:text-red-400"
+                                  title="Remover"
+                                >
+                                  remover
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {typeof d.titulo === "string" && d.titulo && (
+                            <p className="text-sm text-gray-200">{d.titulo}</p>
+                          )}
                           {h.tipo_evento === "mudanca_estagio" &&
                             origem &&
                             destino && (
@@ -1113,11 +1576,24 @@ export default function PaginaCrm() {
                                 {origem} → {destino}
                               </p>
                             )}
+                          {typeof d.observacao === "string" &&
+                            d.observacao && (
+                              <p className="text-xs text-pipe-muted whitespace-pre-wrap">
+                                {d.observacao}
+                              </p>
+                            )}
                           <p className="text-[11px] text-pipe-muted mt-0.5">
-                            {formatarData(h.criado_em)}
+                            {dataAtividade && ehAtividade
+                              ? `Programado: ${formatarData(dataAtividade)}`
+                              : formatarData(h.criado_em)}
                             {autor
                               ? ` · ${autor.nome || autor.email || "Membro"}`
                               : ""}
+                            {cancelada && (
+                              <span className="text-pipe-muted ml-1">
+                                (cancelada)
+                              </span>
+                            )}
                           </p>
                         </li>
                       );
