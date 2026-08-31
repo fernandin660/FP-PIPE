@@ -139,7 +139,7 @@ export async function GET(request: Request) {
       }
       if (ehStage(nome, "GANHO")) ganhos += 1;
       else if (ehStage(nome, "PERDIDO")) perdidos += 1;
-      else oportunidadesAbertas += 1;
+      else if (ehStage(nome, "OPORTUNIDADE")) oportunidadesAbertas += 1;
 
       if (!ehStage(nome, "PERDIDO")) {
         valorPipeline += v;

@@ -78,6 +78,23 @@ type Geracao = {
   empresasPorOrigem: Array<{ origem: string; total: number }>;
 };
 
+type AtividadePendente = {
+  id: string;
+  tipo_evento: string;
+  tipo_atividade: string;
+  titulo: string;
+  observacao: string;
+  data_hora_atividade: string | null;
+  concluida: boolean;
+  atrasada: boolean;
+  company_id: string;
+  empresa: string;
+  stage_nome: string | null;
+  responsavel_nome: string | null;
+  autor_nome: string | null;
+  criado_em: string;
+};
+
 type PayloadMetricas = {
   resumo: Resumo;
   funil: FunilItem[];
@@ -101,6 +118,33 @@ const brl = (n: number | null | undefined) =>
       );
 
 const num = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
+
+const TIPO_ROTULO: Record<string, string> = {
+  email: "E-mail",
+  telefone: "Telefone",
+  whatsapp: "WhatsApp",
+  linkedin: "LinkedIn",
+  reuniao: "Reunião",
+  tarefa: "Tarefa",
+  observacao: "Observação",
+};
+
+const fmtData = (iso: string) =>
+  new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const paraInput = (iso: string) => {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(
+    d.getHours()
+  )}:${p(d.getMinutes())}`;
+};
 
 function baixarArquivo(nome: string, conteudo: string, tipo: string) {
   const blob = new Blob([conteudo], { type: tipo });
@@ -234,7 +278,9 @@ async function exportarPdf(dados: PayloadMetricas) {
     styles: { fontSize: 9, cellPadding: 6 },
     headStyles: { fillColor: [3, 6, 9], textColor: 255 },
   });
-  y = ((autoTable as unknown as { last: { y: number } }).last).y + 24;
+  y =
+      (((doc as unknown as { lastAutoTable?: { finalY: number } })
+        .lastAutoTable?.finalY ?? y) + 24);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -257,7 +303,9 @@ async function exportarPdf(dados: PayloadMetricas) {
     styles: { fontSize: 9, cellPadding: 6 },
     headStyles: { fillColor: [3, 6, 9], textColor: 255 },
   });
-  y = ((autoTable as unknown as { last: { y: number } }).last).y + 24;
+  y =
+      (((doc as unknown as { lastAutoTable?: { finalY: number } })
+        .lastAutoTable?.finalY ?? y) + 24);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -280,7 +328,9 @@ async function exportarPdf(dados: PayloadMetricas) {
     styles: { fontSize: 9, cellPadding: 6 },
     headStyles: { fillColor: [3, 6, 9], textColor: 255 },
   });
-  y = ((autoTable as unknown as { last: { y: number } }).last).y + 24;
+  y =
+      (((doc as unknown as { lastAutoTable?: { finalY: number } })
+        .lastAutoTable?.finalY ?? y) + 24);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -320,6 +370,11 @@ function PaginaMetricas() {
   const [dados, setDados] = useState<PayloadMetricas | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+
+  const [pendentes, setPendentes] = useState<AtividadePendente[]>([]);
+  const [carregandoPendentes, setCarregandoPendentes] = useState(true);
+  const [erroPendentes, setErroPendentes] = useState("");
+  const [editando, setEditando] = useState<AtividadePendente | null>(null);
 
   const carregar = useCallback(async (dias: string) => {
     setCarregando(true);
@@ -366,6 +421,64 @@ function PaginaMetricas() {
       setSaldoCreditos(creds?.saldo ?? null);
     })();
   }, []);
+
+  const carregarPendentes = useCallback(async () => {
+    setCarregandoPendentes(true);
+    setErroPendentes("");
+    try {
+      const res = await fetch("/api/crm/atividades");
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.erro ?? "Falha ao carregar atividades pendentes.");
+      }
+      const json = await res.json();
+      setPendentes((json.pendentes ?? []) as AtividadePendente[]);
+    } catch (e) {
+      setErroPendentes(
+        e instanceof Error ? e.message : "Falha ao carregar atividades pendentes."
+      );
+    } finally {
+      setCarregandoPendentes(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void carregarPendentes();
+  }, [carregarPendentes]);
+
+  const alternarConcluida = async (a: AtividadePendente) => {
+    const res = await fetch("/api/crm/atividades", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ atividade_id: a.id, concluida: !a.concluida }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      setErroPendentes(d?.erro ?? "Não foi possível concluir a atividade.");
+      return;
+    }
+    await Promise.all([carregarPendentes(), carregar(periodo)]);
+  };
+
+  const salvarEdicao = async (titulo: string, observacao: string, dataHora: string) => {
+    if (!editando) return;
+    const res = await fetch("/api/crm/atividades", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        atividade_id: editando.id,
+        titulo,
+        observacao,
+        data_hora_atividade: dataHora,
+      }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      throw new Error(d?.erro ?? "Não foi possível salvar a atividade.");
+    }
+    setEditando(null);
+    await Promise.all([carregarPendentes(), carregar(periodo)]);
+  };
 
   const exportar = useMemo(() => {
     return {
@@ -488,6 +601,100 @@ function PaginaMetricas() {
                   </div>
                 ))}
               </div>
+
+              {/* Atividades pendentes / a fazer */}
+              <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <h2 className="font-display text-lg text-white">
+                    Atividades pendentes
+                  </h2>
+                  <span className="text-xs text-pipe-muted">
+                    {num(pendentes.length)} a fazer
+                  </span>
+                </div>
+
+                {erroPendentes && (
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-3">
+                    {erroPendentes}
+                  </p>
+                )}
+
+                {carregandoPendentes ? (
+                  <p className="text-sm text-pipe-muted">
+                    Carregando atividades…
+                  </p>
+                ) : pendentes.length === 0 ? (
+                  <p className="text-sm text-pipe-muted">
+                    Nenhuma atividade pendente. Aplicar uma cadência a um lead
+                    cria os próximos passos aqui.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {pendentes.map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex flex-wrap items-start justify-between gap-3 bg-pipe-bg border border-pipe-border rounded-xl p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-white truncate">
+                            {a.titulo}
+                          </p>
+                          <p className="text-xs text-pipe-muted truncate mt-0.5">
+                            {a.empresa}
+                            {a.stage_nome ? ` · ${a.stage_nome}` : ""}
+                            {a.responsavel_nome
+                              ? ` · ${a.responsavel_nome}`
+                              : ""}
+                          </p>
+                          <p className="text-[11px] text-pipe-muted mt-1 flex flex-wrap items-center gap-x-2">
+                            <span>
+                              {TIPO_ROTULO[a.tipo_atividade] ?? a.tipo_atividade}
+                            </span>
+                            <span>·</span>
+                            <span
+                              className={
+                                a.atrasada
+                                  ? "text-red-400 font-semibold"
+                                  : ""
+                              }
+                            >
+                              {a.data_hora_atividade
+                                ? fmtData(a.data_hora_atividade)
+                                : "Sem data"}
+                              {a.atrasada ? " · Atrasada" : ""}
+                            </span>
+                          </p>
+                          {a.observacao && (
+                            <p className="text-xs text-pipe-muted/70 mt-1 line-clamp-2">
+                              {a.observacao}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          <Link
+                            href="/crm"
+                            className="text-xs text-pipe-blue font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
+                          >
+                            Ver lead
+                          </Link>
+                          <button
+                            onClick={() => setEditando(a)}
+                            className="text-xs text-gray-200 font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
+                          >
+                            ✏️ Editar
+                          </button>
+                          <button
+                            onClick={() => void alternarConcluida(a)}
+                            className="text-xs bg-pipe-lime text-pipe-bg font-bold px-2.5 py-1.5 rounded-lg hover:brightness-110 transition"
+                          >
+                            ✓ Concluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
               {/* Funil de conversão */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
@@ -666,7 +873,123 @@ function PaginaMetricas() {
           )}
         </div>
       </main>
+
+      {editando && (
+        <ModalEdicaoAtividade
+          atividade={editando}
+          aoSalvar={salvarEdicao}
+          aoFechar={() => setEditando(null)}
+        />
+      )}
     </>
+  );
+}
+
+function ModalEdicaoAtividade({
+  atividade,
+  aoSalvar,
+  aoFechar,
+}: {
+  atividade: AtividadePendente;
+  aoSalvar: (titulo: string, observacao: string, dataHora: string) => Promise<void>;
+  aoFechar: () => void;
+}) {
+  const [titulo, setTitulo] = useState(atividade.titulo);
+  const [observacao, setObservacao] = useState(atividade.observacao ?? "");
+  const [data, setData] = useState(
+    atividade.data_hora_atividade
+      ? paraInput(atividade.data_hora_atividade)
+      : ""
+  );
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  const salvar = async () => {
+    setSalvando(true);
+    setErro("");
+    try {
+      await aoSalvar(
+        titulo,
+        observacao,
+        data ? new Date(data).toISOString() : ""
+      );
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const inputCls =
+    "w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:border-pipe-lime outline-none mt-1";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={aoFechar}
+    >
+      <div
+        className="bg-pipe-card border border-pipe-border rounded-2xl p-5 w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-display text-lg text-white mb-1">Editar atividade</h3>
+        <p className="text-xs text-pipe-muted mb-4 truncate">
+          {atividade.empresa}
+          {atividade.stage_nome ? ` · ${atividade.stage_nome}` : ""}
+        </p>
+
+        <label className="block text-xs text-pipe-muted font-semibold">
+          Título
+        </label>
+        <input
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          className={inputCls}
+        />
+
+        <label className="block text-xs text-pipe-muted font-semibold mt-3">
+          Observação
+        </label>
+        <textarea
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+          rows={4}
+          className={inputCls}
+        />
+
+        <label className="block text-xs text-pipe-muted font-semibold mt-3">
+          Data e hora
+        </label>
+        <input
+          type="datetime-local"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          className={inputCls}
+        />
+
+        {erro && (
+          <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mt-3">
+            {erro}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button
+            onClick={aoFechar}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 border border-pipe-border hover:border-pipe-lime/40 transition"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => void salvar()}
+            disabled={salvando}
+            className="px-4 py-2 rounded-xl text-sm font-bold bg-pipe-lime text-pipe-bg hover:brightness-110 disabled:opacity-50 transition"
+          >
+            {salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

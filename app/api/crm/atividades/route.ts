@@ -19,12 +19,200 @@ function texto(v: unknown): string {
 /**
  * Atividades manuais no histórico do lead.
  *
+ * GET: lista atividades pendentes (programadas de cadência + tarefas/agendadas
+ *   manuais) com nome da empresa, estágio e responsável — usado no Dashboard.
+ *   Admin vê todas da organização; membros veem as suas (autor ou responsável
+ *   do lead).
  * POST: cria uma atividade manual (tipo, título, observação e data/hora
  *   da atividade). A `data_hora_atividade` fica em `dados` e é editável —
  *   separada de `criado_em`, que registra o momento real da escrita.
- * PATCH: edita os campos da atividade manual.
+ * PATCH: edita os campos da atividade manual ou programada; aceita `concluida`
+ *   para concluir/reabrir.
  * DELETE: remove uma atividade manual.
  */
+export async function GET(request: Request) {
+  try {
+    const { ctx, resposta } = await exigirAcesso();
+    if (resposta) return resposta;
+    const { supabase, orgId, usuarioId, papel } = ctx!;
+
+    const { data: eventosLinhas, error: erroEv } = await supabase
+      .from("pipeline_historico")
+      .select(
+        "id, lead_pipeline_id, company_id, usuario_id, tipo_evento, dados, criado_em"
+      )
+      .eq("organizacao_id", orgId)
+      .in("tipo_evento", ["atividade_programada", "atividade"])
+      .order("criado_em", { ascending: false })
+      .limit(500);
+
+    if (erroEv) {
+      return NextResponse.json(
+        { erro: "Não conseguimos carregar as atividades pendentes." },
+        { status: 500 }
+      );
+    }
+
+    const eventos = (eventosLinhas ?? []) as Array<{
+      id: string;
+      lead_pipeline_id: string | null;
+      company_id: string;
+      usuario_id: string | null;
+      tipo_evento: string;
+      dados: Record<string, unknown>;
+      criado_em: string;
+    }>;
+
+    const agora = Date.now();
+
+    // "Pendentes": não canceladas e não concluídas. Atividades manuais só
+    // entram quando são tarefas ou têm data futura (agendadas).
+    const candidatas = eventos.filter((ev) => {
+      const dados = (ev.dados ?? {}) as Record<string, unknown>;
+      if (dados.cancelada === true) return false;
+      if (dados.concluida === true) return false;
+      if (ev.tipo_evento === "atividade") {
+        const tipo = texto(dados.tipo_atividade);
+        const dt = texto(dados.data_hora_atividade);
+        if (tipo === "tarefa") return true;
+        if (dt && new Date(dt).getTime() >= agora) return true;
+        return false;
+      }
+      return true;
+    });
+
+    const leadIds = Array.from(
+      new Set(candidatas.map((e) => e.lead_pipeline_id).filter(Boolean) as string[])
+    );
+    const companyIds = Array.from(
+      new Set(candidatas.map((e) => e.company_id).filter(Boolean))
+    );
+
+    const [{ data: leadsLinhas }, { data: compsLinhas }, { data: stagesLinhas }] =
+      await Promise.all([
+        supabase
+          .from("lead_pipeline")
+          .select("id, company_id, stage_id, responsavel_id")
+          .in("id", leadIds),
+        supabase
+          .from("companies")
+          .select("id, razao_social, nome_fantasia")
+          .in("id", companyIds),
+        supabase
+          .from("pipeline_stages")
+          .select("id, nome")
+          .eq("organizacao_id", orgId),
+      ]);
+
+    const mapaLead = new Map<
+      string,
+      { company_id: string; stage_id: string | null; responsavel_id: string | null }
+    >();
+    for (const l of (leadsLinhas ?? []) as Array<{
+      id: string;
+      company_id: string;
+      stage_id: string | null;
+      responsavel_id: string | null;
+    }>) {
+      mapaLead.set(l.id, l);
+    }
+
+    const mapaEmpresa = new Map<string, string>();
+    for (const c of (compsLinhas ?? []) as Array<{
+      id: string;
+      razao_social: string | null;
+      nome_fantasia: string | null;
+    }>) {
+      mapaEmpresa.set(
+        c.id,
+        c.nome_fantasia?.trim() || c.razao_social?.trim() || "Empresa"
+      );
+    }
+
+    const mapaStageNome = new Map<string, string>();
+    for (const s of (stagesLinhas ?? []) as Array<{ id: string; nome: string }>) {
+      mapaStageNome.set(s.id, s.nome);
+    }
+
+    const idsPessoas = new Set<string>();
+    for (const e of candidatas) {
+      if (e.usuario_id) idsPessoas.add(e.usuario_id);
+    }
+    for (const l of mapaLead.values()) {
+      if (l.responsavel_id) idsPessoas.add(l.responsavel_id);
+    }
+    const mapaNomePessoa = new Map<string, string | null>();
+    if (idsPessoas.size > 0) {
+      const { data: perfis } = await supabase
+        .from("perfil")
+        .select("usuario_id, nome_usuario")
+        .in("usuario_id", Array.from(idsPessoas));
+      for (const p of (perfis ?? []) as Array<{
+        usuario_id: string;
+        nome_usuario: string | null;
+      }>) {
+        mapaNomePessoa.set(p.usuario_id, p.nome_usuario);
+      }
+    }
+
+    const ehAdmin = papel === "admin";
+
+    const pendentes = [];
+    for (const ev of candidatas) {
+      const dados = (ev.dados ?? {}) as Record<string, unknown>;
+      const lead = ev.lead_pipeline_id ? mapaLead.get(ev.lead_pipeline_id) : undefined;
+
+      // Membros veem apenas as próprias atividades (ou de leads sob sua
+      // responsabilidade). Admin vê tudo da organização.
+      const pertence =
+        ehAdmin ||
+        ev.usuario_id === usuarioId ||
+        (lead?.responsavel_id != null && lead.responsavel_id === usuarioId);
+      if (!pertence) continue;
+
+      const dataHora = texto(dados.data_hora_atividade);
+      const dt = dataHora ? new Date(dataHora).getTime() : null;
+
+      pendentes.push({
+        id: ev.id,
+        tipo_evento: ev.tipo_evento,
+        tipo_atividade: texto(dados.tipo_atividade) || "email",
+        titulo: texto(dados.titulo) || "Atividade",
+        observacao: texto(dados.observacao),
+        data_hora_atividade: dataHora || null,
+        concluida: false,
+        atrasada: dt !== null && dt < agora,
+        company_id: ev.company_id,
+        empresa: lead ? mapaEmpresa.get(lead.company_id) ?? "Empresa" : "Empresa",
+        stage_nome: lead ? mapaStageNome.get(lead.stage_id ?? "") ?? null : null,
+        responsavel_nome:
+          lead?.responsavel_id != null
+            ? mapaNomePessoa.get(lead.responsavel_id) ?? null
+            : null,
+        autor_nome: ev.usuario_id ? mapaNomePessoa.get(ev.usuario_id) ?? null : null,
+        criado_em: ev.criado_em,
+      });
+    }
+
+    pendentes.sort((a, b) => {
+      if (!a.data_hora_atividade) return 1;
+      if (!b.data_hora_atividade) return -1;
+      return (
+        new Date(a.data_hora_atividade).getTime() -
+        new Date(b.data_hora_atividade).getTime()
+      );
+    });
+
+    return NextResponse.json({ pendentes });
+  } catch (erro) {
+    console.error("Erro ao listar atividades pendentes:", erro);
+    return NextResponse.json(
+      { erro: "Não conseguimos carregar as atividades pendentes." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { ctx, resposta } = await exigirAcesso();
@@ -113,7 +301,7 @@ export async function PATCH(request: Request) {
   try {
     const { ctx, resposta } = await exigirAcesso();
     if (resposta) return resposta;
-    const { supabase, orgId } = ctx!;
+    const { supabase, orgId, usuarioId, papel } = ctx!;
 
     let body: {
       atividade_id?: unknown;
@@ -121,6 +309,7 @@ export async function PATCH(request: Request) {
       titulo?: unknown;
       observacao?: unknown;
       data_hora_atividade?: unknown;
+      concluida?: unknown;
     };
     try {
       body = await request.json();
@@ -138,7 +327,7 @@ export async function PATCH(request: Request) {
 
     const { data: atual } = await supabase
       .from("pipeline_historico")
-      .select("id, dados, tipo_evento")
+      .select("id, dados, tipo_evento, lead_pipeline_id, usuario_id")
       .eq("id", atividadeId)
       .eq("organizacao_id", orgId)
       .single();
@@ -149,11 +338,34 @@ export async function PATCH(request: Request) {
         { status: 404 }
       );
     }
-    if (atual.tipo_evento !== "atividade") {
+    if (
+      atual.tipo_evento !== "atividade" &&
+      atual.tipo_evento !== "atividade_programada"
+    ) {
       return NextResponse.json(
-        { erro: "Apenas atividades manuais podem ser editadas." },
+        { erro: "Apenas atividades podem ser editadas." },
         { status: 400 }
       );
+    }
+
+    // Membros só editam atividades de sua autoria ou de leads sob sua
+    // responsabilidade.
+    if (papel !== "admin") {
+      let ehMeu = atual.usuario_id === usuarioId;
+      if (!ehMeu && atual.lead_pipeline_id) {
+        const { data: l } = await supabase
+          .from("lead_pipeline")
+          .select("responsavel_id")
+          .eq("id", atual.lead_pipeline_id)
+          .maybeSingle();
+        if (l?.responsavel_id === usuarioId) ehMeu = true;
+      }
+      if (!ehMeu) {
+        return NextResponse.json(
+          { erro: "Você não pode editar esta atividade." },
+          { status: 403 }
+        );
+      }
     }
 
     const dadosAtuais =
@@ -174,6 +386,15 @@ export async function PATCH(request: Request) {
         : "observacao";
     if (body.data_hora_atividade !== undefined)
       novosDados.data_hora_atividade = dataHora;
+    if (body.concluida !== undefined) {
+      const concluida = body.concluida === true || body.concluida === "true";
+      novosDados.concluida = concluida;
+      if (concluida) {
+        novosDados.concluida_em = new Date().toISOString();
+      } else {
+        delete novosDados.concluida_em;
+      }
+    }
 
     const { data: atualizado, error: erroUpdate } = await supabase
       .from("pipeline_historico")
