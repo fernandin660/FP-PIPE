@@ -65,18 +65,34 @@ export async function GET(request: Request) {
 
     const agora = Date.now();
 
+    const url = new URL(request.url);
+    const de = url.searchParams.get("de"); // YYYY-MM-DD
+    const ate = url.searchParams.get("ate"); // YYYY-MM-DD
+    const tsDe = de ? new Date(`${de}T00:00:00`).getTime() : null;
+    const tsAte = ate ? new Date(`${ate}T23:59:59.999`).getTime() : null;
+
     // "Pendentes": não canceladas e não concluídas. Atividades manuais só
-    // entram quando são tarefas ou têm data futura (agendadas).
+    // entram quando são tarefas ou têm data futura (agendadas). O período
+    // `de`/`ate` filtra pela data/hora da atividade (para não exibir a
+    // cadência inteira de uma vez no Dashboard).
     const candidatas = eventos.filter((ev) => {
       const dados = (ev.dados ?? {}) as Record<string, unknown>;
       if (dados.cancelada === true) return false;
       if (dados.concluida === true) return false;
+
+      const dtStr = texto(dados.data_hora_atividade);
+      const dt = dtStr ? new Date(dtStr).getTime() : null;
+
       if (ev.tipo_evento === "atividade") {
         const tipo = texto(dados.tipo_atividade);
-        const dt = texto(dados.data_hora_atividade);
-        if (tipo === "tarefa") return true;
-        if (dt && new Date(dt).getTime() >= agora) return true;
-        return false;
+        if (tipo !== "tarefa") {
+          if (dt === null || dt < agora) return false;
+        }
+      }
+
+      if (dt !== null) {
+        if (tsDe !== null && dt < tsDe) return false;
+        if (tsAte !== null && dt > tsAte) return false;
       }
       return true;
     });

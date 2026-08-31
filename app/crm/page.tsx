@@ -61,6 +61,13 @@ type UltimoEvento = {
   criado_em: string;
 };
 
+type ProximaAtividade = {
+  id: string;
+  tipo_atividade: string;
+  titulo: string;
+  data_hora_atividade: string;
+};
+
 type LeadCrm = {
   id: string;
   company_id: string;
@@ -74,6 +81,8 @@ type LeadCrm = {
   atualizado_em: string;
   company: EmpresaCrm | null;
   ultimo_evento: UltimoEvento | null;
+  proxima_atividade: ProximaAtividade | null;
+  atividade_status: "sem" | "atrasada" | "hoje" | "futura";
 };
 
 type EventoHistorico = {
@@ -106,6 +115,21 @@ const ROTULO_EVENTO: Record<string, string> = {
   atividade_programada: "Atividade programada (cadência)",
   cadencia_iniciada: "Cadência iniciada",
   oportunidade_atualizada: "Dados da oportunidade atualizados",
+  disparo_enviado: "Disparo em massa (e-mail enviado)",
+};
+
+const COR_ATIVIDADE_STATUS: Record<string, string> = {
+  atrasada: "#ef4444",
+  hoje: "#eab308",
+  sem: "#4b5563",
+  futura: "#a2ff40",
+};
+
+const ROTULO_ATIVIDADE_STATUS: Record<string, string> = {
+  atrasada: "Atividade atrasada",
+  hoje: "Atividade para hoje",
+  sem: "Sem atividade",
+  futura: "Atividade programada no futuro",
 };
 
 const ROTULO_TIPO_ATIVIDADE: Record<string, string> = {
@@ -828,9 +852,36 @@ export default function PaginaCrm() {
     abrirFormularioAtividade(lead);
   }
 
+  async function concluirAtividadeDoCard(lead: LeadCrm) {
+    const ativ = lead.proxima_atividade;
+    if (!ativ) return;
+    try {
+      const res = await fetch("/api/crm/atividades", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ atividade_id: ativ.id, concluida: true }),
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Não foi possível concluir a atividade.");
+      }
+      await carregarCrm();
+      const detalhe = leadDetalhe;
+      if (detalhe && detalhe.company_id === lead.company_id) {
+        setHistorico([]);
+        void buscarHistorico(detalhe);
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao concluir atividade.");
+    }
+  }
+
   function renderCard(lead: LeadCrm) {
     const c = lead.company;
     const responsavel = nomeResponsavel(lead);
+    const corBarra =
+      COR_ATIVIDADE_STATUS[lead.atividade_status] ??
+      COR_ATIVIDADE_STATUS.sem;
     return (
       <div
         key={lead.id}
@@ -853,6 +904,8 @@ export default function PaginaCrm() {
           }
           abrirDetalhe(lead);
         }}
+        title={ROTULO_ATIVIDADE_STATUS[lead.atividade_status]}
+        style={{ borderLeftWidth: 5, borderLeftColor: corBarra }}
         className={`group bg-pipe-bg border rounded-xl p-3 cursor-pointer transition select-none ${
           arrastandoId === lead.id
             ? "opacity-40 border-pipe-blue"
@@ -906,6 +959,28 @@ export default function PaginaCrm() {
               ? ` → ${lead.ultimo_evento.stage_destino_nome}`
               : ""}
           </p>
+        )}
+
+        {lead.proxima_atividade && (
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <p className="text-[10px] text-pipe-muted flex items-center gap-1 min-w-0">
+              <span className="shrink-0">⏰</span>
+              <span className="truncate">{lead.proxima_atividade.titulo}</span>
+              <span className="shrink-0">
+                · {formatarData(lead.proxima_atividade.data_hora_atividade)}
+              </span>
+            </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void concluirAtividadeDoCard(lead);
+              }}
+              title="Concluir atividade"
+              className="shrink-0 text-[10px] font-bold bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-1.5 py-0.5 rounded-md hover:bg-pipe-lime/25 transition"
+            >
+              ✓ Concluir
+            </button>
+          </div>
         )}
 
         {(lead.valor_oportunidade != null || lead.produto) && (

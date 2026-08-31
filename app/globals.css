@@ -8,6 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-pipe-bg: #030609;
   --color-pipe-dark: #070d1a;
   --color-pipe-card: #0d1627;
   --color-pipe-border: #1b2947;

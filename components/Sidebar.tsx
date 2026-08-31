@@ -285,7 +285,7 @@ export default function Sidebar({
             </Link>
           )}
           {itemBuscador()}
-          {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
+          {item("/modelos", "Modelos/Cadências", "⭐", pathname === "/modelos")}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
           {ehAdmin && (
             <>

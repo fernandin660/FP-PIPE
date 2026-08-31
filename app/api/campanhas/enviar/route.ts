@@ -59,14 +59,32 @@ export async function POST(request: Request) {
   }
   const corpo = (await request.json().catch(() => null)) as { campanhaId?: unknown } | null;
   const campanhaId = String(corpo?.campanhaId ?? "");
-  const { data: campanha } = await supabase.from("campanhas").select("id, assunto, corpo, status").eq("id", campanhaId).eq("organizacao_id", orgId).maybeSingle();
+  const { data: campanha } = await supabase.from("campanhas").select("id, nome, assunto, corpo, status").eq("id", campanhaId).eq("organizacao_id", orgId).maybeSingle();
   if (!campanha) return NextResponse.json({ erro: "Campanha não encontrada." }, { status: 404 });
   if (!campanha.assunto || !campanha.corpo) return NextResponse.json({ erro: "Gere e salve a mensagem antes de enviar." }, { status: 400 });
 
   const { data: conexao } = await adminSeguro.from("email_conexoes").select("email, provedor, account_id, refresh_token_criptografado").eq("usuario_id", usuarioId).maybeSingle();
   if (!conexao) return NextResponse.json({ erro: "Conecte Gmail, Outlook ou Zoho antes de enviar." }, { status: 400 });
-  const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).in("status", ["nao_contatado", "falhou"]).limit(25);
+  const { data: destinatarios } = await supabase.from("campanha_destinatarios").select("id, email, nome, empresa, cargo, company_id, status").eq("campanha_id", campanhaId).eq("organizacao_id", orgId).in("status", ["nao_contatado", "falhou"]).limit(25);
   if (!destinatarios?.length) return NextResponse.json({ erro: "A campanha não possui destinatários pendentes." }, { status: 400 });
+
+  // Mapeia company -> lead_pipeline_id para registrar o disparo no histórico do CRM.
+  const companyIdsDest = [
+    ...new Set(
+      (destinatarios ?? [])
+        .map((d) => (d.company_id as string | null) ?? null)
+        .filter((x): x is string => Boolean(x))
+    ),
+  ];
+  const mapaLeadId = new Map<string, string>();
+  if (companyIdsDest.length > 0) {
+    const { data: leadsCrm } = await supabase
+      .from("lead_pipeline")
+      .select("id, company_id")
+      .eq("organizacao_id", orgId)
+      .in("company_id", companyIdsDest);
+    for (const l of leadsCrm ?? []) mapaLeadId.set(l.company_id, l.id);
+  }
 
   const limiteDiario = acesso.plano.toLowerCase().includes("platinum") ? 300 : 100;
   const dataUso = new Date().toISOString().slice(0, 10);
@@ -110,7 +128,7 @@ export async function POST(request: Request) {
   const accountIdConexao = conexao!.account_id;
 
   // Envia UM destinatário com reserva de cota + retry com backoff.
-  async function enviarUm(destinatario: { id: unknown; email: string; nome?: string | null; empresa?: string | null; cargo?: string | null }): Promise<void> {
+  async function enviarUm(destinatario: { id: unknown; email: string; nome?: string | null; empresa?: string | null; cargo?: string | null; company_id?: string | null }): Promise<void> {
     if (!(await reservarEnvioSeguro())) { limiteAtingido = true; return; }
     const assunto = substituir(assuntoCampanha, destinatario);
     const corpoEmail = substituir(corpoCampanha, destinatario);
@@ -140,6 +158,24 @@ export async function POST(request: Request) {
       }
       if (!resposta!.ok) throw new Error(`Provedor ${resposta!.status}`);
       await supabase.from("campanha_destinatarios").update({ status: "enviado", enviado_em: new Date().toISOString(), erro: null }).eq("id", destinatario.id);
+
+      // Registra o disparo no histórico do lead (se a empresa for um lead no CRM).
+      if (destinatario.company_id && mapaLeadId.has(destinatario.company_id)) {
+        await supabase.from("pipeline_historico").insert({
+          organizacao_id: orgId,
+          lead_pipeline_id: mapaLeadId.get(destinatario.company_id),
+          company_id: destinatario.company_id,
+          usuario_id: usuarioId,
+          tipo_evento: "disparo_enviado",
+          dados: {
+            campanha_id: campanhaId,
+            campanha_nome: campanha!.nome ?? campanha!.assunto,
+            assunto,
+            email_destino: destinatario.email,
+          },
+        });
+      }
+
       enviados++;
     } catch (erroEnvio) {
       await devolverEnvio();

@@ -57,6 +57,20 @@ type EventoHistorico = {
   criado_em: string;
 };
 
+// Status da próxima atividade de um lead (dado o timestamp da data/hora).
+function statusDeAtividade(ts: number): "sem" | "atrasada" | "hoje" | "futura" {
+  const agora = new Date();
+  const inicioHoje = new Date(
+    agora.getFullYear(),
+    agora.getMonth(),
+    agora.getDate()
+  ).getTime();
+  const fimHoje = inicioHoje + 86400000 - 1;
+  if (ts < inicioHoje) return "atrasada";
+  if (ts <= fimHoje) return "hoje";
+  return "futura";
+}
+
 async function garantirEstagios(
   supabase: NonNullable<Awaited<ReturnType<typeof import("../../../lib/supabase/server").criarClienteSupabaseServidor>>>,
   orgId: string
@@ -156,6 +170,11 @@ export async function GET() {
 
   // Último evento por lead (uma única consulta, agrupada no servidor).
   const ultimoEventoPorCompany = new Map<string, EventoHistorico>();
+  // Próxima atividade pendente por lead (para a barra de status no Kanban).
+  const proximaAtividadePorCompany = new Map<
+    string,
+    { id: string; tipo_atividade: string; titulo: string; data_hora_atividade: string }
+  >();
   if (leadsArr.length > 0) {
     const { data: eventos } = await supabase
       .from("pipeline_historico")
@@ -192,11 +211,41 @@ export async function GET() {
           criado_em: ev.criado_em,
         });
       }
+
+      if (
+        ev.tipo_evento === "atividade_programada" ||
+        ev.tipo_evento === "atividade"
+      ) {
+        const dados = (ev.dados ?? {}) as Record<string, unknown>;
+        if (dados.cancelada === true || dados.concluida === true) continue;
+        const dataHora =
+          typeof dados.data_hora_atividade === "string"
+            ? dados.data_hora_atividade
+            : "";
+        if (!dataHora) continue;
+        const atual = proximaAtividadePorCompany.get(ev.company_id);
+        if (
+          !atual ||
+          new Date(dataHora).getTime() <
+            new Date(atual.data_hora_atividade).getTime()
+        ) {
+          proximaAtividadePorCompany.set(ev.company_id, {
+            id: ev.id,
+            tipo_atividade:
+              typeof dados.tipo_atividade === "string"
+                ? dados.tipo_atividade
+                : "tarefa",
+            titulo: typeof dados.titulo === "string" ? dados.titulo : "Atividade",
+            data_hora_atividade: dataHora,
+          });
+        }
+      }
     }
   }
 
   const leadsResposta = leadsArr.map((l) => {
     const m = l.responsavel_id ? mapaMembro.get(l.responsavel_id) : null;
+    const ativ = proximaAtividadePorCompany.get(l.company_id);
     return {
       id: l.id,
       company_id: l.company_id,
@@ -212,6 +261,10 @@ export async function GET() {
       atualizado_em: l.atualizado_em,
       company: mapaEmpresa.get(l.company_id) ?? null,
       ultimo_evento: ultimoEventoPorCompany.get(l.company_id) ?? null,
+      proxima_atividade: ativ ?? null,
+      atividade_status: ativ
+        ? statusDeAtividade(new Date(ativ.data_hora_atividade).getTime())
+        : "sem",
     };
   });
 

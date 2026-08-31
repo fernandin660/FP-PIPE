@@ -375,6 +375,8 @@ function PaginaMetricas() {
   const [carregandoPendentes, setCarregandoPendentes] = useState(true);
   const [erroPendentes, setErroPendentes] = useState("");
   const [editando, setEditando] = useState<AtividadePendente | null>(null);
+  const [filtroDe, setFiltroDe] = useState("");
+  const [filtroAte, setFiltroAte] = useState("");
 
   const carregar = useCallback(async (dias: string) => {
     setCarregando(true);
@@ -422,29 +424,36 @@ function PaginaMetricas() {
     })();
   }, []);
 
-  const carregarPendentes = useCallback(async () => {
-    setCarregandoPendentes(true);
-    setErroPendentes("");
-    try {
-      const res = await fetch("/api/crm/atividades");
-      if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        throw new Error(d?.erro ?? "Falha ao carregar atividades pendentes.");
+  const carregarPendentes = useCallback(
+    async (de?: string, ate?: string) => {
+      setCarregandoPendentes(true);
+      setErroPendentes("");
+      try {
+        const params = new URLSearchParams();
+        if (de) params.set("de", de);
+        if (ate) params.set("ate", ate);
+        const query = params.toString();
+        const res = await fetch(`/api/crm/atividades${query ? `?${query}` : ""}`);
+        if (!res.ok) {
+          const d = await res.json().catch(() => null);
+          throw new Error(d?.erro ?? "Falha ao carregar atividades pendentes.");
+        }
+        const json = await res.json();
+        setPendentes((json.pendentes ?? []) as AtividadePendente[]);
+      } catch (e) {
+        setErroPendentes(
+          e instanceof Error ? e.message : "Falha ao carregar atividades pendentes."
+        );
+      } finally {
+        setCarregandoPendentes(false);
       }
-      const json = await res.json();
-      setPendentes((json.pendentes ?? []) as AtividadePendente[]);
-    } catch (e) {
-      setErroPendentes(
-        e instanceof Error ? e.message : "Falha ao carregar atividades pendentes."
-      );
-    } finally {
-      setCarregandoPendentes(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
-    void carregarPendentes();
-  }, [carregarPendentes]);
+    void carregarPendentes(filtroDe || undefined, filtroAte || undefined);
+  }, [filtroDe, filtroAte, carregarPendentes]);
 
   const alternarConcluida = async (a: AtividadePendente) => {
     const res = await fetch("/api/crm/atividades", {
@@ -457,7 +466,10 @@ function PaginaMetricas() {
       setErroPendentes(d?.erro ?? "Não foi possível concluir a atividade.");
       return;
     }
-    await Promise.all([carregarPendentes(), carregar(periodo)]);
+    await Promise.all([
+      carregarPendentes(filtroDe || undefined, filtroAte || undefined),
+      carregar(periodo),
+    ]);
   };
 
   const salvarEdicao = async (titulo: string, observacao: string, dataHora: string) => {
@@ -477,7 +489,10 @@ function PaginaMetricas() {
       throw new Error(d?.erro ?? "Não foi possível salvar a atividade.");
     }
     setEditando(null);
-    await Promise.all([carregarPendentes(), carregar(periodo)]);
+    await Promise.all([
+      carregarPendentes(filtroDe || undefined, filtroAte || undefined),
+      carregar(periodo),
+    ]);
   };
 
   const exportar = useMemo(() => {
@@ -608,6 +623,37 @@ function PaginaMetricas() {
                   <h2 className="font-display text-lg text-white">
                     Atividades pendentes
                   </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs text-pipe-muted">
+                      De
+                      <input
+                        type="date"
+                        value={filtroDe}
+                        onChange={(e) => setFiltroDe(e.target.value)}
+                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-white"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-pipe-muted">
+                      Até
+                      <input
+                        type="date"
+                        value={filtroAte}
+                        onChange={(e) => setFiltroAte(e.target.value)}
+                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-white"
+                      />
+                    </label>
+                    {(filtroDe || filtroAte) && (
+                      <button
+                        onClick={() => {
+                          setFiltroDe("");
+                          setFiltroAte("");
+                        }}
+                        className="text-xs text-pipe-muted hover:text-pipe-lime transition"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
                   <span className="text-xs text-pipe-muted">
                     {num(pendentes.length)} a fazer
                   </span>
