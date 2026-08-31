@@ -68,6 +68,8 @@ type LeadCrm = {
   responsavel_id: string | null;
   responsavel: { nome: string | null; email: string | null } | null;
   ordenacao: number;
+  valor_oportunidade: number | null;
+  produto: string | null;
   criado_em: string;
   atualizado_em: string;
   company: EmpresaCrm | null;
@@ -103,6 +105,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   atividade: "Atividade",
   atividade_programada: "Atividade programada (cadência)",
   cadencia_iniciada: "Cadência iniciada",
+  oportunidade_atualizada: "Dados da oportunidade atualizados",
 };
 
 const ROTULO_TIPO_ATIVIDADE: Record<string, string> = {
@@ -715,6 +718,33 @@ export default function PaginaCrm() {
     }
   }
 
+  async function mudarOportunidade(
+    lead: LeadCrm,
+    campos: {
+      valor_oportunidade?: number | null;
+      produto?: string | null;
+    }
+  ) {
+    const novaLead = { ...lead, ...campos };
+    setLeads((atual) => atual.map((l) => (l.id === lead.id ? novaLead : l)));
+    setLeadDetalhe(novaLead);
+    try {
+      const res = await fetch(`/api/crm/${ledIdEscape(lead.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(campos),
+      });
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro ?? "Falha ao salvar oportunidade.");
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao salvar oportunidade.");
+      setLeads((atual) => atual.map((l) => (l.id === lead.id ? lead : l)));
+      setLeadDetalhe(lead);
+    }
+  }
+
   async function removerDoPipeline(lead: LeadCrm) {
     if (!confirm(`Remover "${nomeEmpresa(lead.company)}" do pipeline?`)) return;
     try {
@@ -875,6 +905,19 @@ export default function PaginaCrm() {
             {lead.ultimo_evento.stage_destino_nome
               ? ` → ${lead.ultimo_evento.stage_destino_nome}`
               : ""}
+          </p>
+        )}
+
+        {(lead.valor_oportunidade != null || lead.produto) && (
+          <p className="mt-1.5 text-[10px] text-pipe-lime font-semibold line-clamp-1">
+            {lead.valor_oportunidade != null
+              ? new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(lead.valor_oportunidade)
+              : ""}
+            {lead.valor_oportunidade != null && lead.produto ? " · " : ""}
+            {lead.produto ?? ""}
           </p>
         )}
       </div>
@@ -1214,6 +1257,47 @@ export default function PaginaCrm() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </section>
+
+              {/* Oportunidade */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                    Valor da oportunidade (R$)
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex.: 15000"
+                    value={leadDetalhe.valor_oportunidade ?? ""}
+                    onChange={(e) =>
+                      void mudarOportunidade(leadDetalhe, {
+                        valor_oportunidade:
+                          e.target.value === ""
+                            ? null
+                            : Number(e.target.value),
+                      })
+                    }
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                  />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                    Produto / serviço
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Ex.: Assinatura Pro"
+                    value={leadDetalhe.produto ?? ""}
+                    onChange={(e) =>
+                      void mudarOportunidade(leadDetalhe, {
+                        produto: e.target.value,
+                      })
+                    }
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                  />
                 </div>
               </section>
 

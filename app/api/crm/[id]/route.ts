@@ -17,6 +17,8 @@ export async function PATCH(
     responsavel_id?: string | null;
     ordenacao?: number;
     stage_origem_id?: string | null;
+    valor_oportunidade?: number | null;
+    produto?: string | null;
   };
   try {
     body = await req.json();
@@ -26,7 +28,9 @@ export async function PATCH(
 
   const { data: lead, error: erroLead } = await supabase
     .from("lead_pipeline")
-    .select("id, company_id, stage_id, responsavel_id, organizacao_id, ordenacao")
+    .select(
+      "id, company_id, stage_id, responsavel_id, organizacao_id, ordenacao, valor_oportunidade, produto"
+    )
     .eq("id", id)
     .eq("organizacao_id", orgId)
     .single();
@@ -42,6 +46,8 @@ export async function PATCH(
     stage_id?: string;
     responsavel_id?: string | null;
     ordenacao?: number;
+    valor_oportunidade?: number | null;
+    produto?: string | null;
   } = {};
 
   const mudouStage =
@@ -51,6 +57,25 @@ export async function PATCH(
     (body.responsavel_id ?? null) !== (lead.responsavel_id ?? null);
   const mudouOrdenacao =
     body.ordenacao !== undefined && body.ordenacao !== lead.ordenacao;
+
+  const normalizarValor = (v: unknown): number | null | undefined => {
+    if (v === undefined || v === null || v === "") return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const mudaValor = body.valor_oportunidade !== undefined;
+  const novoValor = normalizarValor(body.valor_oportunidade);
+  const mudouValor =
+    mudaValor && (novoValor ?? null) !== (lead.valor_oportunidade ?? null);
+  if (mudouValor) atualizacao.valor_oportunidade = novoValor ?? null;
+
+  const mudaProduto = body.produto !== undefined;
+  const novoProduto =
+    typeof body.produto === "string" ? body.produto.trim() : null;
+  const mudouProduto =
+    mudaProduto && (novoProduto ?? null) !== (lead.produto ?? null);
+  if (mudouProduto) atualizacao.produto = novoProduto === "" ? null : novoProduto;
 
   if (mudouStage) {
     // Valida que o estágio de destino pertence à org
@@ -97,7 +122,9 @@ export async function PATCH(
     .update(atualizacao)
     .eq("id", id)
     .eq("organizacao_id", orgId)
-    .select("id, company_id, stage_id, responsavel_id, ordenacao, atualizado_em")
+    .select(
+      "id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, atualizado_em"
+    )
     .single();
 
   if (erroUpdate || !atualizado) {
@@ -123,6 +150,15 @@ export async function PATCH(
       dados: {
         responsavel_id: atualizacao.responsavel_id ?? null,
         anterior_id: lead.responsavel_id ?? null,
+      },
+    });
+  }
+  if (mudouValor || mudouProduto) {
+    eventos.push({
+      tipo_evento: "oportunidade_atualizada",
+      dados: {
+        valor: atualizacao.valor_oportunidade ?? null,
+        produto: atualizacao.produto ?? null,
       },
     });
   }

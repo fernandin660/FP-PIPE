@@ -19,6 +19,8 @@ type EstaQuint = {
   ordenacao: number;
   criado_em: string;
   atualizado_em: string;
+  valor_oportunidade: number | null;
+  produto: string | null;
 };
 
 type Empresa = {
@@ -85,7 +87,7 @@ export async function GET() {
       .order("ordem_estagio", { ascending: true }),
     supabase
       .from("lead_pipeline")
-      .select("id, company_id, stage_id, responsavel_id, ordenacao, criado_em, atualizado_em")
+      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, criado_em, atualizado_em")
       .eq("organizacao_id", orgId),
   ]);
 
@@ -204,6 +206,8 @@ export async function GET() {
         ? { nome: m.nome, email: m.email }
         : null,
       ordenacao: l.ordenacao,
+      valor_oportunidade: l.valor_oportunidade,
+      produto: l.produto,
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
       company: mapaEmpresa.get(l.company_id) ?? null,

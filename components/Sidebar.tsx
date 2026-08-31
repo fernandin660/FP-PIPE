@@ -280,6 +280,12 @@ export default function Sidebar({
           )}
           {itemBuscador()}
           {item("/modelos", "Modelos", "⭐", pathname === "/modelos")}
+          {item(
+            "/metricas",
+            "Painel de métricas",
+            "📊",
+            pathname === "/metricas"
+          )}
           {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
           {ehAdmin && (
             <>
