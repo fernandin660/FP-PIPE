@@ -513,7 +513,7 @@ export default function Home() {
               fonte: "manual",
               atualizado_em: new Date().toISOString(),
             },
-            { onConflict: "usuario_id,cnpj" }
+            { onConflict: "organizacao_id,cnpj" }
           );
           if (error) throw error;
         }
@@ -995,6 +995,19 @@ export default function Home() {
 
       if (!user) return;
 
+      // A empresa pertence à ORGANIZAÇÃO (identidade compartilhada do time).
+      // Resolve a org ativa para atualizar somente a empresa dessa org.
+      const { data: membro } = await supabase
+        .from("organizacao_membros")
+        .select("organizacao_id")
+        .eq("usuario_id", user.id)
+        .eq("status", "ativo")
+        .limit(1)
+        .maybeSingle();
+
+      if (!membro?.organizacao_id) return;
+      const orgId = membro.organizacao_id;
+
       await supabase
         .from("companies")
         .update({
@@ -1018,7 +1031,7 @@ export default function Home() {
           confirmado,
           atualizado_em: new Date().toISOString(),
         })
-        .match({ usuario_id: user.id, cnpj });
+        .match({ organizacao_id: orgId, cnpj });
     } catch (erroPersistencia) {
       console.error("Erro ao salvar pessoas do lead:", erroPersistencia);
     }
@@ -1405,7 +1418,7 @@ export default function Home() {
                 uf: e.uf,
                 municipio: e.municipio,
               })),
-              { onConflict: "usuario_id,cnpj" }
+              { onConflict: "organizacao_id,cnpj" }
             );
 
             if (erroEmpresas) throw erroEmpresas;
@@ -1502,9 +1515,24 @@ export default function Home() {
           } = await supabase.auth.getUser();
 
           if (user) {
+            const { data: membroIntl } = await supabase
+              .from("organizacao_membros")
+              .select("organizacao_id")
+              .eq("usuario_id", user.id)
+              .eq("status", "ativo")
+              .limit(1)
+              .maybeSingle();
+
+            if (!membroIntl?.organizacao_id) {
+              throw new Error(
+                "Não foi possível identificar a organização da equipe."
+              );
+            }
+
             await supabase.from("companies").upsert(
               empresas.map((e) => ({
                 usuario_id: user.id,
+                organizacao_id: membroIntl.organizacao_id,
                 cnpj: e.cnpj,
                 razao_social: e.razaoSocial,
                 nome_fantasia: e.nomeFantasia,
@@ -1513,7 +1541,7 @@ export default function Home() {
                 uf: e.uf,
                 municipio: e.municipio,
               })),
-              { onConflict: "usuario_id,cnpj" }
+              { onConflict: "organizacao_id,cnpj" }
             );
           }
         }
@@ -1748,12 +1776,29 @@ export default function Home() {
             } = await supabase.auth.getUser();
 
             if (user) {
-              // Protege edições humanas: descobre quem já está no banco
-              // para não sobrescrever fichas editadas pelo usuário
+              // A organização é a identidade da empresa no time. Resolve a
+              // org do contexto para operar SOMENTE dentro dela.
+              const { data: membro } = await supabase
+                .from("organizacao_membros")
+                .select("organizacao_id")
+                .eq("usuario_id", user.id)
+                .eq("status", "ativo")
+                .limit(1)
+                .maybeSingle();
+
+              if (!membro?.organizacao_id) {
+                throw new Error(
+                  "Não foi possível identificar a organização da equipe."
+                );
+              }
+              const orgId = membro.organizacao_id;
+
+              // Protege edições humanas: descobre as empresas DA ORG já
+              // pontuadas para não sobrescrever fichas editadas manualmente.
               const { data: existentesRows } = await supabase
                 .from("companies")
                 .select("cnpj")
-                .eq("usuario_id", user.id)
+                .eq("organizacao_id", orgId)
                 .in(
                   "cnpj",
                   comScore.map((e) => e.cnpj)
@@ -1771,6 +1816,7 @@ export default function Home() {
                 await supabase.from("companies").upsert(
                   novas.map((e) => ({
                     usuario_id: user.id,
+                    organizacao_id: orgId,
                     cnpj: e.cnpj,
                     razao_social: e.razaoSocial,
                     nome_fantasia: e.nomeFantasia,
@@ -1790,7 +1836,7 @@ export default function Home() {
                     decisor_cargo: e.decisorCargo ?? null,
                     cargo_prioritario: e.cargoPrioritario ?? null,
                   })),
-                  { onConflict: "usuario_id,cnpj" }
+                  { onConflict: "organizacao_id,cnpj" }
                 );
               }
 
@@ -1809,7 +1855,7 @@ export default function Home() {
                     email_corpo: e.emailProspeccao?.mensagem ?? null,
                     cargo_prioritario: e.cargoPrioritario ?? null,
                   })
-                  .match({ usuario_id: user.id, cnpj: e.cnpj });
+                  .match({ organizacao_id: orgId, cnpj: e.cnpj });
               }
 
               // A lista agora é salva apenas quando o usuário clica em

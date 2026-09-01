@@ -133,6 +133,9 @@ export async function GET() {
       .select(
         "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, campeao_linkedin, aprovador_nome, aprovador_cargo, aprovador_email, aprovador_telefone, aprovador_linkedin, cargo_prioritario, porte, cnae_descricao, capital_social, data_abertura, confirmado, endereco, informacoes_adicionais, interpretacao_ia"
       )
+      // Escopo por organização: o CRM só resolve empresas da org atual.
+      // Isso impede vazar dados cross-org e esconde empresas legadas (org NULL).
+      .eq("organizacao_id", orgId)
       .in(
         "id",
         leadsArr.map((l) => l.company_id)
@@ -360,6 +363,7 @@ export async function GET() {
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
       company: c ?? null,
+      company_inconsistente: c ? false : true,
       ultimo_evento: ultimoEventoPorCompany.get(l.company_id) ?? null,
       proxima_atividade: ativ ?? null,
       atividade_status: ativ

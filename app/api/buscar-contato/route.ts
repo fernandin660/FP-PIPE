@@ -93,6 +93,7 @@ export async function PUT(requisicao: Request) {
     .from("companies")
     .select("id, campeao_email")
     .eq("id", companyId)
+    .eq("organizacao_id", membroAtual?.organizacao_id ?? "")
     .single();
 
   if (!contato || !empresa) {
@@ -102,10 +103,13 @@ export async function PUT(requisicao: Request) {
     );
   }
 
+  const orgGuard = membroAtual?.organizacao_id ?? "";
+
   await supabase
     .from("contatos")
     .update({ company_id: companyId })
-    .eq("id", contatoId);
+    .eq("id", contatoId)
+    .eq("organizacao_id", orgGuard);
 
   if (!empresa.campeao_email) {
     await supabase
@@ -116,7 +120,8 @@ export async function PUT(requisicao: Request) {
         campeao_email: contato.email,
         campeao_linkedin: contato.linkedin_url,
       })
-      .eq("id", companyId);
+      .eq("id", companyId)
+      .eq("organizacao_id", orgGuard);
   }
 
   return NextResponse.json({ ok: true });

@@ -48,6 +48,7 @@ export async function GET(requisicao: Request) {
     supabase
       .from("companies")
       .select("id, nome_fantasia, razao_social")
+      .eq("organizacao_id", membro?.organizacao_id ?? "")
       .or(`nome_fantasia.ilike.${termo},razao_social.ilike.${termo}`)
       .limit(8),
     supabase

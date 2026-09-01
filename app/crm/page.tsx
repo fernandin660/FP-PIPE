@@ -95,6 +95,7 @@ type LeadCrm = {
   criado_em: string;
   atualizado_em: string;
   company: EmpresaCrm | null;
+  company_inconsistente: boolean;
   ultimo_evento: UltimoEvento | null;
   proxima_atividade: ProximaAtividade | null;
   atividade_status: "sem" | "atrasada" | "hoje" | "futura";
@@ -242,7 +243,11 @@ type CadenciaAtiva = {
 };
 
 function nomeEmpresa(e: EmpresaCrm | EmpresaPick | null): string {
-  return e?.nome_fantasia || e?.razao_social || "Empresa sem nome";
+  return (
+    e?.nome_fantasia ||
+    e?.razao_social ||
+    (e?.cnpj ? formatarCnpj(e.cnpj) : "Empresa sem nome")
+  );
 }
 
 function nomePessoa(l: LeadCrm): string {
@@ -1126,7 +1131,9 @@ export default function PaginaCrm() {
       >
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-bold text-white leading-snug line-clamp-2">
-            {nomeEmpresa(c)}
+            {lead.company_inconsistente
+              ? "Dados da empresa indisponíveis"
+              : nomeEmpresa(c)}
           </p>
           {c?.score !== null && c?.score !== undefined ? (
             <span
@@ -1501,7 +1508,9 @@ export default function PaginaCrm() {
             <div className="px-6 py-4 border-b border-pipe-border flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="font-display text-xl text-white break-words">
-                  {nomeEmpresa(leadDetalhe.company)}
+                  {leadDetalhe.company_inconsistente
+                    ? "Dados da empresa indisponíveis"
+                    : nomeEmpresa(leadDetalhe.company)}
                 </h2>
                 <p className="text-xs text-pipe-muted mt-0.5">
                   {leadDetalhe.company?.cnpj
@@ -1519,6 +1528,14 @@ export default function PaginaCrm() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {leadDetalhe.company_inconsistente && (
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-4 py-3 text-sm">
+                  Dados da empresa indisponíveis: este lead referencia uma
+                  empresa não encontrada na sua organização. Verifique a
+                  origem/empresa deste lead antes de prosseguir.
+                </div>
+              )}
+
               {/* Estágio e responsável */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

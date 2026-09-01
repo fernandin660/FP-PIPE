@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const alvos = deduplicar(await resolverAlvos(supabase, orgId, payload));
     if (alvos.length === 0) {
       return NextResponse.json(
-        { erro: "Nenhuma empresa correspondente encontrada para adicionar." },
+        { erro: "Nenhuma empresa válida encontrada na sua organização para adicionar." },
         { status: 400 }
       );
     }

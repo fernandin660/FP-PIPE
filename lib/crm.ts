@@ -121,51 +121,60 @@ export async function resolverAlvos(
     return [];
   }
 
+  // A organização é a fonte de verdade: NUNCA resolvemos uma company para
+  // fora da organizacao_id atual nem para uma empresa legada (org NULL).
   const resultado = new Map<string, string>();
 
-  // 1) Resolve contact_ids -> companies (agrupa contatos da mesma empresa).
+  // 1) Resolve contact_ids -> companies, MAS só se a empresa pertencer à
+  //    organização atual. Nunca resolve para empresa de outra org/NULL-org.
   if (contactIds.length > 0) {
     const { data: contatos } = await supabase
       .from("contatos")
       .select("company_id")
+      .eq("organizacao_id", orgId)
       .in("id", contactIds);
-    for (const c of (contatos ?? []) as Array<{ company_id: string | null }>) {
-      if (c.company_id) resultado.set(c.company_id, "busca_contato");
+    const companyIdsDeContatos = Array.from(
+      new Set(
+        (contatos ?? [])
+          .map((c) => (c as { company_id: string | null }).company_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    );
+    if (companyIdsDeContatos.length > 0) {
+      const { data: empresas } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("organizacao_id", orgId)
+        .in("id", companyIdsDeContatos);
+      for (const e of (empresas ?? []) as Array<{ id: string }>) {
+        resultado.set(e.id, "busca_contato");
+      }
     }
   }
 
-  // 2) company_ids diretos (da org, validados por RLS no select).
+  // 2) company_ids diretos — SOMENTE dentro da organização atual.
   if (companyIds.length > 0) {
     const { data: empresas } = await supabase
       .from("companies")
       .select("id")
+      .eq("organizacao_id", orgId)
       .in("id", companyIds);
     for (const e of (empresas ?? []) as Array<{ id: string }>) {
       if (!resultado.has(e.id)) resultado.set(e.id, "manual");
     }
   }
 
-  // 3) cnpjs -> companies da org (mesmo padrão de listas/salvar).
+  // 3) cnpjs -> SOMENTE companies da organização atual. Nunca faz fallback
+  //    por usuario_id (evita resolver empresa legada/NULL-org ou de outra org).
   if (cnpjs.length > 0) {
-    const [{ data: empresasOrg }, { data: empresasUser }] = await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, cnpj")
-        .eq("organizacao_id", orgId)
-        .in("cnpj", cnpjs),
-      supabase
-        .from("companies")
-        .select("id, cnpj")
-        .eq("usuario_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-        .in("cnpj", cnpjs),
-    ]);
+    const { data: empresasOrg } = await supabase
+      .from("companies")
+      .select("id, cnpj")
+      .eq("organizacao_id", orgId)
+      .in("cnpj", cnpjs);
 
     const mapaCnpj = new Map<string, string>();
-    for (const e of [...(empresasOrg ?? []), ...(empresasUser ?? [])] as Array<{
-      id: string;
-      cnpj: string;
-    }>) {
-      // constraint legada é por usuário+cnpj; empresa da org tem prioridade.
+    for (const e of (empresasOrg ?? []) as Array<{ id: string; cnpj: string }>) {
       if (!mapaCnpj.has(e.cnpj)) mapaCnpj.set(e.cnpj, e.id);
     }
     for (const cnpj of cnpjs) {

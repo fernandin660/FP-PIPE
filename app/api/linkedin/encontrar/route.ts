@@ -307,7 +307,8 @@ export async function POST(requisicao: Request) {
   await supabase
     .from("companies")
     .update({ linkedin: melhor.link })
-    .eq("id", empresa.id);
+    .eq("id", empresa.id)
+    .eq("organizacao_id", orgId);
 
   // Cobra 1 crédito de contato pelo achado.
   const admin = criarClienteSupabaseAdmin();
