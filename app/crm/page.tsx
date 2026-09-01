@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
 import { formatarCnpj } from "../../lib/conhecimento-cnae";
+import type { PrioridadeResultado } from "../../lib/prioridade";
 import {
   gerarLinkBuscaEmpresa,
   gerarLinkBuscaPessoas,
@@ -41,9 +42,23 @@ type EmpresaCrm = {
   decisor_cargo: string | null;
   campeao_nome: string | null;
   campeao_cargo: string | null;
+  campeao_email: string | null;
+  campeao_telefone: string | null;
+  campeao_linkedin: string | null;
+  aprovador_nome: string | null;
+  aprovador_cargo: string | null;
+  aprovador_email: string | null;
+  aprovador_telefone: string | null;
+  aprovador_linkedin: string | null;
   cargo_prioritario: string | null;
+  porte: string | null;
+  cnae_descricao: string | null;
+  capital_social: number | null;
+  data_abertura: string | null;
+  confirmado: boolean | null;
   endereco: string | null;
   informacoes_adicionais: string | null;
+  interpretacao_ia: string | null;
 };
 
 type MembroOrg = {
@@ -83,6 +98,7 @@ type LeadCrm = {
   ultimo_evento: UltimoEvento | null;
   proxima_atividade: ProximaAtividade | null;
   atividade_status: "sem" | "atrasada" | "hoje" | "futura";
+  prioridade: PrioridadeResultado;
 };
 
 type EventoHistorico = {
@@ -104,6 +120,42 @@ type EmpresaPick = {
   municipio: string | null;
   uf: string | null;
   score: number | null;
+};
+
+type DecisorItem = {
+  nome: string;
+  cargo: string | null;
+  email: string | null;
+  telefone: string | null;
+  linkedin: string | null;
+  papel: string;
+  rotulo: string;
+  inferido: boolean;
+  fonte: string;
+};
+
+type SinalItem = {
+  id: string;
+  tipo: string;
+  descricao: string;
+  data: string | null;
+  fonte: string;
+  confianca: number;
+  relevancia: number;
+  criado_em: string;
+};
+
+type InteligenciaCrm = {
+  empresa: { nome: string | null; cnpj: string | null; segmento_icp: string | null };
+  interpretacao_ia: string | null;
+  prioridade: PrioridadeResultado;
+  por_que_prospectar: string[];
+  decisores: DecisorItem[];
+  contatos_mapeados: number;
+  sinais: SinalItem[];
+  fatos_cadastrais: string[];
+  tipos_sinal: string[];
+  rotulo_papel: Record<string, string>;
 };
 
 const ROTULO_EVENTO: Record<string, string> = {
@@ -140,6 +192,18 @@ const ROTULO_TIPO_ATIVIDADE: Record<string, string> = {
   reuniao: "Reunião",
   tarefa: "Tarefa",
   observacao: "Observação",
+};
+
+const ROTULO_TIPO_SINAL: Record<string, string> = {
+  contratacao: "Contratação",
+  expansao: "Expansão",
+  nova_filial: "Nova filial",
+  mudanca_lideranca: "Mudança de liderança",
+  novo_decisor: "Novo decisor",
+  tecnologia: "Tecnologia",
+  crescimento: "Crescimento",
+  evento: "Evento",
+  outro: "Outro",
 };
 
 const TIPOS_ATIVIDADE = [
@@ -230,6 +294,21 @@ export default function PaginaCrm() {
   const [perfil, setPerfil] = useState<PerfilVendedor | null>(null);
   const [saldoCreditos, setSaldoCreditos] = useState<number | null>(null);
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
+
+  // Inteligência da empresa selecionada
+  const [inteligencia, setInteligencia] = useState<InteligenciaCrm | null>(null);
+  const [carregandoInteligencia, setCarregandoInteligencia] = useState(false);
+  const [erroInteligencia, setErroInteligencia] = useState("");
+  const [gerandoInterpretacao, setGerandoInterpretacao] = useState(false);
+  const [salvandoSinal, setSalvandoSinal] = useState(false);
+  const [sinalForm, setSinalForm] = useState({
+    tipo: "outro",
+    descricao: "",
+    data: "",
+    fonte: "manual",
+    confianca: 50,
+    relevancia: 50,
+  });
 
   // Filtros
   const [filtroTexto, setFiltroTexto] = useState("");
@@ -421,6 +500,126 @@ export default function PaginaCrm() {
       setCadenciaSelecionada(dados?.cadenciaAtiva?.cadencia_id ?? "");
     } catch {
       // silencioso
+    }
+  }
+
+  async function buscarInteligencia(lead: LeadCrm) {
+    setCarregandoInteligencia(true);
+    setErroInteligencia("");
+    try {
+      const res = await fetch(
+        `/api/crm/intelligence?company_id=${lead.company_id}`
+      );
+      const dados = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErroInteligencia(dados?.erro ?? "Não foi possível carregar.");
+        setInteligencia(null);
+        return;
+      }
+      setInteligencia(dados as InteligenciaCrm);
+    } catch {
+      setErroInteligencia("Falha de conexão. Tente novamente.");
+      setInteligencia(null);
+    } finally {
+      setCarregandoInteligencia(false);
+    }
+  }
+
+  async function gerarInterpretacao() {
+    const lead = leadDetalhe;
+    if (!lead) return;
+    setGerandoInterpretacao(true);
+    setErroInteligencia("");
+    try {
+      const res = await fetch(
+        `/api/crm/intelligence?company_id=${lead.company_id}&acao=gerar_interpretacao`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ company_id: lead.company_id }),
+        }
+      );
+      const dados = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErroInteligencia(dados?.erro ?? "Falha ao gerar interpretação.");
+        return;
+      }
+      setInteligencia((atual) =>
+        atual
+          ? { ...atual, interpretacao_ia: dados.interpretacao_ia }
+          : atual
+      );
+    } catch {
+      setErroInteligencia("Falha de conexão. Tente novamente.");
+    } finally {
+      setGerandoInterpretacao(false);
+    }
+  }
+
+  async function adicionarSinal() {
+    const lead = leadDetalhe;
+    if (!lead) return;
+    if (!sinalForm.descricao.trim()) {
+      setErroInteligencia("Descreva o sinal.");
+      return;
+    }
+    setSalvandoSinal(true);
+    setErroInteligencia("");
+    try {
+      const res = await fetch(
+        `/api/crm/intelligence?company_id=${lead.company_id}&acao=adicionar_sinal`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            company_id: lead.company_id,
+            tipo: sinalForm.tipo,
+            descricao: sinalForm.descricao,
+            data: sinalForm.data || undefined,
+            fonte: sinalForm.fonte || "manual",
+            confianca: sinalForm.confianca,
+            relevancia: sinalForm.relevancia,
+          }),
+        }
+      );
+      const dados = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErroInteligencia(dados?.erro ?? "Falha ao salvar sinal.");
+        return;
+      }
+      setSinalForm({
+        tipo: "outro",
+        descricao: "",
+        data: "",
+        fonte: "manual",
+        confianca: 50,
+        relevancia: 50,
+      });
+      await buscarInteligencia(lead);
+    } catch {
+      setErroInteligencia("Falha de conexão. Tente novamente.");
+    } finally {
+      setSalvandoSinal(false);
+    }
+  }
+
+  async function removerSinal(sinalId: string) {
+    const lead = leadDetalhe;
+    if (!lead) return;
+    setErroInteligencia("");
+    try {
+      const res = await fetch(
+        `/api/crm/intelligence?sinal_id=${sinalId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        setErroInteligencia(dados?.erro ?? "Falha ao remover sinal.");
+        return;
+      }
+      await buscarInteligencia(lead);
+    } catch {
+      setErroInteligencia("Falha de conexão. Tente novamente.");
     }
   }
 
@@ -848,7 +1047,18 @@ export default function PaginaCrm() {
   function abrirDetalhe(lead: LeadCrm) {
     setLeadDetalhe(lead);
     setHistorico([]);
+    setInteligencia(null);
+    setErroInteligencia("");
+    setSinalForm({
+      tipo: "outro",
+      descricao: "",
+      data: "",
+      fonte: "manual",
+      confianca: 50,
+      relevancia: 50,
+    });
     void buscarHistorico(lead);
+    void buscarInteligencia(lead);
     abrirFormularioAtividade(lead);
   }
 
@@ -928,6 +1138,24 @@ export default function PaginaCrm() {
               {c.score}
             </span>
           ) : null}
+          {lead.prioridade && (
+            <span
+              className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                lead.prioridade.nivel === "alta"
+                  ? "bg-red-500/15 text-red-400"
+                  : lead.prioridade.nivel === "media"
+                    ? "bg-yellow-500/15 text-yellow-300"
+                    : "bg-gray-500/20 text-gray-300"
+              }`}
+              title={
+                lead.prioridade.dadosInsuficientes
+                  ? "Prioridade: dados insuficientes"
+                  : `Prioridade ${lead.prioridade.rotulo} (${lead.prioridade.pontos}/100)`
+              }
+            >
+              {lead.prioridade.rotulo}
+            </span>
+          )}
         </div>
 
         {(nomePessoa(lead) !== "Sem responsável na empresa" ||
@@ -1267,7 +1495,7 @@ export default function PaginaCrm() {
           onClick={() => setLeadDetalhe(null)}
         >
           <div
-            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-pipe-border flex items-start justify-between gap-3">
@@ -1381,7 +1609,7 @@ export default function PaginaCrm() {
                 leadDetalhe.company?.score !== undefined && (
                   <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1">
-                      Score de aderência
+                      ICP Fit
                     </p>
                     <div className="flex items-center gap-3">
                       <span
@@ -1391,12 +1619,91 @@ export default function PaginaCrm() {
                       >
                         {leadDetalhe.company.score}
                       </span>
-                      {leadDetalhe.company.score_motivo && (
-                        <p className="text-sm text-gray-300">
-                          {leadDetalhe.company.score_motivo}
-                        </p>
-                      )}
+                      <span
+                        className={`text-[11px] font-bold px-2 py-1 rounded-lg ${
+                          leadDetalhe.prioridade?.nivel === "alta"
+                            ? "bg-red-500/15 text-red-400"
+                            : leadDetalhe.prioridade?.nivel === "media"
+                              ? "bg-yellow-500/15 text-yellow-300"
+                              : "bg-gray-500/20 text-gray-300"
+                        }`}
+                      >
+                        {leadDetalhe.prioridade?.rotulo}
+                      </span>
                     </div>
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-pipe-muted mb-1">
+                          ✓ Pontos fortes
+                        </p>
+                        {leadDetalhe.prioridade?.fatoresPositivos?.length ? (
+                          <ul className="space-y-0.5">
+                            {leadDetalhe.prioridade.fatoresPositivos.map(
+                              (f, i) => (
+                                <li
+                                  key={i}
+                                  className="text-xs text-pipe-lime flex gap-1.5"
+                                >
+                                  <span className="shrink-0">+</span>
+                                  <span>{f}</span>
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-pipe-muted">
+                            — dados insuficientes
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-pipe-muted mb-1">
+                          ✕ Pontos fracos
+                        </p>
+                        {leadDetalhe.prioridade?.fatoresNegativos?.length ? (
+                          <ul className="space-y-0.5">
+                            {leadDetalhe.prioridade.fatoresNegativos.map(
+                              (f, i) => (
+                                <li
+                                  key={i}
+                                  className="text-xs text-amber-300 flex gap-1.5"
+                                >
+                                  <span className="shrink-0">−</span>
+                                  <span>{f}</span>
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-pipe-muted">—</p>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs font-semibold text-pipe-muted mb-1 mt-3">
+                      ❓ Por que prospectar?
+                    </p>
+                    {leadDetalhe.prioridade?.dadosInsuficientes ? (
+                      <p className="text-xs text-pipe-muted">
+                        Dados insuficientes para uma recomendação confiável.
+                      </p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {leadDetalhe.prioridade?.motivos?.map((m, i) => (
+                          <li
+                            key={i}
+                            className="text-xs text-gray-300 flex gap-1.5"
+                          >
+                            <span className="shrink-0">•</span>
+                            <span>{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {leadDetalhe.company.score_motivo && (
+                      <p className="text-xs text-pipe-muted mt-2">
+                        {leadDetalhe.company.score_motivo}
+                      </p>
+                    )}
                   </section>
                 )}
 
@@ -1474,6 +1781,269 @@ export default function PaginaCrm() {
                         🔎 Buscar empresa no LinkedIn →
                       </a>
                     ) : null}
+                  </div>
+                )}
+              </section>
+
+              {/* Company Intelligence */}
+              <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                  🧠 Inteligência da empresa
+                </p>
+
+                {carregandoInteligencia ? (
+                  <p className="text-sm text-pipe-muted">
+                    Carregando inteligência…
+                  </p>
+                ) : erroInteligencia ? (
+                  <p className="text-sm text-red-400">{erroInteligencia}</p>
+                ) : !inteligencia ? (
+                  <p className="text-sm text-pipe-muted">
+                    Nenhum dado consolidado disponível.
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    {/* Interpretação comercial (IA) */}
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <p className="text-xs font-semibold text-pipe-muted">
+                          📊 Interpretação comercial
+                        </p>
+                        <button
+                          onClick={() => void gerarInterpretacao()}
+                          disabled={gerandoInterpretacao}
+                          className="text-xs font-semibold text-pipe-lime hover:underline disabled:opacity-50"
+                        >
+                          {gerandoInterpretacao
+                            ? "Gerando…"
+                            : inteligencia.interpretacao_ia
+                              ? "Regenerar"
+                              : "Gerar com IA"}
+                        </button>
+                      </div>
+                      {inteligencia.interpretacao_ia ? (
+                        <p className="text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                          {inteligencia.interpretacao_ia}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-pipe-muted">
+                          Sem interpretação gerada ainda.{" "}
+                          <span className="text-gray-400">
+                            A IA usa apenas os dados reais da empresa.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Mapa de decisores */}
+                    <div>
+                      <p className="text-xs font-semibold text-pipe-muted mb-2">
+                        👥 Decisores ({inteligencia.decisores.length})
+                      </p>
+                      {inteligencia.decisores.length === 0 ? (
+                        <p className="text-xs text-pipe-muted">
+                          Nenhum decisor mapeado para esta empresa.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {inteligencia.decisores.map((d, i) => (
+                            <div
+                              key={i}
+                              className="flex items-start justify-between gap-2 bg-pipe-dark border border-pipe-border rounded-lg p-2.5"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm text-white font-medium truncate">
+                                  {d.nome}
+                                  {d.cargo ? (
+                                    <span className="text-pipe-muted font-normal">
+                                      {" "}· {d.cargo}
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <p className="text-[11px] text-pipe-muted mt-0.5 space-x-2">
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded-md ${
+                                      d.papel === "decisor"
+                                        ? "bg-pipe-lime/15 text-pipe-lime"
+                                        : d.papel === "campeao"
+                                          ? "bg-pipe-blue/15 text-pipe-blue"
+                                          : d.papel === "aprovador"
+                                            ? "bg-purple-500/15 text-purple-300"
+                                            : d.papel === "influenciador"
+                                              ? "bg-yellow-500/15 text-yellow-300"
+                                              : "bg-gray-500/20 text-gray-300"
+                                    }`}
+                                  >
+                                    {d.rotulo}
+                                  </span>
+                                  {d.inferido && (
+                                    <span className="text-pipe-muted">
+                                      (inferido do cargo)
+                                    </span>
+                                  )}
+                                </p>
+                                {(d.email || d.telefone || d.linkedin) && (
+                                  <p className="text-[11px] text-pipe-blue mt-1 space-x-2">
+                                    {d.email ? (
+                                      <a
+                                        href={`mailto:${d.email}`}
+                                        className="hover:underline"
+                                      >
+                                        {d.email}
+                                      </a>
+                                    ) : null}
+                                    {d.telefone ? (
+                                      <a
+                                        href={`tel:${d.telefone.replace(/\D/g, "")}`}
+                                        className="hover:underline"
+                                      >
+                                        {d.telefone}
+                                      </a>
+                                    ) : null}
+                                    {d.linkedin ? (
+                                      <a
+                                        href={d.linkedin}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:underline"
+                                      >
+                                        LinkedIn
+                                      </a>
+                                    ) : null}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fatos cadastrais (dados reais) */}
+                    {inteligencia.fatos_cadastrais.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-pipe-muted mb-1.5">
+                          📌 Fatos cadastrais
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {inteligencia.fatos_cadastrais.map((f, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] text-gray-300 bg-pipe-dark border border-pipe-border rounded-md px-2 py-1"
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sinais comerciais */}
+                    <div>
+                      <p className="text-xs font-semibold text-pipe-muted mb-2">
+                        📈 Sinais comerciais ({inteligencia.sinais.length})
+                      </p>
+                      {inteligencia.sinais.length === 0 ? (
+                        <p className="text-xs text-pipe-muted mb-2">
+                          Nenhum sinal registrado. Registre um evento comercial.
+                        </p>
+                      ) : (
+                        <div className="space-y-2 mb-3">
+                          {inteligencia.sinais.map((s) => (
+                            <div
+                              key={s.id}
+                              className="flex items-start justify-between gap-2 bg-pipe-dark border border-pipe-border rounded-lg p-2.5"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs text-white font-medium">
+                                  {ROTULO_TIPO_SINAL[s.tipo] ?? s.tipo}
+                                  {s.data ? (
+                                    <span className="text-pipe-muted font-normal">
+                                      {" "}· {s.data}
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <p className="text-[11px] text-gray-300 mt-0.5">
+                                  {s.descricao}
+                                </p>
+                                <p className="text-[10px] text-pipe-muted mt-0.5">
+                                  {s.fonte} · confiança {s.confianca} · relevância{" "}
+                                  {s.relevancia}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => void removerSinal(s.id)}
+                                title="Remover sinal"
+                                className="text-[11px] text-red-400 hover:text-red-300 shrink-0"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Formulário novo sinal */}
+                      <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={sinalForm.tipo}
+                            onChange={(e) =>
+                              setSinalForm((f) => ({
+                                ...f,
+                                tipo: e.target.value,
+                              }))
+                            }
+                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white"
+                          >
+                            {(inteligencia.tipos_sinal ?? [
+                              "contratacao",
+                              "expansao",
+                              "nova_filial",
+                              "mudanca_lideranca",
+                              "novo_decisor",
+                              "tecnologia",
+                              "crescimento",
+                              "evento",
+                              "outro",
+                            ]).map((t) => (
+                              <option key={t} value={t}>
+                                {ROTULO_TIPO_SINAL[t] ?? t}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="date"
+                            value={sinalForm.data}
+                            onChange={(e) =>
+                              setSinalForm((f) => ({
+                                ...f,
+                                data: e.target.value,
+                              }))
+                            }
+                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white"
+                          />
+                        </div>
+                        <input
+                          value={sinalForm.descricao}
+                          onChange={(e) =>
+                            setSinalForm((f) => ({
+                              ...f,
+                              descricao: e.target.value,
+                            }))
+                          }
+                          placeholder="Descreva o sinal (ex.: contratou 3 executivos)"
+                          className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-pipe-muted"
+                        />
+                        <button
+                          onClick={() => void adicionarSinal()}
+                          disabled={salvandoSinal}
+                          className="text-xs font-semibold bg-pipe-lime text-black px-3 py-1.5 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {salvandoSinal ? "Salvando…" : "+ Registro de sinal"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </section>

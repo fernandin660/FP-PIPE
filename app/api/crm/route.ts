@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { calcularPrioridade } from "../../../lib/prioridade";
 
 type Estagio = {
   id: string;
@@ -41,9 +42,23 @@ type Empresa = {
   decisor_cargo: string | null;
   campeao_nome: string | null;
   campeao_cargo: string | null;
+  campeao_email: string | null;
+  campeao_telefone: string | null;
+  campeao_linkedin: string | null;
+  aprovador_nome: string | null;
+  aprovador_cargo: string | null;
+  aprovador_email: string | null;
+  aprovador_telefone: string | null;
+  aprovador_linkedin: string | null;
   cargo_prioritario: string | null;
+  porte: string | null;
+  cnae_descricao: string | null;
+  capital_social: number | null;
+  data_abertura: string | null;
+  confirmado: boolean | null;
   endereco: string | null;
   informacoes_adicionais: string | null;
+  interpretacao_ia: string | null;
 };
 
 type EventoHistorico = {
@@ -116,7 +131,7 @@ export async function GET() {
     const { data } = await supabase
       .from("companies")
       .select(
-        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, cargo_prioritario, endereco, informacoes_adicionais"
+        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, campeao_linkedin, aprovador_nome, aprovador_cargo, aprovador_email, aprovador_telefone, aprovador_linkedin, cargo_prioritario, porte, cnae_descricao, capital_social, data_abertura, confirmado, endereco, informacoes_adicionais, interpretacao_ia"
       )
       .in(
         "id",
@@ -175,6 +190,9 @@ export async function GET() {
     string,
     { id: string; tipo_atividade: string; titulo: string; data_hora_atividade: string }
   >();
+  // Engagement por lead (para a prioridade determinística).
+  const numAtividadesPorCompany = new Map<string, number>();
+  const ultimaAtividadePorCompany = new Map<string, string>();
   if (leadsArr.length > 0) {
     const { data: eventos } = await supabase
       .from("pipeline_historico")
@@ -218,6 +236,14 @@ export async function GET() {
       ) {
         const dados = (ev.dados ?? {}) as Record<string, unknown>;
         if (dados.cancelada === true || dados.concluida === true) continue;
+        numAtividadesPorCompany.set(
+          ev.company_id,
+          (numAtividadesPorCompany.get(ev.company_id) ?? 0) + 1
+        );
+        const atualAtiv = ultimaAtividadePorCompany.get(ev.company_id);
+        if (!atualAtiv || ev.criado_em > atualAtiv) {
+          ultimaAtividadePorCompany.set(ev.company_id, ev.criado_em);
+        }
         const dataHora =
           typeof dados.data_hora_atividade === "string"
             ? dados.data_hora_atividade
@@ -243,9 +269,83 @@ export async function GET() {
     }
   }
 
+  // Sinais comerciais relevantes (relevancia >= 50) por lead — uma única
+  // consulta em batch para não gerar N+1.
+  const numSinaisPorCompany = new Map<string, number>();
+  if (leadsArr.length > 0) {
+    const { data: sinaisAgrup } = await supabase
+      .from("company_sinais")
+      .select("company_id")
+      .eq("organizacao_id", orgId)
+      .gte("relevancia", 50)
+      .in(
+        "company_id",
+        leadsArr.map((l) => l.company_id)
+      );
+    for (const s of (sinaisAgrup ?? []) as Array<{ company_id: string }>) {
+      numSinaisPorCompany.set(
+        s.company_id,
+        (numSinaisPorCompany.get(s.company_id) ?? 0) + 1
+      );
+    }
+  }
+
+  // Contatos vinculados com e-mail/telefone disponível por lead (para o
+  // fator "decisor com contato") — também em batch, sem N+1.
+  const contatosDisponiveisPorCompany = new Set<string>();
+  if (leadsArr.length > 0) {
+    const { data: contatosDisp } = await supabase
+      .from("contatos")
+      .select("company_id, email, emails, telefones")
+      .eq("organizacao_id", orgId)
+      .in(
+        "company_id",
+        leadsArr.map((l) => l.company_id)
+      );
+    for (const ct of (contatosDisp ?? []) as Array<{
+      company_id: string;
+      email: string | null;
+      emails: string[] | null;
+      telefones: string[] | null;
+    }>) {
+      if (
+        ct.email ||
+        (ct.emails?.length ?? 0) > 0 ||
+        (ct.telefones?.length ?? 0) > 0
+      ) {
+        contatosDisponiveisPorCompany.add(ct.company_id);
+      }
+    }
+  }
+
   const leadsResposta = leadsArr.map((l) => {
     const m = l.responsavel_id ? mapaMembro.get(l.responsavel_id) : null;
     const ativ = proximaAtividadePorCompany.get(l.company_id);
+    const c = mapaEmpresa.get(l.company_id);
+    const decisorContato = Boolean(
+      c?.campeao_email ||
+        c?.campeao_telefone ||
+        c?.aprovador_email ||
+        c?.aprovador_telefone ||
+        contatosDisponiveisPorCompany.has(l.company_id)
+    );
+    const prioridade = calcularPrioridade({
+      icpScore: c?.score ?? null,
+      temSegmento: !!c?.segmento_icp,
+      temPorte: !!c?.porte,
+      capitalSocial:
+        typeof c?.capital_social === "number" ? c.capital_social : null,
+      dataAbertura: c?.data_abertura ?? null,
+      temTelefone: !!c?.telefone,
+      temEmail: !!c?.email,
+      decisorIdentificado: Boolean(c?.decisor_nome || c?.campeao_nome),
+      decisorContato,
+      confirmado: c?.confirmado === true,
+      numSinais: numSinaisPorCompany.get(l.company_id) ?? 0,
+      numAtividades: numAtividadesPorCompany.get(l.company_id) ?? 0,
+      ultimaAtividadeEm: ultimaAtividadePorCompany.get(l.company_id) ?? null,
+      stageNome: mapaStageNome.get(l.stage_id) ?? null,
+    });
     return {
       id: l.id,
       company_id: l.company_id,
@@ -259,12 +359,13 @@ export async function GET() {
       produto: l.produto,
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
-      company: mapaEmpresa.get(l.company_id) ?? null,
+      company: c ?? null,
       ultimo_evento: ultimoEventoPorCompany.get(l.company_id) ?? null,
       proxima_atividade: ativ ?? null,
       atividade_status: ativ
         ? statusDeAtividade(new Date(ativ.data_hora_atividade).getTime())
         : "sem",
+      prioridade,
     };
   });
 
