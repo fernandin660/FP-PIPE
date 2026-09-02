@@ -2,21 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { registrarUso } from "../../../lib/avisos";
+import { runProvider } from "../../../lib/enrichment/engine";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 
 function digitos(valor: string): string {
   return valor.replace(/\D/g, "");
 }
-
-type RespostaPlaces = {
-  places?: Array<{
-    displayName?: { text?: string };
-    internationalPhoneNumber?: string;
-    nationalPhoneNumber?: string;
-    websiteUri?: string;
-  }>;
-};
 
 export async function POST(req: NextRequest) {
   const supabase = await criarClienteSupabaseServidor();
@@ -96,54 +88,42 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join(" ");
 
-  let resposta: Response;
-
   void registrarUso("maps");
 
-  try {
-    resposta = await fetch(
-      "https://places.googleapis.com/v1/places:searchText",
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": CHAVE_MAPS,
-          "X-Goog-FieldMask":
-            "places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber",
-        },
-        body: JSON.stringify({
-          textQuery: termo,
-          languageCode: "pt-BR",
-          regionCode: "BR",
-        }),
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-  } catch {
-    return NextResponse.json(
-      { erro: "Não foi possível falar com o Google Maps agora." },
-      { status: 502 }
-    );
-  }
-
-  if (!resposta.ok) {
-    return NextResponse.json(
-      { erro: "Google Maps recusou a consulta. Verifique a chave/billing." },
-      { status: 502 }
-    );
-  }
-
-  const dados = (await resposta.json()) as RespostaPlaces;
-
-  const lugar = (dados.places ?? []).find(
-    (p) =>
-      typeof p.internationalPhoneNumber === "string" ||
-      typeof p.nationalPhoneNumber === "string"
+  // Chamada real ao Google Maps passa pelo Enrichment Engine (runProvider).
+  // O provider "maps-search" espelha esta rota: 1º lugar com telefone,
+  // displayName (fonteNome) e distinção 502 (recusado/erro).
+  const resultado = await runProvider(
+    "maps-search",
+    {
+      orgId: null,
+      usuarioId: user.id,
+      tipo: "telefone",
+      alvo: {
+        tipo: "empresa",
+        chave: companyId,
+        nomeEmpresa: empresa.nome_fantasia || empresa.razao_social || "",
+        cidade: empresa.municipio || undefined,
+        uf: empresa.uf || undefined,
+      },
+    },
+    { organizacao_id: null, usuario_id: user.id }
   );
 
-  const telefoneMaps =
-    lugar?.internationalPhoneNumber ?? lugar?.nationalPhoneNumber ?? null;
+  if (!resultado.ok) {
+    const codigo = resultado.erro?.codigo;
+    return NextResponse.json(
+      {
+        erro:
+          codigo === "recusado"
+            ? "Google Maps recusou a consulta. Verifique a chave/billing."
+            : "Não foi possível falar com o Google Maps agora.",
+      },
+      { status: 502 }
+    );
+  }
+
+  const telefoneMaps = resultado.dados?.telefones?.[0]?.numero ?? null;
 
   if (!telefoneMaps) {
     return NextResponse.json(
@@ -185,6 +165,6 @@ export async function POST(req: NextRequest) {
       emails_extra: (empresa.emails_extra ?? []) as string[],
       telefones_extra: novosExtras,
     },
-    fonte: lugar?.displayName?.text || "Google Maps",
+    fonte: resultado.dados?.fonteNome ?? "Google Maps",
   });
 }

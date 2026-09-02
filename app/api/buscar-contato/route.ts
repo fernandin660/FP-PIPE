@@ -295,7 +295,11 @@ export async function POST(requisicao: Request) {
         const enrich = await buscarContatoCompleto(
           linkedinNormalizado,
           contatoCache.empresa ?? "",
-          contatoCache.nome ?? ""
+          contatoCache.nome ?? "",
+          undefined,
+          undefined,
+          undefined,
+          { organizacao_id: orgId, usuario_id: usuarioId }
         );
         telefones = enrich.telefones;
         fontesTelefone = enrich.fontesTelefone;
@@ -352,7 +356,11 @@ export async function POST(requisicao: Request) {
   const resultado = await buscarContatoCompleto(
     linkedinNormalizado,
     empresaInput,
-    nomeInput
+    nomeInput,
+    undefined,
+    undefined,
+    undefined,
+    { organizacao_id: orgId, usuario_id: usuarioId }
   );
 
   const existenteAntes = temLinkedin

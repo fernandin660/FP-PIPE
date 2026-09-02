@@ -17,6 +17,11 @@
 -- 1. companies.interpretacao_ia
 alter table public.companies add column if not exists interpretacao_ia text;
 
+-- 1b. Colunas do aprovador (usadas por /api/crm e /api/crm/intelligence).
+--     Sem elas o SELECT do CRM falha e as empresas aparecem como "indisponíveis".
+alter table public.companies add column if not exists aprovador_nome text;
+alter table public.companies add column if not exists aprovador_cargo text;
+
 -- ============================================================
 -- 2. company_sinais — sinais comerciais por empresa
 --    tipo        : ex. 'contratacao', 'expansao', 'nova_filial', 'mudanca_lideranca',

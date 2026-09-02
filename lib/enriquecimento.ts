@@ -1,4 +1,5 @@
 import { criarClienteSupabaseAdmin } from "./supabase/admin";
+import { runProvider } from "./enrichment/engine";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 const CHAVE_SERPER = process.env.SERPER_API_KEY ?? "";
@@ -695,13 +696,14 @@ export async function enriquecerTelefonesContato(
   nomePessoa?: string,
   cidade?: string,
   uf?: string,
-  cnpj?: string
+  cnpj?: string,
+  ctx?: { organizacao_id?: string | null; usuario_id?: string | null }
 ): Promise<{
   telefones: string[];
   website?: string;
   fontes: string[];
 }> {
-  // 1. Cache
+  // 1. Cache (reuso barato; nenhum provider é chamado)
   const cache = await buscarCacheEnriquecimento(linkedinUrl);
   if (cache && cache.telefones.length > 0) {
     return {
@@ -714,53 +716,58 @@ export async function enriquecerTelefonesContato(
   const telefones: string[] = [];
   const fontes: string[] = [];
   let website: string | undefined;
-
-  // 2. Serper — busca pessoa + empresa no Google
-  if (nomePessoa && nomeEmpresa) {
-    const serper = await buscarTelefoneSerper(nomePessoa, nomeEmpresa);
-    adicionarSeNovo(telefones, serper.telefone ?? "", fontes, "google_search");
-  }
-
-  // Também procura o telefone público da empresa diretamente no Google.
-  const empresaGoogle = await buscarTelefoneEmpresaSerper(nomeEmpresa);
-  for (const telefone of empresaGoogle.telefones) {
-    adicionarSeNovo(telefones, telefone, fontes, "google_empresa");
-  }
-
-  // 3. Google Maps — telefone + website da empresa
-  const maps = await buscarTelefoneMaps(nomeEmpresa, cidade, uf);
-  if (maps.telefone) {
-    adicionarSeNovo(telefones, maps.telefone, fontes, "maps");
-  }
-  if (maps.website && !website) {
-    website = maps.website;
-  }
-
-  // 4+5. CNPJ → Brasil API
   let cnpjEncontrado = cnpj;
 
-  if (!cnpjEncontrado && nomeEmpresa) {
-    const casa = await buscarCnpjPorEmpresa(nomeEmpresa);
-    if (casa.cnpj) {
-      cnpjEncontrado = casa.cnpj;
-      if (casa.telefone) {
-        adicionarSeNovo(telefones, casa.telefone, fontes, "casa_dos_dados");
-      }
+  // Pedido padronizado para o Enrichment Engine. O adapter (esta função)
+  // continua dono da ORDEM, AGREGAÇÃO, DEDUPE, fallback pago e do retorno;
+  // o engine.runProvider() é a instrumentação de cada chamada (ledger,
+  // custo/reserva/estorno, request_id, metadados, tratamento de erro).
+  const pedido: import("./enrichment/types").Pedido = {
+    orgId: ctx?.organizacao_id ?? null,
+    usuarioId: ctx?.usuario_id ?? null,
+    tipo: "telefone",
+    alvo: {
+      tipo: "contato",
+      chave: linkedinUrl,
+      linkedin: linkedinUrl || undefined,
+      nome: nomePessoa,
+      nomeEmpresa,
+      cidade,
+      uf,
+      cnpj,
+    },
+  };
+
+  async function agregar(nome: string) {
+    const r = await runProvider(nome, pedido, ctx ?? {});
+    for (const tel of r.dados?.telefones ?? []) {
+      if (tel.numero) adicionarSeNovo(telefones, tel.numero, fontes, tel.fonte ?? nome);
     }
+    if (r.dados?.website && !website) website = r.dados.website;
+    const cnpjCadastro = r.dados?.cadastrais?.cnpj;
+    if (!cnpjEncontrado && typeof cnpjCadastro === "string" && cnpjCadastro) {
+      cnpjEncontrado = cnpjCadastro;
+    }
+    return r;
   }
 
+  // 2+3. Serper (google_search + google_empresa) + Maps (maps + website)
+  await agregar("serper");
+  await agregar("maps");
+
+  // 4+5. Casa dos Dados (casa_dos_dados + cnpj) → Brasil API (brasil_api)
+  // Só busca CNPJ externamente se ele não veio informado (igual ao legado).
+  if (!cnpjEncontrado) {
+    await agregar("casadosdados");
+  }
   if (cnpjEncontrado) {
-    const brasil = await buscarDadosCnpj(cnpjEncontrado);
-    adicionarSeNovo(telefones, brasil.telefone ?? "", fontes, "brasil_api");
-    adicionarSeNovo(telefones, brasil.telefone2 ?? "", fontes, "brasil_api");
+    pedido.alvo.cnpj = cnpjEncontrado;
+    await agregar("brasilapi");
   }
 
-  // 6. MillionPhones — telefone via LinkedIn (pago)
+  // 6. MillionPhones — telefone via LinkedIn (pago), SÓ sem telefone gratuito.
   if (telefones.length === 0 && linkedinUrl) {
-    const mp = await buscarTelefoneMillionPhones(linkedinUrl);
-    if (mp.telefone) {
-      adicionarSeNovo(telefones, mp.telefone, fontes, "millionphones");
-    }
+    await agregar("millionphones");
   }
 
   // 7. Salva no cache
@@ -783,7 +790,8 @@ export async function buscarContatoCompleto(
   nomePessoa?: string,
   cidade?: string,
   uf?: string,
-  cnpj?: string
+  cnpj?: string,
+  ctx?: { organizacao_id?: string | null; usuario_id?: string | null }
 ): Promise<{
   emails: string[];
   telefones: string[];
@@ -792,28 +800,65 @@ export async function buscarContatoCompleto(
   fontesEmail: string[];
   fontesTelefone: string[];
 }> {
-  // Buscar cargo atual via Google (paralelo com telefone)
+  // O adapter (buscarContatoCompleto) segue dono da ORDEM, do merge e do
+  // retorno. Cada chamada REAL a provider passa pelo Engine (runProvider):
+  // cargo (serper), cnpj (casadosdados), website (brasilapi/serper),
+  // sugestões de e-mail (patterns) e site-scrape (site).
+  const pedidoBase = {
+    orgId: ctx?.organizacao_id ?? null,
+    usuarioId: ctx?.usuario_id ?? null,
+    alvo: {
+      tipo: "contato" as const,
+      chave: linkedinUrl,
+      linkedin: linkedinUrl || undefined,
+      nome: nomePessoa,
+      nomeEmpresa,
+      cidade,
+      uf,
+      cnpj,
+    },
+  };
+
+  // Cargo (via Google) em paralelo com telefone.
   const [telefoneResult, cargoResult] = await Promise.all([
-    enriquecerTelefonesContato(linkedinUrl, nomeEmpresa, nomePessoa, cidade, uf, cnpj),
-    linkedinUrl && nomePessoa ? buscarCargoAtual(nomePessoa, nomeEmpresa) : Promise.resolve({ cargo: undefined as string | undefined }),
+    enriquecerTelefonesContato(linkedinUrl, nomeEmpresa, nomePessoa, cidade, uf, cnpj, ctx),
+    linkedinUrl && nomePessoa
+      ? runProvider("serper", { ...pedidoBase, tipo: "cargo" as const }, ctx ?? {})
+      : Promise.resolve(null),
   ]);
 
-  // Buscar domínio para gerar emails
+  const cargo = cargoResult?.dados?.cargo ?? undefined;
+
+  // Domínio para gerar e-mails.
   let dominio: string | undefined;
   let websiteParaContato = telefoneResult.website;
   let cnpjEncontrado = cnpj;
 
   if (!cnpjEncontrado && nomeEmpresa) {
-    const dominioResult = await buscarDominioEmpresa(nomeEmpresa);
-    cnpjEncontrado = dominioResult.cnpj;
+    const casa = await runProvider(
+      "casadosdados",
+      { ...pedidoBase, tipo: "dados_cadastrais" as const },
+      ctx ?? {}
+    );
+    const cnpjCasa = casa.dados?.cadastrais?.cnpj;
+    if (typeof cnpjCasa === "string" && cnpjCasa) cnpjEncontrado = cnpjCasa;
   }
 
   if (cnpjEncontrado) {
-    const websiteResult = await buscarWebsitePorCnpj(cnpjEncontrado);
-    dominio = websiteResult.dominio;
+    const brasil = await runProvider(
+      "brasilapi",
+      {
+        ...pedidoBase,
+        tipo: "website" as const,
+        alvo: { ...pedidoBase.alvo, cnpj: cnpjEncontrado, chave: cnpjEncontrado },
+      },
+      ctx ?? {}
+    );
+    const siteCnpj = brasil.dados?.website;
+    if (siteCnpj) dominio = siteCnpj.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   }
 
-  // Se não achou domínio pelo CNPJ, tenta pelo website do Maps
+  // Se não achou domínio pelo CNPJ, usa o website do Maps.
   if (!dominio && telefoneResult.website) {
     dominio = telefoneResult.website
       .replace(/^https?:\/\//, "")
@@ -821,40 +866,57 @@ export async function buscarContatoCompleto(
       .split("/")[0];
   }
 
-  // Último recurso de domínio: o site oficial encontrado no Google.
+  // Último recurso de domínio: site oficial encontrado no Google.
   if (!dominio && nomeEmpresa) {
-    const googleEmpresa = await buscarDadosEmpresaGoogle(nomeEmpresa);
-    if (googleEmpresa.website) {
-      websiteParaContato = googleEmpresa.website;
-      dominio = googleEmpresa.website
-        .replace(/^https?:\/\//, "")
-        .replace(/^www\./, "")
-        .split("/")[0];
+    const google = await runProvider(
+      "serper",
+      { ...pedidoBase, tipo: "website" as const },
+      ctx ?? {}
+    );
+    const siteGoogle = google.dados?.website;
+    if (siteGoogle) {
+      websiteParaContato = siteGoogle;
+      dominio = siteGoogle.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
     }
   }
 
-  // Gerar sugestões de email
+  // Sugestões de e-mail (padrões; não verificados).
   let emails: string[] = [];
   let fontesEmail: string[] = [];
 
   if (nomePessoa && dominio) {
-    emails = sugerirEmails(nomePessoa, dominio);
+    const pat = await runProvider(
+      "patterns",
+      { ...pedidoBase, tipo: "email" as const, alvo: { ...pedidoBase.alvo, dominio } },
+      ctx ?? {}
+    );
+    emails = (pat.dados?.emails ?? []).map((e) => e.email);
     fontesEmail = ["ia_padrao"];
   } else if (dominio) {
-    emails = sugerirEmailsEmpresa(dominio);
+    const pat = await runProvider(
+      "patterns",
+      { ...pedidoBase, tipo: "email" as const, alvo: { ...pedidoBase.alvo, dominio } },
+      ctx ?? {}
+    );
+    emails = (pat.dados?.emails ?? []).map((e) => e.email);
     fontesEmail = ["emails_empresa"];
   }
 
   if (websiteParaContato) {
-    const dadosSite = await buscarContatosNoSite(websiteParaContato);
-    emails = [...new Set([...dadosSite.emails, ...emails])].slice(0, 15);
-    fontesEmail = [...new Set([...dadosSite.emails.map(() => "site"), ...fontesEmail])];
+    const site = await runProvider(
+      "site",
+      { ...pedidoBase, tipo: "email" as const, alvo: { ...pedidoBase.alvo, website: websiteParaContato } },
+      ctx ?? {}
+    );
+    const siteEmails = (site.dados?.emails ?? []).map((e) => e.email);
+    emails = [...new Set([...siteEmails, ...emails])].slice(0, 15);
+    fontesEmail = [...new Set([...siteEmails.map(() => "site"), ...fontesEmail])];
   }
 
   return {
     emails,
     telefones: telefoneResult.telefones,
-    cargo: cargoResult.cargo,
+    cargo,
     website: telefoneResult.website,
     fontesEmail,
     fontesTelefone: telefoneResult.fontes,

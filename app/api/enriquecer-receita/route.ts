@@ -3,12 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { registrarUso } from "../../../lib/avisos";
 import { emailValido, sanitizarEmail } from "../../../lib/emails";
-
-type RespostaReceita = {
-  email?: string | null;
-  ddd_telefone_1?: string | null;
-  ddd_telefone_2?: string | null;
-};
+import { runProvider } from "../../../lib/enrichment/engine";
 
 function telefoneUtil(valor: unknown): string | null {
   if (typeof valor !== "string") return null;
@@ -59,39 +54,45 @@ export async function POST(req: NextRequest) {
 
   const cnpjLimpo = String(empresa.cnpj).replace(/\D/g, "");
 
-  let resposta: Response;
+  // A chamada real ao provider (minhareceita) passa pelo Enrichment Engine.
+  // A sanitização (emailValido/telefoneUtil) e o merge primário/extras
+  // permanecem no adapter, preservando exatamente o comportamento atual.
+  const pedido = {
+    orgId: null,
+    usuarioId: user.id,
+    tipo: "dados_cadastrais" as const,
+    alvo: { tipo: "empresa" as const, chave: cnpjLimpo, cnpj: cnpjLimpo },
+  };
 
-  try {
-    void registrarUso("minhareceita");
-    resposta = await fetch(
-      `https://minhareceita.org/${encodeURIComponent(cnpjLimpo)}`,
-      { cache: "no-store", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) }
-    );
-  } catch {
-    return NextResponse.json(
-      { erro: "Não foi possível falar com a base da Receita agora." },
-      { status: 502 }
-    );
-  }
+  void registrarUso("minhareceita");
+  const resultado = await runProvider("minhareceita", pedido, {
+    organizacao_id: null,
+    usuario_id: user.id,
+  });
 
-  if (!resposta.ok) {
+  if (!resultado.ok) {
+    const codigo = resultado.erro?.codigo;
     return NextResponse.json(
       {
         erro:
-          resposta.status === 404
+          codigo === "not_found"
             ? "CNPJ não encontrado na base pública."
-            : "Base da Receita indisponível no momento.",
+            : codigo === "unavailable"
+              ? "Base da Receita indisponível no momento."
+              : "Não foi possível falar com a base da Receita agora.",
       },
       { status: 502 }
     );
   }
 
-  const receita = (await resposta.json()) as RespostaReceita;
+  const emailBruto = resultado.dados?.emails?.[0]?.email ?? null;
+  const telBruto1 = resultado.dados?.telefones?.[0]?.numero ?? null;
+  const telBruto2 = resultado.dados?.telefones?.[1]?.numero ?? null;
 
-  const emailEncontrado = emailValido(receita.email) ? sanitizarEmail(receita.email) : null;
+  const emailEncontrado = emailValido(emailBruto) ? sanitizarEmail(emailBruto) : null;
 
   const telefoneEncontrado =
-    telefoneUtil(receita.ddd_telefone_1) ?? telefoneUtil(receita.ddd_telefone_2);
+    telefoneUtil(telBruto1) ?? telefoneUtil(telBruto2);
 
   // Agrega fontes: preenche o primário se vazio; valor diferente vai pros extras.
   const patch: {

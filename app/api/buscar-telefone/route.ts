@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 import { enriquecerTelefonesContato } from "../../../lib/enriquecimento";
-import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 
 // ============================================================
 // POST /api/buscar-telefone
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
 
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
-  const { supabase, orgId } = gate.ctx!;
+  const { supabase, orgId, usuarioId } = gate.ctx!;
 
   let corpo: {
     linkedinUrl?: string;
@@ -56,43 +55,39 @@ export async function POST(req: Request) {
     );
   }
 
+  // Saldo de telefone ANTES de qualquer débito (o engine.runProvider aplica
+  // o custo do MillionPhones centralizado; aqui só validamos e reportamos).
+  const { data: saldoRegistro } = await supabase
+    .from("creditos_telefone")
+    .select("saldo")
+    .eq("organizacao_id", orgId)
+    .maybeSingle();
+  const saldoAntes = saldoRegistro?.saldo ?? 0;
+
   const resultado = await enriquecerTelefonesContato(
     linkedinUrl || `busca:${nomeEmpresa}`,
     nomeEmpresa,
     nomePessoa || undefined,
     corpo.cidade || undefined,
     corpo.uf || undefined,
-    corpo.cnpj || undefined
+    corpo.cnpj || undefined,
+    { organizacao_id: orgId, usuario_id: usuarioId }
   );
 
   const veioDoMillionPhones = resultado.fontes.includes("millionphones");
   let saldoTelefones: number | null = null;
 
-  // Telefones públicos → gratuitos. Só cobra se a única origem foi a
-  // API paga MillionPhones (via LinkedIn), exigindo crédito de telefone.
+  // Telefones públicos → gratuitos. Só cobra se a única origem foi a API
+  // paga MillionPhones (via LinkedIn). O débito é feito pelo engine; aqui
+  // apenas validamos o saldo e expomos o novo saldo após a cobrança.
   if (veioDoMillionPhones) {
-    const { data: saldoRegistro, error: erroSaldo } = await supabase
-      .from("creditos_telefone")
-      .select("saldo")
-      .eq("organizacao_id", orgId)
-      .maybeSingle();
-    const saldo = saldoRegistro?.saldo ?? 0;
-    if (!erroSaldo && saldo < CUSTO_TELEFONE) {
+    if (saldoAntes < CUSTO_TELEFONE) {
       return NextResponse.json(
-        { erro: "Você não possui créditos de telefone suficientes para buscar via LinkedIn.", motivo: "sem_creditos_telefone", saldoTelefones: saldo },
+        { erro: "Você não possui créditos de telefone suficientes para buscar via LinkedIn.", motivo: "sem_creditos_telefone", saldoTelefones: saldoAntes },
         { status: 403 }
       );
     }
-    // Debita 1 crédito pela chamada paga ao MillionPhones.
-    const admin = criarClienteSupabaseAdmin();
-    if (admin) {
-      const novoSaldo = saldo - CUSTO_TELEFONE;
-      const { error } = await admin
-        .from("creditos_telefone")
-        .update({ saldo: novoSaldo })
-        .eq("organizacao_id", orgId);
-      if (!error) saldoTelefones = novoSaldo;
-    }
+    saldoTelefones = saldoAntes - CUSTO_TELEFONE;
   }
 
   return NextResponse.json({

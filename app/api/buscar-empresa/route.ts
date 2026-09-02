@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
-import {
-  buscarCnpjPorEmpresa,
-  buscarTelefoneMaps,
-  buscarDadosCnpj,
-  buscarDadosEmpresaGoogle,
-  buscarContatosNoSite,
-  sugerirEmailsEmpresa,
-} from "../../../lib/enriquecimento";
+import { sugerirEmailsEmpresa } from "../../../lib/enriquecimento";
+import { runProvider } from "../../../lib/enrichment/engine";
+import type { ContextoEnriquecimento } from "../../../lib/enrichment/types";
 
 type EmpresaFicha = {
   nome: string;
@@ -24,87 +19,123 @@ type EmpresaFicha = {
   origem: "banco" | "web";
 };
 
-async function enriquecerFicha(ficha: EmpresaFicha): Promise<EmpresaFicha> {
+async function enriquecerFicha(
+  ficha: EmpresaFicha,
+  ctx?: ContextoEnriquecimento
+): Promise<EmpresaFicha> {
   const nome = ficha.nome;
 
-  const [casaResultado, mapsResultado, googleResultado] = await Promise.all([
-    buscarCnpjPorEmpresa(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarCnpjPorEmpresa>>)),
-    buscarTelefoneMaps(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarTelefoneMaps>>)),
-    buscarDadosEmpresaGoogle(nome).catch(() => ({} as Awaited<ReturnType<typeof buscarDadosEmpresaGoogle>>)),
+  // O adapter (enriquecerFicha) continua dono do MERGE por campo (first-match-wins),
+  // das tags de fontes e do retorno EmpresaFicha. O engine.runProvider() é a
+  // instrumentação de cada chamada (ledger/erro/custo — aqui sem custo).
+  const pedido = {
+    orgId: ctx?.organizacao_id ?? null,
+    usuarioId: ctx?.usuario_id ?? null,
+    tipo: "telefone" as const,
+    alvo: { tipo: "empresa" as const, chave: nome, nomeEmpresa: nome },
+  };
+
+  // Casa dos Dados + Maps + Google (dados da empresa) — em PARALELO, igual ao legado.
+  const [casa, maps, google] = await Promise.all([
+    runProvider("casadosdados", pedido, ctx ?? {}),
+    runProvider("maps", pedido, ctx ?? {}),
+    runProvider("serper", { ...pedido, tipo: "website" as const }, ctx ?? {}),
   ]);
 
-  if (casaResultado.cnpj && !ficha.cnpj) {
-    ficha.cnpj = casaResultado.cnpj;
+  const casaCad = casa.dados?.cadastrais ?? {};
+  if (casaCad.cnpj && !ficha.cnpj) {
+    ficha.cnpj = casaCad.cnpj as string;
     ficha.fontes.push("casa_dados");
   }
-
-  if (casaResultado.razao_social && !ficha.razao_social) {
-    ficha.razao_social = casaResultado.razao_social;
+  if (casaCad.razao_social && !ficha.razao_social) {
+    ficha.razao_social = casaCad.razao_social as string;
   }
-
-  if (casaResultado.nome_fantasia && !ficha.nome) {
-    ficha.nome = casaResultado.nome_fantasia;
+  if (casaCad.nome_fantasia && !ficha.nome) {
+    ficha.nome = casaCad.nome_fantasia as string;
   }
-
-  if (casaResultado.telefone && !ficha.telefone_empresa) {
-    ficha.telefone_empresa = casaResultado.telefone;
+  const casaTel = casa.dados?.telefones?.[0]?.numero;
+  if (casaTel && !ficha.telefone_empresa) {
+    ficha.telefone_empresa = casaTel;
     ficha.fontes.push("casa_dados_tel");
   }
 
-  if (mapsResultado.telefone && !ficha.telefone_empresa) {
-    ficha.telefone_empresa = mapsResultado.telefone;
+  const mapsTel = maps.dados?.telefones?.[0]?.numero;
+  if (mapsTel && !ficha.telefone_empresa) {
+    ficha.telefone_empresa = mapsTel;
     ficha.fontes.push("maps");
   }
-
-  if (mapsResultado.website && !ficha.website) {
-    ficha.website = mapsResultado.website;
+  if (maps.dados?.website && !ficha.website) {
+    ficha.website = maps.dados.website;
     ficha.fontes.push("maps_website");
   }
 
-  if (googleResultado.website && !ficha.website) {
-    ficha.website = googleResultado.website;
+  if (google.dados?.website && !ficha.website) {
+    ficha.website = google.dados.website;
     ficha.fontes.push("google");
   }
-
-  if (googleResultado.linkedin_url && !ficha.linkedin_url) {
-    ficha.linkedin_url = googleResultado.linkedin_url;
+  if (google.dados?.linkedinEmpresa && !ficha.linkedin_url) {
+    ficha.linkedin_url = google.dados.linkedinEmpresa;
     ficha.fontes.push("google_linkedin");
   }
 
   if (ficha.cnpj) {
-    const dadosBrasil = await buscarDadosCnpj(ficha.cnpj).catch(() => null);
-    if (dadosBrasil?.razaoSocial && !ficha.razao_social) {
-      ficha.razao_social = dadosBrasil.razaoSocial;
+    const brasil = await runProvider(
+      "brasilapi",
+      { ...pedido, alvo: { ...pedido.alvo, cnpj: ficha.cnpj } },
+      ctx ?? {}
+    );
+    const brasilCad = brasil.dados?.cadastrais ?? {};
+    if (brasilCad.razao_social && !ficha.razao_social) {
+      ficha.razao_social = brasilCad.razao_social as string;
     }
-    if (dadosBrasil?.telefone && !ficha.telefone_empresa) {
-      ficha.telefone_empresa = dadosBrasil.telefone;
+    const brasilTel = brasil.dados?.telefones?.[0]?.numero;
+    if (brasilTel && !ficha.telefone_empresa) {
+      ficha.telefone_empresa = brasilTel;
       ficha.fontes.push("brasil_api");
     }
   }
 
   if (ficha.website) {
-    const site = await buscarContatosNoSite(ficha.website).catch(() => ({ emails: [], telefones: [] }));
-    if (site.telefones.length > 0) {
-      ficha.telefones_empresa = [...new Set([...ficha.telefones_empresa, ...site.telefones])];
-      if (!ficha.telefone_empresa) ficha.telefone_empresa = site.telefones[0];
+    const site = await runProvider(
+      "site",
+      { ...pedido, alvo: { ...pedido.alvo, website: ficha.website } },
+      ctx ?? {}
+    );
+    const siteTels = (site.dados?.telefones ?? []).map((t) => t.numero);
+    if (siteTels.length > 0) {
+      ficha.telefones_empresa = [...new Set([...ficha.telefones_empresa, ...siteTels])];
+      if (!ficha.telefone_empresa) ficha.telefone_empresa = siteTels[0];
       ficha.fontes.push("site");
     }
-    if (site.emails.length > 0) {
-      ficha.emails_genericos = [...new Set([...site.emails, ...ficha.emails_genericos])];
+    const siteEmails = (site.dados?.emails ?? []).map((e) => e.email);
+    if (siteEmails.length > 0) {
+      ficha.emails_genericos = [...new Set([...siteEmails, ...ficha.emails_genericos])];
       ficha.fontes.push("site_email");
     }
   }
 
+  // Sugestões de e-mail por domínio (sem tag de fonte, igual ao legado).
   if (ficha.website && ficha.emails_genericos.length === 0) {
     const dominio = ficha.website
       .replace(/^https?:\/\//, "")
       .replace(/^www\./, "")
       .split("/")[0];
-    ficha.emails_genericos = sugerirEmailsEmpresa(dominio);
+    const pat = await runProvider(
+      "patterns",
+      { ...pedido, tipo: "email" as const, alvo: { ...pedido.alvo, dominio } },
+      ctx ?? {}
+    );
+    ficha.emails_genericos = (pat.dados?.emails ?? []).map((e) => e.email);
   }
 
   if (ficha.cnpj && ficha.emails_genericos.length === 0) {
-    ficha.emails_genericos = sugerirEmailsEmpresa(`${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`);
+    const dominioGerado = `${ficha.nome.toLowerCase().replace(/\s+/g, "")}.com.br`;
+    const pat = await runProvider(
+      "patterns",
+      { ...pedido, tipo: "email" as const, alvo: { ...pedido.alvo, dominio: dominioGerado } },
+      ctx ?? {}
+    );
+    ficha.emails_genericos = (pat.dados?.emails ?? []).map((e) => e.email);
   }
 
   return ficha;
@@ -176,7 +207,10 @@ export async function GET(requisicao: Request) {
         origem: "banco",
       };
 
-      const enriquecida = await enriquecerFicha(ficha);
+      const enriquecida = await enriquecerFicha(ficha, {
+        organizacao_id: orgId,
+        usuario_id: userId,
+      });
       return NextResponse.json({ empresa: enriquecida });
     }
   }
@@ -195,6 +229,9 @@ export async function GET(requisicao: Request) {
     origem: "web",
   };
 
-  const enriquecida = await enriquecerFicha(empresa);
+  const enriquecida = await enriquecerFicha(empresa, {
+    organizacao_id: orgId,
+    usuario_id: userId,
+  });
   return NextResponse.json({ empresa: enriquecida });
 }
