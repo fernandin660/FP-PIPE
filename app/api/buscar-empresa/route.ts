@@ -9,6 +9,8 @@ type EmpresaFicha = {
   nome: string;
   cnpj: string | null;
   razao_social: string | null;
+  socio_nome: string | null;
+  socio_cargo: string | null;
   endereco: string | null;
   telefone_empresa: string | null;
   telefones_empresa: string[];
@@ -179,7 +181,7 @@ export async function GET(requisicao: Request) {
     const termoLower = `%${q}%`;
     const { data: empresas } = await supabase
       .from("companies")
-      .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website, campeao_linkedin")
+      .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website, campeao_linkedin, decisor_nome, decisor_cargo")
       .eq("organizacao_id", orgId)
       .or(`nome_fantasia.ilike.${termoLower},razao_social.ilike.${termoLower},cnpj.ilike.${termoLower}`)
       .order("nome_fantasia")
@@ -197,6 +199,8 @@ export async function GET(requisicao: Request) {
         nome,
         cnpj: e.cnpj ?? null,
         razao_social: e.razao_social ?? null,
+        socio_nome: e.decisor_nome ?? null,
+        socio_cargo: e.decisor_cargo ?? null,
         endereco: e.endereco ?? null,
         telefone_empresa: e.telefone ?? null,
         telefones_empresa: e.telefone ? [e.telefone] : [],
@@ -219,6 +223,8 @@ export async function GET(requisicao: Request) {
     nome: q,
     cnpj: null,
     razao_social: null,
+    socio_nome: null,
+    socio_cargo: null,
     endereco: null,
     telefone_empresa: null,
     telefones_empresa: [],

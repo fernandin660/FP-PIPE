@@ -58,6 +58,7 @@ export const minhareceitaProvider: Provider = {
         email?: string | null;
         ddd_telefone_1?: string | null;
         ddd_telefone_2?: string | null;
+        qsa?: Array<{ nome_socio?: string | null; qualificacao_socio?: string | null }>;
       };
 
       const email = typeof receita.email === "string" ? receita.email : null;
@@ -71,6 +72,14 @@ export const minhareceitaProvider: Provider = {
         .filter((n): n is string => Boolean(n))
         .map((n) => ({ numero: n, tipo: "company" as const, fonte: "minhareceita", confianca: 50 }));
 
+      // Quadro societário (dono/responsável) — dado real, não inventado.
+      const socios = (receita.qsa ?? [])
+        .map((s) => ({
+          nome: s.nome_socio ?? "",
+          cargo: s.qualificacao_socio ?? "",
+        }))
+        .filter((s) => s.nome);
+
       const encontrado = emails.length > 0 || telefones.length > 0;
 
       return {
@@ -78,7 +87,7 @@ export const minhareceitaProvider: Provider = {
         encontrado,
         confianca: encontrado ? 50 : 0,
         fonte: "minhareceita",
-        dados: { emails, telefones, cadastrais: { cnpj } },
+        dados: { emails, telefones, cadastrais: { cnpj, socios } },
       };
     } catch (e) {
       return {

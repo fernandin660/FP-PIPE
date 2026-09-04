@@ -1736,6 +1736,26 @@ export default function PaginaCrm() {
                       {leadDetalhe.company?.razao_social || "—"}
                     </dd>
                   </div>
+                  {(leadDetalhe.company?.decisor_nome ||
+                    leadDetalhe.company?.campeao_nome) && (
+                    <div className="flex gap-2">
+                      <dt className="text-pipe-muted w-32 shrink-0">
+                        Sócio / responsável
+                      </dt>
+                      <dd className="text-gray-200">
+                        {leadDetalhe.company.decisor_nome ||
+                          leadDetalhe.company.campeao_nome}
+                        {(leadDetalhe.company.decisor_cargo ||
+                          leadDetalhe.company.campeao_cargo) && (
+                          <span className="text-pipe-muted">
+                            {" "}·{" "}
+                            {leadDetalhe.company.decisor_cargo ||
+                              leadDetalhe.company.campeao_cargo}
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">Localização</dt>
                     <dd className="text-gray-200">
