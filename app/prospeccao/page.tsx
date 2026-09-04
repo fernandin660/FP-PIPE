@@ -3337,6 +3337,20 @@ export default function Home() {
                                 {empresa.motivo}
                               </p>
                             )}
+                            {(empresa.decisorNome || empresa.campeaoNome) && (
+                              <p className="text-xs text-pipe-muted mt-1.5">
+                                👤{" "}
+                                <span className="text-gray-200">
+                                  {empresa.decisorNome || empresa.campeaoNome}
+                                </span>
+                                {(empresa.decisorCargo || empresa.campeaoCargo) && (
+                                  <span className="text-pipe-muted">
+                                    {" "}·{" "}
+                                    {empresa.decisorCargo || empresa.campeaoCargo}
+                                  </span>
+                                )}
+                              </p>
+                            )}
                             {(empresa.telefone || empresa.email) && (
                               <div className="mt-1.5 flex items-center gap-2">
                                 {!liberado ? (

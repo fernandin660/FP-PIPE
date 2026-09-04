@@ -30,6 +30,8 @@ type EmpresaResumida = {
   id: string;
   nome_fantasia: string | null;
   razao_social: string | null;
+  decisor_nome?: string | null;
+  decisor_cargo?: string | null;
 };
 
 function normalizar(texto: string): string {
@@ -121,9 +123,19 @@ function AtribuirLead({
                 disabled={enviando}
                 className="w-full text-left text-xs text-gray-200 px-3 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition truncate"
               >
-                {empresa.nome_fantasia ||
-                  empresa.razao_social ||
-                  "Lead sem nome"}
+                <span className="block">
+                  {empresa.nome_fantasia ||
+                    empresa.razao_social ||
+                    "Lead sem nome"}
+                  {empresa.decisor_nome && (
+                    <span className="block text-pipe-muted">
+                      👤 {empresa.decisor_nome}
+                      {empresa.decisor_cargo
+                        ? ` · ${empresa.decisor_cargo}`
+                        : ""}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
 
@@ -533,7 +545,7 @@ function BuscadorContent() {
 
       const { data: dadosEmpresas } = await supabase
         .from("companies")
-        .select("id, nome_fantasia, razao_social")
+        .select("id, nome_fantasia, razao_social, decisor_nome, decisor_cargo")
         .order("criado_em", { ascending: false })
         .limit(300);
 
