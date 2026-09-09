@@ -292,9 +292,10 @@ export async function POST(requisicao: Request) {
 
       if (tipo === "telefone" || tipo === "both") {
         // Buscar telefone mesmo com e-mail em cache roda providers pagos
-        // (Google/Maps/Serper): consome 1 crédito de busca (moeda creditos).
+        // (Google/Maps/Serper): consome 1 crédito de busca (moeda
+        // creditos_contatos, a mesma de desbloquear-lead/buscas de contato).
         const { data: buscaDisponivelCache } = await admin.rpc("debitar_saldo_org", {
-          p_tabela: "creditos",
+          p_tabela: "creditos_contatos",
           p_org: orgId,
           p_qtd: 1,
         });
@@ -371,9 +372,10 @@ export async function POST(requisicao: Request) {
   }
 
   // Busca completa (fora do cache) roda providers pagos
-  // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca.
+  // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca
+  // (moeda creditos_contatos, creditada com as buscas do plano).
   const { data: buscaDisponivel } = await admin.rpc("debitar_saldo_org", {
-    p_tabela: "creditos",
+    p_tabela: "creditos_contatos",
     p_org: orgId,
     p_qtd: 1,
   });
