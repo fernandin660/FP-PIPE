@@ -14,9 +14,17 @@ import { DEFINICAO_PLANOS, type PlanoChave } from "../../../../lib/planos";
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
 export async function GET(req: Request) {
-  // Validação do cron secret (Vercel Cron ou chamada manual)
+  // Validação do cron secret (Vercel Cron ou chamada manual).
+  // Fail-closed: se CRON_SECRET não estiver configurado, NUNCA executa —
+  // evita que o endpoint administrativo fique aberto sem autenticação.
+  if (!CRON_SECRET) {
+    return NextResponse.json(
+      { erro: "CRON_SECRET não configurado no servidor." },
+      { status: 503 }
+    );
+  }
   const authHeader = req.headers.get("authorization");
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
   }
 

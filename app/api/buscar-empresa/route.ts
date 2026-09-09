@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { sanitizarBusca } from "../../../lib/busca";
 import { sugerirEmailsEmpresa } from "../../../lib/enriquecimento";
 import { runProvider } from "../../../lib/enrichment/engine";
 import type { ContextoEnriquecimento } from "../../../lib/enrichment/types";
@@ -155,30 +156,31 @@ export async function GET(requisicao: Request) {
   }
 
   const supabase = await criarClienteSupabaseServidor();
-  let userId: string | null = null;
-  let orgId: string | null = null;
-
-  if (supabase) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      userId = user.id;
-      const { data: orgData } = await supabase
-        .from("organizacao_membros")
-        .select("organizacao_id")
-        .eq("usuario_id", user.id)
-        .single();
-
-      if (orgData) {
-        orgId = orgData.organizacao_id;
-      }
-    }
+  if (!supabase) {
+    return NextResponse.json({ erro: "Autenticação não configurada." }, { status: 503 });
   }
 
-  if (supabase && orgId) {
-    const termoLower = `%${q}%`;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+  }
+  const userId = user.id;
+  let orgId: string | null = null;
+
+  const { data: orgData } = await supabase
+    .from("organizacao_membros")
+    .select("organizacao_id")
+    .eq("usuario_id", user.id)
+    .maybeSingle();
+
+  if (orgData) {
+    orgId = orgData.organizacao_id;
+  }
+
+  if (orgId) {
+    const termoLower = `%${sanitizarBusca(q)}%`;
     const { data: empresas } = await supabase
       .from("companies")
       .select("id, nome_fantasia, razao_social, cnpj, endereco, telefone, website, campeao_linkedin, decisor_nome, decisor_cargo")

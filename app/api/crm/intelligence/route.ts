@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { chamarIa } from "../../../../lib/ia";
 import { calcularPrioridade } from "../../../../lib/prioridade";
 import type { criarClienteSupabaseServidor } from "../../../../lib/supabase/server";
@@ -375,6 +376,9 @@ export async function POST(request: Request) {
     const { ctx, resposta } = await exigirAcesso();
     if (resposta) return resposta;
     const { supabase, orgId, usuarioId } = ctx!;
+
+    const bloqueado = await exigirRateLimit(request, "crm-intelligence", 10, 60);
+    if (bloqueado) return bloqueado;
 
     const url = new URL(request.url);
     const acao = url.searchParams.get("acao") ?? "";

@@ -64,9 +64,6 @@ export async function POST(req: Request) {
   if (!validarAssinaturaMp(req, idPagamento)) {
     return NextResponse.json({ erro: "Assinatura inválida." }, { status: 401 });
   }
-  if (!process.env.MP_WEBHOOK_SECRET) {
-    console.warn("MP_WEBHOOK_SECRET ausente: webhook sem validação de assinatura.");
-  }
 
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!token) {

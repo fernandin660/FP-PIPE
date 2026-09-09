@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { emailValido } from "../../../../lib/emails";
 
@@ -8,6 +9,9 @@ export async function POST(requisicao: Request) {
   if (gate.resposta) return gate.resposta;
 
   const { supabase, usuarioId } = gate.ctx!;
+
+  const bloqueado = await exigirRateLimit(requisicao, "contatos-capturar", 15, 60);
+  if (bloqueado) return bloqueado;
 
   let corpo: unknown;
   try {

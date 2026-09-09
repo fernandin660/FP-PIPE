@@ -310,7 +310,7 @@ export async function POST(requisicao: Request) {
     .eq("id", empresa.id)
     .eq("organizacao_id", orgId);
 
-  // Cobra 1 crédito de contato pelo achado.
+  // Cobra 1 crédito de contato pelo achado (débito atômico via banco).
   const admin = criarClienteSupabaseAdmin();
 
   if (!admin) {
@@ -320,10 +320,19 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  await admin
-    .from("creditos_contatos")
-    .update({ saldo: Math.max(0, (saldo ?? 0) - 1) })
-    .eq("organizacao_id", orgId);
+  try {
+    await admin.rpc("debitar_saldo_org", {
+      p_tabela: "creditos_contatos",
+      p_org: orgId,
+      p_qtd: 1,
+    });
+  } catch {
+    // fallback legado se o RPC ainda não existir (migration pendente)
+    await admin
+      .from("creditos_contatos")
+      .update({ saldo: Math.max(0, (saldo ?? 0) - 1) })
+      .eq("organizacao_id", orgId);
+  }
 
   return NextResponse.json({
     linkedin: melhor.link,

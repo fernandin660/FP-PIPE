@@ -17,6 +17,8 @@ create table if not exists public.creditos_telefone (
 alter table public.creditos_telefone enable row level security;
 
 -- Usuários autenticados podem ler o saldo da própria org
+drop policy if exists "Usuarios veem saldo telefone da propria org"
+  on public.creditos_telefone;
 create policy "Usuarios veem saldo telefone da propria org"
   on public.creditos_telefone for select
   using (
@@ -24,12 +26,17 @@ create policy "Usuarios veem saldo telefone da propria org"
       select 1 from public.organizacao_membros
       where organizacao_membros.organizacao_id = creditos_telefone.organizacao_id
         and organizacao_membros.usuario_id = auth.uid()
+        and organizacao_membros.status = 'ativo'
     )
   );
 
--- Service role pode fazer tudo (para API routes com admin client)
+drop policy if exists "Service role gerencia creditos_telefone" on public.creditos_telefone;
+
+-- Service role pode fazer tudo (para API routes com admin client).
+-- Restrito a service_role: sem isso, qualquer usuário autenticado poderia
+-- ler/alterar o saldo telefônico de qualquer organização (cross-tenant).
 create policy "Service role gerencia creditos_telefone"
-  on public.creditos_telefone for all
+  on public.creditos_telefone for all to service_role
   using (true)
   with check (true);
 

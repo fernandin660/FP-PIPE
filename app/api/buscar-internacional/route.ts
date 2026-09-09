@@ -418,10 +418,11 @@ export async function POST(request: Request) {
       );
 
       if (acesso.def.listasMes > 0) {
-        await admin
-          .from("creditos")
-          .update({ saldo: Math.max(0, saldoListas - 1) })
-          .eq("organizacao_id", orgId);
+        await admin.rpc("debitar_saldo_org", {
+          p_tabela: "creditos",
+          p_org: orgId,
+          p_qtd: 1,
+        });
       }
     }
 

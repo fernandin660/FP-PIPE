@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { chamarIa } from "../../../../lib/ia";
 
@@ -10,6 +11,10 @@ export async function POST(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
   const { supabase, usuarioId, orgId } = gate.ctx!;
+
+  const bloqueado = await exigirRateLimit(request, "campanhas-gerar", 6, 60);
+  if (bloqueado) return bloqueado;
+
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.json({ erro: "Serviço de créditos indisponível." }, { status: 503 });
 
@@ -83,14 +88,12 @@ Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as va
     .replaceAll("[Seu Contato]", "")
     .replaceAll("[Nome da Empresa]", "{empresa}");
 
-  const { data: novoSaldo } = await admin
-    .from("creditos_ia")
-    .update({ saldo: saldo - 1 })
-    .eq("organizacao_id", orgId)
-    .gte("saldo", 1)
-    .select("saldo")
-    .maybeSingle();
-  if (!novoSaldo) return NextResponse.json({ erro: "O saldo de IA mudou durante a geração. Tente novamente.", motivo: "saldo_alterado" }, { status: 409 });
+  const { data: novoSaldo } = await admin.rpc("debitar_saldo_org", {
+    p_tabela: "creditos_ia",
+    p_org: orgId,
+    p_qtd: 1,
+  });
+  if (novoSaldo == null) return NextResponse.json({ erro: "O saldo de IA mudou durante a geração. Tente novamente.", motivo: "saldo_alterado" }, { status: 409 });
 
   const novaGeracao = campanha.geracoes_usadas + 1;
   const { data: atualizada, error } = await supabase
@@ -101,8 +104,12 @@ Gere um assunto de até 60 caracteres e um corpo de até 150 palavras. Use as va
     .select("id, nome, assunto, corpo, objetivo, geracoes_usadas, status")
     .single();
   if (error || !atualizada) {
-    await admin.from("creditos_ia").update({ saldo }).eq("organizacao_id", orgId);
+    await admin.rpc("creditar_saldo_org", {
+      p_tabela: "creditos_ia",
+      p_org: orgId,
+      p_qtd: 1,
+    });
     return NextResponse.json({ erro: "Não foi possível salvar a campanha. O crédito foi devolvido." }, { status: 500 });
   }
-  return NextResponse.json({ campanha: atualizada, saldoIa: novoSaldo.saldo });
+  return NextResponse.json({ campanha: atualizada, saldoIa: novoSaldo });
 }

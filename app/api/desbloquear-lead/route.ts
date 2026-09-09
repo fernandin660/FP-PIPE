@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { verificarCreditosBaixos } from "../../../lib/avisos";
 
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
     return gate.resposta;
   }
   const { orgId, usuarioId, acesso } = gate.ctx!;
+
+  const bloqueado = await exigirRateLimit(request, "desbloquear-lead", 10, 60);
+  if (bloqueado) return bloqueado;
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -146,19 +150,27 @@ export async function POST(request: Request) {
   const agora = new Date().toISOString();
 
   // ============================================================
-  // Débito atômico: uma única query que só debita se saldo > 0.
+  // Débito atômico via RPC de banco: saldo = saldo - 1 ... where saldo > 0
+  // num único UPDATE — elimina corrida de leitura-escrita.
   // ============================================================
-  const { data: novoSaldo } = await admin
-    .from("creditos_contatos")
-    .update({
-      saldo: saldoAtual - 1,
-    })
-    .eq(chaveDebito, valorDebito)
-    .gt("saldo", 0)
-    .select("saldo")
-    .maybeSingle();
+  let novoSaldo: number | null = null;
+  if (chaveDebito === "organizacao_id") {
+    const { data } = await admin.rpc("debitar_saldo_org", {
+      p_tabela: "creditos_contatos",
+      p_org: valorDebito as string,
+      p_qtd: 1,
+    });
+    novoSaldo = data as number | null;
+  } else if (chaveDebito === "usuario_id") {
+    const { data } = await admin.rpc("debitar_saldo_usuario", {
+      p_tabela: "creditos_contatos",
+      p_usuario: valorDebito as string,
+      p_qtd: 1,
+    });
+    novoSaldo = data as number | null;
+  }
 
-  if (!novoSaldo) {
+  if (novoSaldo == null) {
     return NextResponse.json(
       {
         erro: `O servidor identificou ${saldoAtual} crédito(s) de lead disponíveis, mas o saldo mudou durante a operação. Recarregue a página e tente novamente.`,
@@ -176,11 +188,20 @@ export async function POST(request: Request) {
     .eq("id", empresa.id);
 
   if (erroMarca) {
-    // Reverte o débito se falhar ao marcar
-    await admin
-      .from("creditos_contatos")
-      .update({ saldo: saldoAtual })
-      .eq(chaveDebito, valorDebito);
+    // Reverte o débito se falhar ao marcar (estorno atômico via banco)
+    if (chaveDebito === "organizacao_id") {
+      await admin.rpc("creditar_saldo_org", {
+        p_tabela: "creditos_contatos",
+        p_org: valorDebito as string,
+        p_qtd: 1,
+      });
+    } else if (chaveDebito === "usuario_id") {
+      await admin.rpc("creditar_saldo_usuario", {
+        p_tabela: "creditos_contatos",
+        p_usuario: valorDebito as string,
+        p_qtd: 1,
+      });
+    }
 
     return NextResponse.json(
       {
@@ -197,6 +218,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     jaDesbloqueado: false,
-    novoSaldo: novoSaldo.saldo,
+    novoSaldo,
   });
 }

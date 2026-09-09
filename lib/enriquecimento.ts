@@ -494,12 +494,31 @@ export async function buscarContatosNoSite(website: string): Promise<{
 
   try {
     const origem = new URL(website);
+    // Anti-SSRF: só http(s) e nunca rede privada/metadata/local.
+    if (origem.protocol !== "http:" && origem.protocol !== "https:") {
+      return { emails: [], telefones: [] };
+    }
+    const host = origem.hostname.toLowerCase();
+    const privado =
+      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(host) ||
+      host === "::1" ||
+      host.endsWith(".internal") ||
+      host.endsWith(".local") ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (privado) return { emails: [], telefones: [] };
+
     const paginas = new Set([origem.toString()]);
     const resposta = await fetch(origem.toString(), {
       signal: AbortSignal.timeout(6000),
       headers: { "User-Agent": "FP-Pipe/1.0" },
+      redirect: "manual",
     });
-    if (!resposta.ok) return { emails: [], telefones: [] };
+    if (!resposta.ok || (resposta.status >= 300 && resposta.status < 400)) {
+      return { emails: [], telefones: [] };
+    }
     const html = (await resposta.text()).slice(0, 500_000);
     const links = [...html.matchAll(/href=["']([^"']+)["']/gi)]
       .map((match) => match[1])

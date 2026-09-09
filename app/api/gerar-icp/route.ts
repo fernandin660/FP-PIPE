@@ -1,6 +1,7 @@
 import http from "http";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 import { conhecimentoSegmentos } from "../../../lib/conhecimento-segmentos";
 import { chamarIa } from "../../../lib/ia";
 
@@ -86,6 +87,21 @@ async function buscarTextoSite(urlEntrada: string): Promise<string> {
       url = "https://" + url;
     }
 
+    // Anti-SSRF: só http(s) público, nunca rede interna/metadata.
+    const alvo = new URL(url);
+    if (alvo.protocol !== "http:" && alvo.protocol !== "https:") return "";
+    const host = alvo.hostname.toLowerCase();
+    const bloqueado =
+      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(host) ||
+      host === "::1" ||
+      host.endsWith(".internal") ||
+      host.endsWith(".local") ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (bloqueado) return "";
+
     const controle = new AbortController();
     const temporizador = setTimeout(() => controle.abort(), 10000);
 
@@ -95,11 +111,12 @@ async function buscarTextoSite(urlEntrada: string): Promise<string> {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
+      redirect: "manual",
     });
 
     clearTimeout(temporizador);
 
-    if (!resposta.ok) return "";
+    if (!resposta.ok || (resposta.status >= 300 && resposta.status < 400)) return "";
 
     const html = await resposta.text();
 
@@ -122,6 +139,9 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
+
+    const bloqueado = await exigirRateLimit(request, "gerar-icp", 8, 60);
+    if (bloqueado) return bloqueado;
 
     const {
       nomeEmpresa,

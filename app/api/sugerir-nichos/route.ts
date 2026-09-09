@@ -1,4 +1,5 @@
 import { exigirAcesso } from "../../../lib/gate";
+import { exigirRateLimit } from "../../../lib/rate-limit";
 import { chamarIa } from "../../../lib/ia";
 
 export async function POST(request: Request) {
@@ -7,6 +8,9 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
+
+    const bloqueado = await exigirRateLimit(request, "sugerir-nichos", 10, 60);
+    if (bloqueado) return bloqueado;
 
     const { areaAtuacao = "", produtosServicos = "" } =
       await request.json();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+import { sanitizarBusca } from "../../../lib/busca";
 
 type Resultado = {
   id: string;
@@ -41,7 +42,7 @@ export async function GET(requisicao: Request) {
     return NextResponse.json({ resultados: [] });
   }
 
-  const termo = `%${q}%`;
+  const termo = `%${sanitizarBusca(q)}%`;
 
   // Busca em paralelo: empresas (companies) + contatos salvos
   const [empresasRes, contatosRes] = await Promise.all([

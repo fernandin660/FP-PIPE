@@ -21,8 +21,11 @@ const TABELAS: Record<TabelaCredito, string> = {
   creditos_ia: "creditos_ia",
 };
 
-// Reserva créditos de forma atômica (update ... gte saldo). Retorna a
-// quantidade reservada (0 se sem saldo / sem custo / sem contexto).
+// Reserva créditos de forma atômica. Prioriza o RPC de banco
+// (debitar_saldo_org) que faz saldo = saldo - N ... where saldo >= N
+// dentro de um único UPDATE, eliminando a corrida de leitura-escrita
+// (TOCTOU). Se o RPC ainda não existir no banco (migration pendente),
+// cai para o update atômico-condicional legado.
 export async function reservar(
   orgId: string | null | undefined,
   custo: Custo
@@ -34,6 +37,17 @@ export async function reservar(
 
   const tabela = TABELAS[custo.tabela_creditos];
 
+  const { data: novoViaRpc, error: erroRpc } = await admin.rpc(
+    "debitar_saldo_org",
+    { p_tabela: tabela, p_org: orgId, p_qtd: custo.creditos }
+  );
+
+  // RPC disponível: retorna o novo saldo (null = sem saldo suficiente).
+  if (!erroRpc) {
+    return novoViaRpc != null ? custo.creditos : 0;
+  }
+
+  // Fallback legado (migration ainda não aplicada).
   const { data: atual } = await admin
     .from(tabela)
     .select("saldo")
@@ -43,7 +57,6 @@ export async function reservar(
   const saldo = atual?.saldo ?? 0;
   if (saldo < custo.creditos) return 0;
 
-  // Débito atômico e condicional: só baixa se o saldo ainda for >= créditos.
   const { data: novo } = await admin
     .from(tabela)
     .update({
@@ -67,6 +80,14 @@ export async function estornar(
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return;
   const tabela = TABELAS[custo.tabela_creditos];
+
+  const { error: erroRpc } = await admin.rpc("creditar_saldo_org", {
+    p_tabela: tabela,
+    p_org: orgId,
+    p_qtd: creditos,
+  });
+  if (!erroRpc) return;
+
   const { data: atual } = await admin
     .from(tabela)
     .select("saldo")

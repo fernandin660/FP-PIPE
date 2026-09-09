@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { verificarCreditosBaixos } from "../../../../lib/avisos";
 
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
       return gate.resposta;
     }
     const { supabase, orgId, usuarioId, acesso } = gate.ctx!;
+
+    const bloqueado = await exigirRateLimit(request, "listas-salvar", 10, 60);
+    if (bloqueado) return bloqueado;
 
     const corpo = await request.json();
 
@@ -142,21 +146,26 @@ export async function POST(request: Request) {
       const chaveDebito = usaOrg ? "organizacao_id" : "usuario_id";
       const valorDebito = usaOrg ? orgId : creditoAlvo?.usuario_id ?? "";
 
-      const agora = new Date().toISOString();
+const agora = new Date().toISOString();
 
-      // Débito atômico: só debita se saldo >= quantidade necessária.
-      // Substitui a verificação + débito separados para evitar race condition.
-      const { data: novoSaldo } = await admin
-        .from("creditos_contatos")
-        .update({
-          saldo: saldoBuscador - bloqueadas.length,
-        })
-        .eq(chaveDebito, valorDebito)
-        .gte("saldo", bloqueadas.length)
-        .select("saldo")
-        .maybeSingle();
-
-      if (!novoSaldo) {
+      // Débito atômico via RPC de banco: elimina corrida de leitura-escrita.
+      let novoSaldo: number | null = null;
+      if (usaOrg) {
+        const { data } = await admin.rpc("debitar_saldo_org", {
+          p_tabela: "creditos_contatos",
+          p_org: valorDebito as string,
+          p_qtd: bloqueadas.length,
+        });
+        novoSaldo = data as number | null;
+      } else {
+        const { data } = await admin.rpc("debitar_saldo_usuario", {
+          p_tabela: "creditos_contatos",
+          p_usuario: valorDebito as string,
+          p_qtd: bloqueadas.length,
+        });
+        novoSaldo = data as number | null;
+      }
+      if (novoSaldo == null) {
         return NextResponse.json(
           {
             erro: `Para salvar esta lista faltam ${bloqueadas.length} desbloqueio(s), mas você tem só ${saldoBuscador} crédito(s) de lead. Compre mais em /planos ou desmarque alguns leads.`,

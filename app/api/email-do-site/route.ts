@@ -134,8 +134,16 @@ export async function POST(request: Request) {
         Accept: "text/html,application/xhtml+xml",
       },
       signal: AbortSignal.timeout(15000),
-      redirect: "follow",
+      // Não segue redirecionamentos: evita SSRF via redirect para rede interna/metadata.
+      redirect: "manual",
     });
+
+    if (resposta.status >= 300 && resposta.status < 400) {
+      return NextResponse.json(
+        { erro: "O site redirecionou para outro endereço e não foi permitido." },
+        { status: 400 }
+      );
+    }
 
     if (!resposta.ok) {
       return NextResponse.json(

@@ -83,8 +83,15 @@ export async function verificarRateLimit(
       resetEm: janelaSegundos,
     };
   } catch {
-    // Se a tabela não existir ou der erro, libera (não bloqueia o usuário)
-    return { permitido: true, remaining: maxRequests, total: 0, resetEm: 0 };
+    // Fail-safe: se não for possível avaliar o rate limit (erro de DB/infra),
+    // bloqueia a requisição em vez de liberar. Evita que uma falha abra
+    // caminho para abuso/enumeração em rotas de custo/IA.
+    return {
+      permitido: false,
+      remaining: 0,
+      total: maxRequests,
+      resetEm: janelaSegundos,
+    };
   }
 }
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
+import { sanitizarBusca } from "../../lib/busca";
 import Sidebar from "../../components/Sidebar";
 import AdicionarAoCrmModal from "../../components/AdicionarAoCrmModal";
 import ModalPerfil, {
@@ -647,7 +648,7 @@ function BuscadorContent() {
       const cli = criarClienteSupabase();
       if (!cli) return;
 
-      const termoLower = `%${termo}%`;
+      const termoLower = `%${sanitizarBusca(termo)}%`;
       const { data: userAuth } = await cli.auth.getUser();
       if (!userAuth.user) return;
 

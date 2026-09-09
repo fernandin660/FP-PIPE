@@ -374,11 +374,13 @@ export async function POST(requisicao: Request) {
     saldoTelefone >= custoTelefone &&
     !(existenteAntes?.telefones?.length)
   ) {
-    novoSaldoTelefone = saldoTelefone - custoTelefone;
-    await admin
-      .from("creditos_telefone")
-      .update({ saldo: novoSaldoTelefone })
-      .eq("organizacao_id", orgId);
+    // Débito atômico (RPC de banco): evita corrida de leitura-escrita.
+    const { data: debito } = await admin.rpc("debitar_saldo_org", {
+      p_tabela: "creditos_telefone",
+      p_org: orgId,
+      p_qtd: custoTelefone,
+    });
+    novoSaldoTelefone = debito ?? Math.max(0, saldoTelefone - custoTelefone);
 
     void registrarUso("buscador_contatos");
   }

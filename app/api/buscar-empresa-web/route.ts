@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
+
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
 
@@ -20,6 +22,19 @@ type RespostaCasadosDados = {
 };
 
 export async function GET(requisicao: Request) {
+  const supabase = await criarClienteSupabaseServidor();
+  if (!supabase) {
+    return NextResponse.json({ erro: "Autenticação não configurada." }, { status: 503 });
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
+  }
+
   const url = new URL(requisicao.url);
   const q = (url.searchParams.get("q") ?? "").trim();
 
