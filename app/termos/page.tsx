@@ -58,9 +58,9 @@ export default function PaginaTermos() {
             </h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                O plano <strong>Teste grátis</strong> oferece 50 empresas/mês, 2
-                listas, 5 buscas de contato e 2 abordagens com IA, para
-                avaliação do serviço.
+                O plano <strong>Teste grátis</strong> oferece 25 empresas/mês
+                (Brasil + países das Américas), 1 lista, 25 buscas de contato e
+                2 abordagens com IA, para avaliação do serviço.
               </li>
               <li>
                 Os planos pagos (Silver, Gold e Platinum) incluem cotas mensais

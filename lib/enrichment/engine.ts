@@ -122,6 +122,38 @@ export async function runProvider(
   const custo = await custoPara(providerNome, pedido.tipo, ctx.organizacao_id);
   const reservado = await reservar(ctx.organizacao_id, custo);
 
+  // Provider PAGO sem saldo: NÃO chama a API (evita custo não cobrado).
+  // A reserva retorna 0 quando o saldo é insuficiente; providers gratuitos
+  // (creditos = 0) seguem normais.
+  if ((custo.creditos ?? 0) > 0 && reservado === 0) {
+    const resultado: ResultadoProvider = {
+      provider: providerNome,
+      requestId: `${pedido.tipo}:${pedido.alvo.chave ?? ""}`,
+      ok: false,
+      encontrado: false,
+      erro: {
+        codigo: "sem_creditos",
+        mensagem: "Saldo insuficiente para este provider",
+      },
+      creditoConsumido: 0,
+      custoEstimado: custo.custo_estimado,
+      moeda: custo.moeda,
+      cacheHit: false,
+      fonte: providerNome,
+      confianca: 0,
+    };
+    await registrarAttempt(
+      ctx,
+      resultado,
+      pedido.alvo,
+      pedido.tipo,
+      custo.custo_estimado,
+      resultado.erro ?? null,
+      custo.moeda
+    );
+    return resultado;
+  }
+
   let resultado: ResultadoProvider;
   try {
     resultado = await provider.enrich(pedido, pedido.alvo);

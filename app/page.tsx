@@ -434,7 +434,7 @@ export default function Inicio() {
 
         <p className="text-pipe-muted text-center mt-3 max-w-xl mx-auto">
           Comece grátis: <span className="text-white font-semibold">1 lista com até 25 leads</span>{" "}
-          pra testar de verdade. Depois, escolha o plano —{" "}
+          — no Brasil e nas Américas — pra testar de verdade. Depois, escolha o plano —{" "}
           <span className="text-white font-semibold">
             anual sai ~20% mais barato
           </span>{" "}

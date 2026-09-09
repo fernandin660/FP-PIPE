@@ -61,6 +61,39 @@ export async function rodarWaterfall(
 
     const reservado = await reservar(ctx.organizacao_id, custo);
 
+    // Provider PAGO sem saldo: NÃO chama a API (evita custo não cobrado).
+    // Providers gratuitos (creditos = 0) seguem; provider pago bloqueado
+    // vira parcial "sem_creditos" e a cascata segue para o próximo.
+    if ((custo.creditos ?? 0) > 0 && reservado === 0) {
+      const semCredito: ResultadoProvider = {
+        provider: provider.nome,
+        requestId: `${pedido.tipo}:${pedido.alvo.chave ?? ""}`,
+        ok: false,
+        encontrado: false,
+        erro: {
+          codigo: "sem_creditos",
+          mensagem: "Saldo insuficiente para este provider",
+        },
+        creditoConsumido: 0,
+        custoEstimado: custo.custo_estimado,
+        moeda: custo.moeda,
+        cacheHit: false,
+        fonte: provider.nome,
+        confianca: 0,
+      };
+      await registrarAttempt(
+        ctx,
+        semCredito,
+        pedido.alvo,
+        pedido.tipo,
+        custo.custo_estimado,
+        semCredito.erro ?? null,
+        custo.moeda
+      );
+      parciais.push(semCredito);
+      continue;
+    }
+
     let resultado: ResultadoProvider;
     try {
       resultado = await provider.enrich(pedido, pedido.alvo);

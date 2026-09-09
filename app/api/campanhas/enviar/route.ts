@@ -49,11 +49,11 @@ export async function POST(request: Request) {
   const clienteAdmin = criarClienteSupabaseAdmin();
   if (!clienteAdmin) return NextResponse.json({ erro: "Banco indisponível." }, { status: 503 });
   const adminSeguro = clienteAdmin;
-  // Disparo em massa é recurso Gold/Platinum. Teste e Silver podem gerar
-  // abordagens IA, mas o envio real exige plano pago avançado.
+  // Disparo em massa é recurso Silver+. Teste pode gerar abordagens IA,
+  // mas o envio real exige plano pago.
   if (!podeEnviarCampanha(acesso.plano)) {
     return NextResponse.json(
-      { erro: "O disparo de campanhas está disponível nos planos Gold e Platinum. Faça upgrade em /planos." },
+      { erro: "O disparo de campanhas está disponível nos planos Silver, Gold e Platinum. Assine um plano em /planos para começar a enviar." },
       { status: 403 }
     );
   }

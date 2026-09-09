@@ -42,7 +42,7 @@ const planos: Array<{
       "25 abordagens de IA por mês",
       "Exportação CSV pro CRM",
       "— Sem Buscador de contatos",
-      "— Sem disparo em massa (é Gold+)",
+      "📨 Disparo em massa: 100 e-mails/dia",
     ],
     cta: "Assinar o Silver →",
   },
@@ -144,12 +144,12 @@ const faq = [
   {
     pergunta: "O que o teste grátis inclui?",
     resposta:
-      "Você cria a conta sem cartão e ganha 1 lista com até 25 leads para explorar a plataforma de verdade: gera a lista, desbloqueia leads e testa abordagens de IA. Para escalar ou disparar campanhas, escolha um plano.",
+      "Você cria a conta sem cartão e ganha 1 lista com até 25 leads para explorar a plataforma de verdade — no Brasil e nos países das Américas: gera a lista, desbloqueia leads e testa abordagens de IA. Para escalar ou disparar campanhas, escolha um plano.",
   },
   {
     pergunta: "Quem pode disparar e-mails em massa?",
     resposta:
-      "O disparo de campanhas está nos planos Gold (100 e-mails/dia) e Platinum (300 e-mails/dia). No teste e no Silver você já gera a lista e escreve a abordagem com IA — o envio em massa é o que destrava no Gold.",
+      "O disparo de campanhas está nos planos Silver e Gold (100 e-mails/dia) e Platinum (300 e-mails/dia). No teste você gera a lista e escreve a abordagem com IA para testar — o envio em massa libera a partir do Silver.",
   },
   {
     pergunta: "Precisa de cartão de crédito para começar?",

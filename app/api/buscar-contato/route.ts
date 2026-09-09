@@ -189,7 +189,6 @@ export async function POST(requisicao: Request) {
     : "both";
 
   const precisaTelefone = tipo === "telefone" || tipo === "both";
-  const custoTelefone = 1; // cada telefone verificado custa 1 crédito de telefone
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
@@ -292,6 +291,22 @@ export async function POST(requisicao: Request) {
       let fontesTelefone: string[] = [];
 
       if (tipo === "telefone" || tipo === "both") {
+        // Buscar telefone mesmo com e-mail em cache roda providers pagos
+        // (Google/Maps/Serper): consome 1 crédito de busca (moeda creditos).
+        const { data: buscaDisponivelCache } = await admin.rpc("debitar_saldo_org", {
+          p_tabela: "creditos",
+          p_org: orgId,
+          p_qtd: 1,
+        });
+        if (buscaDisponivelCache == null) {
+          return NextResponse.json(
+            {
+              erro: `Você usou suas buscas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos para buscar mais.`,
+              motivo: "limite_buscas",
+            },
+            { status: 403 }
+          );
+        }
         const enrich = await buscarContatoCompleto(
           linkedinNormalizado,
           contatoCache.empresa ?? "",
@@ -303,6 +318,18 @@ export async function POST(requisicao: Request) {
         );
         telefones = enrich.telefones;
         fontesTelefone = enrich.fontesTelefone;
+        if (fontesTelefone.includes("millionphones")) {
+          void registrarUso("buscador_contatos");
+        }
+
+        // O débito do telefone é feito pelo engine (runProvider) ao chamar o
+        // MillionPhones; aqui só relemos o saldo para o retorno.
+        const { data: telCachePos } = await supabase
+          .from("creditos_telefone")
+          .select("saldo")
+          .eq("organizacao_id", orgId)
+          .maybeSingle();
+        saldoTelefoneCache = telCachePos?.saldo ?? 0;
       }
 
         if (telefones.length > 0 && salvoCache?.id) {
@@ -310,15 +337,6 @@ export async function POST(requisicao: Request) {
             .from("contatos")
             .update({ telefones })
             .eq("id", salvoCache.id);
-
-          const veioDoMillionPhonesCache = fontesTelefone.includes("millionphones");
-          if (veioDoMillionPhonesCache && saldoTelefoneCache >= custoTelefone && !(existenteCache?.telefones?.length)) {
-            saldoTelefoneCache -= custoTelefone;
-            await admin
-              .from("creditos_telefone")
-              .update({ saldo: saldoTelefoneCache })
-              .eq("organizacao_id", orgId);
-          }
         }
 
       return NextResponse.json({
@@ -352,6 +370,23 @@ export async function POST(requisicao: Request) {
     saldoTelefone = telAtual?.saldo ?? 0;
   }
 
+  // Busca completa (fora do cache) roda providers pagos
+  // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca.
+  const { data: buscaDisponivel } = await admin.rpc("debitar_saldo_org", {
+    p_tabela: "creditos",
+    p_org: orgId,
+    p_qtd: 1,
+  });
+  if (buscaDisponivel == null) {
+    return NextResponse.json(
+      {
+        erro: `Você usou suas buscas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos para buscar mais.`,
+        motivo: "limite_buscas",
+      },
+      { status: 403 }
+    );
+  }
+
   // Busca: LinkedIn URL + empresa + nome (o que tiver)
   const resultado = await buscarContatoCompleto(
     linkedinNormalizado,
@@ -369,20 +404,19 @@ export async function POST(requisicao: Request) {
 
   let novoSaldoTelefone = saldoTelefone;
   const veioDoMillionPhones = resultado.fontesTelefone.includes("millionphones");
-  if (
-    veioDoMillionPhones &&
-    saldoTelefone >= custoTelefone &&
-    !(existenteAntes?.telefones?.length)
-  ) {
-    // Débito atômico (RPC de banco): evita corrida de leitura-escrita.
-    const { data: debito } = await admin.rpc("debitar_saldo_org", {
-      p_tabela: "creditos_telefone",
-      p_org: orgId,
-      p_qtd: custoTelefone,
-    });
-    novoSaldoTelefone = debito ?? Math.max(0, saldoTelefone - custoTelefone);
-
+  if (veioDoMillionPhones) {
     void registrarUso("buscador_contatos");
+  }
+
+  // O débito do telefone é feito pelo engine (runProvider) ao chamar o
+  // MillionPhones; aqui só relemos o saldo para o retorno.
+  if (precisaTelefone) {
+    const { data: telPos } = await supabase
+      .from("creditos_telefone")
+      .select("saldo")
+      .eq("organizacao_id", orgId)
+      .maybeSingle();
+    novoSaldoTelefone = telPos?.saldo ?? 0;
   }
 
   const contato = {
