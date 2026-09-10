@@ -4,6 +4,7 @@ import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const URL_GEMINI =

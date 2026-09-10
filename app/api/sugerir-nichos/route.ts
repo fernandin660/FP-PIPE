@@ -2,6 +2,8 @@ import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 import { chamarIa } from "../../../lib/ia";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const gate = await exigirAcesso();

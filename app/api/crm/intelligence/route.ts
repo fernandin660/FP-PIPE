@@ -6,6 +6,8 @@ import { chamarIa } from "../../../../lib/ia";
 import { calcularPrioridade } from "../../../../lib/prioridade";
 import type { criarClienteSupabaseServidor } from "../../../../lib/supabase/server";
 
+export const maxDuration = 60;
+
 type Cliente = NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>;
 
 const TIPOS_SINAL = new Set([
