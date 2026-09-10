@@ -27,6 +27,7 @@ export const LIMITES_MENSAIS: Record<string, number> = {
   anymail: 200,
   openai: 2000,
   gemini: 5000,
+  groq: 3000,
   serper: 2500,
   casadosdados: 5000,
   minhareceita: 3000,
