@@ -153,6 +153,11 @@ export async function GET() {
 
   const marcadorMes = new Date().toISOString().slice(0, 7);
   const CREDITOS_MP_POR_ACHADO = 10;
+  // Cota global da nossa conta MP (créditos comprados). Sem env, assume 1000.
+  const cotaMp =
+    Number(process.env.MILLIONPHONES_COTA_MP) > 0
+      ? Number(process.env.MILLIONPHONES_COTA_MP)
+      : 1000;
 
   type AcumuladorMp = {
     chamadas: number;
@@ -165,6 +170,7 @@ export async function GET() {
   };
   const porOrgao = new Map<string, AcumuladorMp>();
   const porEmail = new Map<string, AcumuladorMp>();
+  let consumoHistoricoMp = 0;
 
   const novoAcumulador = (): AcumuladorMp => ({
     chamadas: 0,
@@ -177,6 +183,11 @@ export async function GET() {
   });
 
   for (const t of tentativasMp ?? []) {
+    // Consumo acumulado (estoque da conta MP não expira) para a % de cota.
+    if (t.encontrado && t.success && !t.cache_hit) {
+      consumoHistoricoMp += CREDITOS_MP_POR_ACHADO;
+    }
+
     if (!t.criado_em || String(t.criado_em).slice(0, 7) !== marcadorMes) continue;
 
     const orgChave = t.organizacao_id ?? "sem-org";
@@ -224,9 +235,13 @@ export async function GET() {
     moedas,
     millionphones: {
       creditosPorAchado: CREDITOS_MP_POR_ACHADO,
+      cotaMp,
       totalAchados: mlpOrgaos.reduce((soma, u) => soma + u.achados, 0),
       totalChamadas: mlpOrgaos.reduce((soma, u) => soma + u.chamadas, 0),
       totalConsumoMp: mlpOrgaos.reduce((soma, u) => soma + u.consumoMp, 0),
+      totalConsumoHistoricoMp: consumoHistoricoMp,
+      percentualConsumo:
+        cotaMp > 0 ? Math.round((consumoHistoricoMp / cotaMp) * 100) : 0,
       orgaos: mlpOrgaos,
       usuarios: mlpUsuarios,
     },

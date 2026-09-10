@@ -30,9 +30,12 @@ type AcumuladorMlp = {
 
 type PainelMillionPhones = {
   creditosPorAchado: number;
+  cotaMp: number;
+  percentualConsumo: number;
   totalAchados: number;
   totalChamadas: number;
   totalConsumoMp: number;
+  totalConsumoHistoricoMp: number;
   orgaos: (AcumuladorMlp & { organizacaoId: string })[];
   usuarios: (AcumuladorMlp & { email: string })[];
 };
@@ -318,6 +321,20 @@ export default function PaginaAdminUso() {
               interna FP: cada achado debita 1 crédito de telefone do usuário.
             </p>
 
+            {millionphones.percentualConsumo >= 80 && (
+              <div
+                className={`mb-5 border rounded-xl px-4 py-3 text-sm font-semibold ${
+                  millionphones.percentualConsumo >= 100
+                    ? "border-red-500/50 bg-red-500/10 text-red-300"
+                    : "border-yellow-500/50 bg-yellow-500/10 text-yellow-200"
+                }`}
+              >
+                {millionphones.percentualConsumo >= 100
+                  ? `⚠️ Cota MillionPhones esgotada (100% de ${millionphones.cotaMp.toLocaleString("pt-BR")}). Novos desbloqueios vão falhar — compre mais créditos na conta MP.`
+                  : `⚠️ Atenção: já consumimos ${millionphones.percentualConsumo}% da cota MillionPhones (${millionphones.cotaMp.toLocaleString("pt-BR")}).`}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
               <div className="bg-pipe-card border border-pipe-border rounded-xl p-4">
                 <p className="text-[11px] font-semibold text-pipe-muted">
@@ -337,7 +354,7 @@ export default function PaginaAdminUso() {
               </div>
               <div className="bg-pipe-card border border-pipe-border rounded-xl p-4">
                 <p className="text-[11px] font-semibold text-pipe-muted">
-                  Créditos MP consumidos
+                  Créditos MP consumidos no mês
                 </p>
                 <p
                   className={`font-display text-3xl mt-1 ${
@@ -348,6 +365,47 @@ export default function PaginaAdminUso() {
                 >
                   {millionphones.totalConsumoMp.toLocaleString("pt-BR")}
                 </p>
+              </div>
+            </div>
+
+            <div className="bg-pipe-card border border-pipe-border rounded-xl p-4 mb-5">
+              <div className="flex items-center justify-between gap-4 text-sm">
+                <p className="text-pipe-muted text-xs">
+                  Cota global da conta MP (consumo acumulado histórico)
+                </p>
+                <p className="text-xs text-pipe-muted">
+                  <span className="font-bold text-white">
+                    {millionphones.totalConsumoHistoricoMp.toLocaleString(
+                      "pt-BR"
+                    )}
+                  </span>{" "}
+                  / {millionphones.cotaMp.toLocaleString("pt-BR")} créditos ·{" "}
+                  <span
+                    className={`font-bold ${
+                      millionphones.percentualConsumo >= 100
+                        ? "text-red-400"
+                        : millionphones.percentualConsumo >= 75
+                          ? "text-yellow-400"
+                          : "text-pipe-lime"
+                    }`}
+                  >
+                    {millionphones.percentualConsumo}%
+                  </span>
+                </p>
+              </div>
+              <div className="mt-2 h-2 bg-pipe-dark rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    millionphones.percentualConsumo >= 100
+                      ? "bg-red-500"
+                      : millionphones.percentualConsumo >= 75
+                        ? "bg-yellow-400"
+                        : "bg-pipe-lime"
+                  }`}
+                  style={{
+                    width: `${Math.min(100, millionphones.percentualConsumo)}%`,
+                  }}
+                />
               </div>
             </div>
 
