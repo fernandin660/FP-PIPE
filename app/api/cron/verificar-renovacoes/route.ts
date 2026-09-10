@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { DEFINICAO_PLANOS, type PlanoChave } from "../../../../lib/planos";
+import { reporCreditosTelefone } from "../../../../lib/creditos-telefone";
 
 // ============================================================
 // Cron diário: verifica assinaturas que expiraram e envia
@@ -151,6 +152,9 @@ export async function GET(req: Request) {
               }).eq("organizacao_id", assinatura.organizacao_id);
             }
           }
+
+          // Reabastece a carteira de telefones do plano (Gold/Platinum).
+          await reporCreditosTelefone(assinatura.organizacao_id, definicao);
 
           resultados.push({
             orgId: assinatura.organizacao_id,

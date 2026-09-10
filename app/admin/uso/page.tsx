@@ -18,6 +18,25 @@ type Moeda = {
   usuarios: { email: string; saldo: number }[];
 };
 
+type AcumuladorMlp = {
+  chamadas: number;
+  achados: number;
+  semNumero: number;
+  semCreditos: number;
+  erros: number;
+  cache: number;
+  consumoMp: number;
+};
+
+type PainelMillionPhones = {
+  creditosPorAchado: number;
+  totalAchados: number;
+  totalChamadas: number;
+  totalConsumoMp: number;
+  orgaos: (AcumuladorMlp & { organizacaoId: string })[];
+  usuarios: (AcumuladorMlp & { email: string })[];
+};
+
 const NOMES_APIS: Record<string, string> = {
   maps: "🗺️ Google Maps",
   anymail: "📧 Anymail Finder",
@@ -38,6 +57,7 @@ export default function PaginaAdminUso() {
   const [mes, setMes] = useState("");
   const [apis, setApis] = useState<ApiUso[]>([]);
   const [moedas, setMoedas] = useState<Moeda[]>([]);
+  const [millionphones, setMillionphones] = useState<PainelMillionPhones | null>(null);
   const [editandoApi, setEditandoApi] = useState<string | null>(null);
   const [valorEdicao, setValorEdicao] = useState("");
   const [salvandoLimite, setSalvandoLimite] = useState(false);
@@ -55,11 +75,13 @@ export default function PaginaAdminUso() {
         mes?: string;
         apis?: ApiUso[];
         moedas?: Moeda[];
+        millionphones?: PainelMillionPhones;
       };
 
       setMes(dados.mes ?? "");
       setApis(dados.apis ?? []);
       setMoedas(dados.moedas ?? []);
+      setMillionphones(dados.millionphones ?? null);
     } finally {
       setCarregando(false);
     }
@@ -283,6 +305,124 @@ export default function PaginaAdminUso() {
           </p>
         )}
 
+        {/* MEDIDOR MILLIONPHONES */}
+        {!carregando && millionphones && (
+          <section className="mt-12">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-1">
+              📞 MillionPhones — consumo da nossa conta
+            </h2>
+            <p className="text-xs text-pipe-muted mb-4">
+              Estimativa: cada número achado custa{" "}
+              {millionphones.creditosPorAchado} créditos MP (pay-per-success;
+              buscas sem número e re-leituras de cache não custam). Moeda
+              interna FP: cada achado debita 1 crédito de telefone do usuário.
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
+              <div className="bg-pipe-card border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-pipe-muted">
+                  Achados no mês
+                </p>
+                <p className="font-display text-3xl text-pipe-lime mt-1">
+                  {millionphones.totalAchados}
+                </p>
+              </div>
+              <div className="bg-pipe-card border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-pipe-muted">
+                  Chamadas à API
+                </p>
+                <p className="font-display text-3xl text-white mt-1">
+                  {millionphones.totalChamadas}
+                </p>
+              </div>
+              <div className="bg-pipe-card border border-pipe-border rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-pipe-muted">
+                  Créditos MP consumidos
+                </p>
+                <p
+                  className={`font-display text-3xl mt-1 ${
+                    millionphones.totalConsumoMp > 0
+                      ? "text-yellow-400"
+                      : "text-white"
+                  }`}
+                >
+                  {millionphones.totalConsumoMp.toLocaleString("pt-BR")}
+                </p>
+              </div>
+            </div>
+
+            {millionphones.orgaos.length > 0 && (
+              <>
+                <h3 className="text-sm font-bold text-white mb-3">
+                  Consumo por organização
+                </h3>
+                <div className="bg-pipe-card border border-pipe-border rounded-xl divide-y divide-pipe-border/60">
+                  {millionphones.orgaos.map((o) => (
+                    <div
+                      key={o.organizacaoId}
+                      className="px-4 py-3 flex items-center justify-between gap-4 text-sm flex-wrap"
+                    >
+                      <span className="text-gray-300 truncate font-mono text-xs">
+                        {o.organizacaoId}
+                      </span>
+                      <span className="flex items-center gap-3 text-xs text-pipe-muted">
+                        <span>
+                          queimados{" "}
+                          <b className="text-yellow-400">{o.consumoMp} MP</b>
+                        </span>
+                        <span>
+                          achados{" "}
+                          <b className="text-pipe-lime">{o.achados}</b>
+                        </span>
+                        <span>
+                          chamadas{" "}
+                          <b className="text-white">{o.chamadas}</b>
+                        </span>
+                        <span>
+                          sem número{" "}
+                          <b className="text-white">{o.semNumero}</b>
+                        </span>
+                        <span>
+                          sem crédito{" "}
+                          <b className="text-white">{o.semCreditos}</b>
+                        </span>
+                        <span>
+                          cache{" "}
+                          <b className="text-white">{o.cache}</b>
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {millionphones.usuarios.length > 0 && (
+              <>
+                <h3 className="text-sm font-bold text-white mb-3 mt-6">
+                  Consumo por usuário
+                </h3>
+                <div className="bg-pipe-card border border-pipe-border rounded-xl divide-y divide-pipe-border/60">
+                  {millionphones.usuarios.map((u) => (
+                    <div
+                      key={u.email}
+                      className="px-4 py-2.5 flex items-center justify-between gap-4 text-sm"
+                    >
+                      <span className="text-gray-300 truncate">{u.email}</span>
+                      <span className="flex items-center gap-3 text-xs text-pipe-muted">
+                        <span>achados <b className="text-pipe-lime">{u.achados}</b></span>
+                        <span className="text-yellow-400 font-bold">
+                          {u.consumoMp} MP
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         {/* MOEDAS INTERNAS */}
         {!carregando && moedas.length > 0 && (
           <section className="mt-12">
@@ -290,7 +430,7 @@ export default function PaginaAdminUso() {
               Moedas em circulação
             </h2>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {moedas.map((moeda) => (
                 <div
                   key={moeda.chave}

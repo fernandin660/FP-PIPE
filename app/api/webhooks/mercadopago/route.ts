@@ -8,6 +8,7 @@ import {
   type PlanoChave,
 } from "../../../../lib/planos";
 import { enviarAvisoRenovacao } from "../../../../lib/avisos";
+import { reporCreditosTelefone } from "../../../../lib/creditos-telefone";
 
 import crypto from "crypto";
 
@@ -235,6 +236,9 @@ export async function POST(req: Request) {
       });
     }
   }
+
+  // 3b. Renova o saldo mensal de créditos de telefone (Gold/Platinum).
+  await reporCreditosTelefone(orgId, definicao);
 
   // 4. Se é renovação, envia e-mail de confirmação
   if (isRenovacao) {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { criarClienteSupabaseServidor } from "../../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { DEFINICAO_PLANOS, type PlanoChave } from "../../../../lib/planos";
+import { reporCreditosTelefone } from "../../../../lib/creditos-telefone";
 
 // ============================================================
 // Admin — Liberar brinde temporário para uma empresa.
@@ -271,6 +272,10 @@ export async function POST(req: Request) {
         });
     }
   }
+
+  // 4b. Carteira de telefones (Gold/Platinum) — por isso o brinde
+  // espelha o webhook em todas as moedas.
+  await reporCreditosTelefone(orgId, definicao);
 
   // 5. Retorna o estado final
   const saldos: Record<string, number | null> = {};

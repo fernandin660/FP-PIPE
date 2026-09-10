@@ -111,5 +111,124 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ mes, apis, moedas });
+  // Moeda de telefone: saldo atual por org (rows não têm usuario_id —
+  // rotulamos pelo dono da organização via assinaturas).
+  const { data: assinaturas } = await admin
+    .from("assinaturas")
+    .select("organizacao_id, usuario_id");
+  const donoPorOrg = new Map<string, string>(
+    (assinaturas ?? []).map((a) => [
+      a.organizacao_id,
+      mapaEmails.get(a.usuario_id) ?? "usuário",
+    ])
+  );
+  const { data: linhasTelefone } = await admin
+    .from("creditos_telefone")
+    .select("organizacao_id, saldo");
+  const usuariosTelefone = (linhasTelefone ?? [])
+    .filter((l) => (l.saldo ?? 0) > 0)
+    .map((l) => ({
+      email: donoPorOrg.get(l.organizacao_id) ?? "usuário",
+      saldo: l.saldo ?? 0,
+    }))
+    .sort((a, b) => b.saldo - a.saldo);
+
+  moedas.push({
+    chave: "telefone",
+    nome: "📞 Créditos de telefone",
+    total: usuariosTelefone.reduce((soma, u) => soma + u.saldo, 0),
+    usuarios: usuariosTelefone,
+  });
+
+  // Medidor MillionPhones: consumo real da nossa conta MP a partir do
+  // ledger de enriquecimento. Cada achado de número = 10 créditos MP
+  // (política oficial da MillionPhones). Se a busca não retorna número,
+  // estima-se que a MP não debita (pay-per-success).
+  const { data: tentativasMp } = await admin
+    .from("enriquecimento_attempts")
+    .select(
+      "organizacao_id, usuario_id, success, cache_hit, encontrado, erro_codigo, criado_em"
+    )
+    .eq("provider", "millionphones");
+
+  const marcadorMes = new Date().toISOString().slice(0, 7);
+  const CREDITOS_MP_POR_ACHADO = 10;
+
+  type AcumuladorMp = {
+    chamadas: number;
+    achados: number;
+    semNumero: number;
+    semCreditos: number;
+    erros: number;
+    cache: number;
+    consumoMp: number;
+  };
+  const porOrgao = new Map<string, AcumuladorMp>();
+  const porEmail = new Map<string, AcumuladorMp>();
+
+  const novoAcumulador = (): AcumuladorMp => ({
+    chamadas: 0,
+    achados: 0,
+    semNumero: 0,
+    semCreditos: 0,
+    erros: 0,
+    cache: 0,
+    consumoMp: 0,
+  });
+
+  for (const t of tentativasMp ?? []) {
+    if (!t.criado_em || String(t.criado_em).slice(0, 7) !== marcadorMes) continue;
+
+    const orgChave = t.organizacao_id ?? "sem-org";
+    const emailChave = mapaEmails.get(t.usuario_id ?? "") ?? "usuário";
+    const org = porOrgao.get(orgChave) ?? novoAcumulador();
+    const email = porEmail.get(emailChave) ?? novoAcumulador();
+
+    org.chamadas += 1;
+    email.chamadas += 1;
+    if (t.cache_hit) {
+      org.cache += 1;
+      email.cache += 1;
+    } else if (t.encontrado && t.success) {
+      org.achados += 1;
+      email.achados += 1;
+      org.consumoMp += CREDITOS_MP_POR_ACHADO;
+      email.consumoMp += CREDITOS_MP_POR_ACHADO;
+    } else if (t.erro_codigo === "sem_creditos" || t.erro_codigo === "sem_saldo") {
+      org.semCreditos += 1;
+      email.semCreditos += 1;
+    } else if (t.success && !t.encontrado) {
+      org.semNumero += 1;
+      email.semNumero += 1;
+    } else {
+      org.erros += 1;
+      email.erros += 1;
+    }
+
+    porOrgao.set(orgChave, org);
+    porEmail.set(emailChave, email);
+  }
+
+  const mlpOrgaos = [...porOrgao.entries()].map(([organizacaoId, u]) => ({
+    organizacaoId,
+    ...u,
+  })).sort((a, b) => b.consumoMp - a.consumoMp);
+  const mlpUsuarios = [...porEmail.entries()].map(([email, u]) => ({
+    email,
+    ...u,
+  })).sort((a, b) => b.consumoMp - a.consumoMp);
+
+  return NextResponse.json({
+    mes,
+    apis,
+    moedas,
+    millionphones: {
+      creditosPorAchado: CREDITOS_MP_POR_ACHADO,
+      totalAchados: mlpOrgaos.reduce((soma, u) => soma + u.achados, 0),
+      totalChamadas: mlpOrgaos.reduce((soma, u) => soma + u.chamadas, 0),
+      totalConsumoMp: mlpOrgaos.reduce((soma, u) => soma + u.consumoMp, 0),
+      orgaos: mlpOrgaos,
+      usuarios: mlpUsuarios,
+    },
+  });
 }
