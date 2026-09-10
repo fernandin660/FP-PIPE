@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   // Busca assinaturas ativas que já expiraram (renova_em < agora)
   const { data: expiradas, error } = await admin
     .from("assinaturas")
-    .select("id, usuario_id, organizacao_id, plano, ciclo, renova_em, mp_payment_id")
+    .select("id, usuario_id, organizacao_id, plano, ciclo, renova_em, mp_payment_id, origem")
     .eq("status", "ativa")
     .lt("renova_em", agora.toISOString());
 
@@ -157,6 +157,36 @@ export async function GET(req: Request) {
             status: "renovado_manualmente",
           });
         }
+      } else if (assinatura.origem === "gift") {
+        // Brinde terminou: reverte para Teste grátis e zera as carteiras.
+        // (avaliarAcesso também faz isso inline — aqui é reforço do cron.)
+        await admin
+          .from("assinaturas")
+          .update({
+            plano: "teste",
+            status: "ativa",
+            renova_em: null,
+            origem: "signup",
+            atualizado_em: agora.toISOString(),
+          })
+          .eq("id", assinatura.id);
+
+        for (const tabela of [
+          "creditos",
+          "creditos_contatos",
+          "creditos_ia",
+          "creditos_telefone",
+        ]) {
+          await admin
+            .from(tabela)
+            .update({ saldo: 0 })
+            .eq("organizacao_id", assinatura.organizacao_id);
+        }
+
+        resultados.push({
+          orgId: assinatura.organizacao_id,
+          status: "brinde_revertido",
+        });
       } else {
         // Pagamento não aprovado — marca como expirada e avisa
         await admin

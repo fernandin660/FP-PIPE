@@ -1,3 +1,5 @@
+import { criarClienteSupabaseAdmin } from "./supabase/admin";
+
 export type PlanoChave =
   | "teste"
   | "silver"
@@ -169,16 +171,60 @@ export async function avaliarAcesso(
   const whereOrg = orgId
     ? supabase
         .from("assinaturas")
-        .select("plano, status, renova_em")
+        .select("plano, status, renova_em, origem, organizacao_id")
         .eq("organizacao_id", orgId)
         .maybeSingle()
     : supabase
         .from("assinaturas")
-        .select("plano, status, renova_em")
+        .select("plano, status, renova_em, origem, organizacao_id")
         .eq("usuario_id", usuarioId)
         .maybeSingle();
 
-  const { data } = await whereOrg;
+  let { data } = await whereOrg;
+
+  // Brinde com término (origem "gift" + renova_em no passado): reverte
+  // sozinho para Teste grátis e zera as carteiras de crédito. Idempotente —
+  // após reverter, origem volta a "signup" e a condição nunca mais dispara.
+  // Garante o "voltar como estava" mesmo se o cron rodar com atraso.
+  const ehBrindeExpirado =
+    data?.origem === "gift" &&
+    !!data.renova_em &&
+    orgId &&
+    new Date(data.renova_em).getTime() < Date.now();
+
+  if (ehBrindeExpirado) {
+    const admin = criarClienteSupabaseAdmin();
+    if (admin) {
+      await admin
+        .from("assinaturas")
+        .update({
+          plano: "teste",
+          status: "ativa",
+          renova_em: null,
+          origem: "signup",
+        })
+        .eq("organizacao_id", orgId);
+
+      for (const tabela of [
+        "creditos",
+        "creditos_contatos",
+        "creditos_ia",
+        "creditos_telefone",
+      ]) {
+        await admin
+          .from(tabela)
+          .update({ saldo: 0 })
+          .eq("organizacao_id", orgId);
+      }
+    }
+    data = {
+      plano: "teste",
+      status: "ativa",
+      renova_em: null,
+      origem: "signup",
+      organizacao_id: orgId,
+    };
+  }
 
   const chavePlano = ((data?.plano as PlanoChave) || "teste") as PlanoChave;
   const def = DEFINICAO_PLANOS[chavePlano] ?? DEFINICAO_PLANOS.teste;
