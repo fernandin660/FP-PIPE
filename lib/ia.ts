@@ -148,8 +148,8 @@ async function chamarGroq(
 }
 
 // Cadeia única de IA do FP Pipe: Gemini primeiro (rápido e com camada
-// gratuita generosa); se faltar chave/cair, OpenAI assume; se essa também
-// falhar, Groq (llama-3.3-70b, gratuito) é o último recurso. Todas as
+// gratuita generosa); se cair, Groq (gpt-oss-120b, também gratuito);
+// OpenAI (paga) fica como ÚLTIMO recurso para reduzir custo. Todas as
 // chamadas pedem JSON estruturado nos três provedores.
 export async function chamarIa(
   prompt: string,
@@ -176,7 +176,7 @@ export async function chamarIa(
   } catch (erroGemini) {
     erroFinal = erroGemini;
     console.warn(
-      "Gemini indisponível, tentando OpenAI:",
+      "Gemini indisponível, tentando Groq:",
       erroGemini instanceof Error ? erroGemini.message : erroGemini
     );
   }
@@ -184,26 +184,26 @@ export async function chamarIa(
   try {
     const restante = Math.max(10000, LIMITE_TOTAL - (Date.now() - inicio));
     return {
-      response: await chamarOpenai(prompt, { ...config, timeoutMs: restante }),
-      provedor: "openai",
+      response: await chamarGroq(prompt, { ...config, timeoutMs: restante }),
+      provedor: "groq",
     };
-  } catch (erroOpenai) {
-    erroFinal = erroOpenai;
+  } catch (erroGroq) {
+    erroFinal = erroGroq;
     console.warn(
-      "OpenAI indisponível, tentando Groq:",
-      erroOpenai instanceof Error ? erroOpenai.message : erroOpenai
+      "Groq indisponível, tentando OpenAI:",
+      erroGroq instanceof Error ? erroGroq.message : erroGroq
     );
   }
 
   try {
     const restante = Math.max(15000, LIMITE_TOTAL - (Date.now() - inicio));
     return {
-      response: await chamarGroq(prompt, { ...config, timeoutMs: restante }),
-      provedor: "groq",
+      response: await chamarOpenai(prompt, { ...config, timeoutMs: restante }),
+      provedor: "openai",
     };
-  } catch (erroGroq) {
+  } catch (erroOpenai) {
     throw new Error(
-      `Gemini, OpenAI e Groq indisponíveis (${String(erroGroq ?? erroFinal).slice(0, 100)})`
+      `Gemini, Groq e OpenAI indisponíveis (${String(erroOpenai ?? erroFinal).slice(0, 100)})`
     );
   }
 }
