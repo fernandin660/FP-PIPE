@@ -432,6 +432,7 @@ function BuscadorContent() {
   const [buscandoEmpresaFicha, setBuscandoEmpresaFicha] = useState(false);
   const [linkedinPessoa, setLinkedinPessoa] = useState("");
   const [nomePessoaInput, setNomePessoaInput] = useState("");
+  const [cnpjPessoa, setCnpjPessoa] = useState("");
   const [expandidoPessoa, setExpandidoPessoa] = useState(false);
   const [drawerPessoa, setDrawerPessoa] = useState(false);
   const [buscandoPessoa, setBuscandoPessoa] = useState(false);
@@ -737,13 +738,20 @@ function BuscadorContent() {
     setVeioDoCache(false);
 
     try {
+      // Se o campo "empresa" recebeu um CNPJ, inicia a cascata por ele.
+      const cnpjPuro = (empresaInput.trim() ?? "").replace(/\D/g, "");
+      const ehCnpj =
+        cnpjPuro.length === 14 ||
+        cnpjPuro.length === 13;
+
       const resposta = await fetch("/api/buscar-contato", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           linkedinUrl: urlFinal,
-          empresa: empresaInput.trim(),
+          empresa: ehCnpj ? "" : empresaInput.trim(),
           nome: nomeInput.trim(),
+          cnpj: ehCnpj ? cnpjPuro : undefined,
           tipo: tipoBusca,
         }),
       });
@@ -890,6 +898,7 @@ function BuscadorContent() {
           linkedinUrl: linkedinPessoa.trim() || undefined,
           empresa: nomeEmpresa,
           nome: nomePessoaInput.trim(),
+          cnpj: cnpjPessoa.trim() || fichaEmpresa?.cnpj || undefined,
           tipo: "telefone",
         }),
       });
@@ -1274,13 +1283,15 @@ function BuscadorContent() {
                 <p className="text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-3">
                   👤 Buscar contato pessoa
                 </p>
-                <p className="text-[11px] text-pipe-muted mb-3">
-                  Informe o nome da pessoa. O LinkedIn é opcional (melhora a precisão).
+<p className="text-[11px] text-pipe-muted mb-3">
+                  Informe o nome da pessoa. O LinkedIn é opcional (melhora a precisão)
+                  e o CNPJ (opcional) pula o Casas dos Dados e busca direto na
+                  Brasil API — mais rápido e barato.
                   {saldoTelefones !== null && saldoTelefones > 0
                     ? ` Custo: 1 crédito de telefone (você tem ${saldoTelefones}).`
                     : " Sempre grátis se não encontrar telefone."}
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <input
                     type="text"
                     value={nomePessoaInput}
@@ -1297,6 +1308,18 @@ function BuscadorContent() {
                     value={linkedinPessoa}
                     onChange={(e) => setLinkedinPessoa(e.target.value)}
                     placeholder="LinkedIn (opcional)"
+                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    disabled={buscandoPessoa}
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={cnpjPessoa}
+                    onChange={(e) => setCnpjPessoa(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void buscarPessoa();
+                    }}
+                    placeholder="CNPJ (opcional)"
                     className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
                     disabled={buscandoPessoa}
                   />

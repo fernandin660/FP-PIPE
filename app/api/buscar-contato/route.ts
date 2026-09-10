@@ -47,6 +47,7 @@ type CorpoBusca = {
   linkedinUrl?: unknown;
   empresa?: unknown;
   nome?: unknown;
+  cnpj?: unknown;
   tipo?: unknown;
 };
 
@@ -170,6 +171,12 @@ export async function POST(requisicao: Request) {
   const empresaInput = String(corpo.empresa ?? "").trim();
   let nomeInput = String(corpo.nome ?? "").trim();
 
+  // CNPJ normalizado (só dígitos; completa com 0 à esquerda se veio 13).
+  const cnpjBruto = String(corpo.cnpj ?? "").replace(/\D/g, "");
+  const cnpjNormalizado =
+    cnpjBruto.length === 13 ? `0${cnpjBruto}` : cnpjBruto;
+  const temCnpj = cnpjNormalizado.length === 14;
+
   const linkedinNormalizado = linkedinInput
     ? normalizarLinkedin(linkedinInput)
     : "";
@@ -189,9 +196,9 @@ export async function POST(requisicao: Request) {
       .join(" ");
   }
 
-  if (!temLinkedin && !temEmpresa && !nomeInput) {
+  if (!temLinkedin && !temEmpresa && !nomeInput && !temCnpj) {
     return NextResponse.json(
-      { erro: "Informe a URL do LinkedIn, o nome da empresa ou o nome da pessoa." },
+      { erro: "Informe a URL do LinkedIn, o nome da empresa, o CNPJ ou o nome da pessoa." },
       { status: 400 }
     );
   }
@@ -393,14 +400,14 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  // Busca: LinkedIn URL + empresa + nome (o que tiver)
+  // Busca: LinkedIn URL + empresa + CNPJ + nome (o que tiver)
   const resultado = await buscarContatoCompleto(
     linkedinNormalizado,
     empresaInput,
     nomeInput,
     undefined,
     undefined,
-    undefined,
+    temCnpj ? cnpjNormalizado : undefined,
     { organizacao_id: orgId, usuario_id: usuarioId }
   );
 
