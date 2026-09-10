@@ -4,6 +4,7 @@ import { exigirAcesso } from "../../../../lib/gate";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { verificarCreditosBaixos } from "../../../../lib/avisos";
+import { debitarCreditosContatos } from "../../../../lib/creditos-contatos";
 
 const MAX_LEADS = 50;
 const CREDITOS_IA_POR_LEAD = 5;
@@ -140,31 +141,17 @@ export async function POST(request: Request) {
         .sort((a, b) => (b!.saldo ?? 0) - (a!.saldo ?? 0))[0];
 
       const saldoBuscador = creditoAlvo?.saldo ?? 0;
-      // A tabela não tem coluna "id": debitamos pela organização se a linha
-      // for da organização, senão pelo usuário.
-      const usaOrg = Boolean(creditosOrg);
-      const chaveDebito = usaOrg ? "organizacao_id" : "usuario_id";
-      const valorDebito = usaOrg ? orgId : creditoAlvo?.usuario_id ?? "";
 
-const agora = new Date().toISOString();
+      const agora = new Date().toISOString();
 
-      // Débito atômico via RPC de banco: elimina corrida de leitura-escrita.
-      let novoSaldo: number | null = null;
-      if (usaOrg) {
-        const { data } = await admin.rpc("debitar_saldo_org", {
-          p_tabela: "creditos_contatos",
-          p_org: valorDebito as string,
-          p_qtd: bloqueadas.length,
-        });
-        novoSaldo = data as number | null;
-      } else {
-        const { data } = await admin.rpc("debitar_saldo_usuario", {
-          p_tabela: "creditos_contatos",
-          p_usuario: valorDebito as string,
-          p_qtd: bloqueadas.length,
-        });
-        novoSaldo = data as number | null;
-      }
+      // Débito atômico via UPDATE condicional (saldo lido): elimina corrida
+      // de leitura-escrita sem depender de RPC de banco.
+      const novoSaldo = await debitarCreditosContatos(
+        admin,
+        orgId,
+        usuarioId,
+        bloqueadas.length
+      );
       if (novoSaldo == null) {
         return NextResponse.json(
           {

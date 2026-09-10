@@ -6,6 +6,7 @@ import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
 import { buscarContatoCompleto } from "../../../lib/enriquecimento";
 import { exigirRateLimit } from "../../../lib/rate-limit";
+import { debitarCreditosContatos } from "../../../lib/creditos-contatos";
 
 const REGEX_LINKEDIN =
   /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9_%-]+\/?$/i;
@@ -14,35 +15,15 @@ function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
 }
 
-// Reserva 1 crédito de busca (creditos_contatos). Se o débito falhar por
-// corrida de concorrência (saldo lido antes foi consumido por outra
-// requisição), relê ao vivo e retenta uma vez. Retorna novo saldo ou null
-// quando o saldo realmente zerou.
+// Reserva 1 crédito de busca (creditos_contatos). O débito é atômico
+// (UPDATE condicional no saldo lido) e retenta em corrida — não depende de
+// RPC de banco. Retorna novo saldo ou null quando o saldo realmente zerou.
 async function reservarBuscaContato(
   admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
-  orgId: string
+  orgId: string,
+  usuarioId: string
 ): Promise<number | null> {
-  const { data } = await admin.rpc("debitar_saldo_org", {
-    p_tabela: "creditos_contatos",
-    p_org: orgId,
-    p_qtd: 1,
-  });
-  if (data != null) return data as number;
-
-  const { data: saldoVivo } = await admin
-    .from("creditos_contatos")
-    .select("saldo")
-    .eq("organizacao_id", orgId)
-    .maybeSingle();
-  if ((saldoVivo?.saldo ?? 0) >= 1) {
-    const { data: retentativa } = await admin.rpc("debitar_saldo_org", {
-      p_tabela: "creditos_contatos",
-      p_org: orgId,
-      p_qtd: 1,
-    });
-    if (retentativa != null) return retentativa as number;
-  }
-  return null;
+  return debitarCreditosContatos(admin, orgId, usuarioId, 1);
 }
 
 async function localizarContatoExistente(
@@ -325,7 +306,7 @@ export async function POST(requisicao: Request) {
         // Buscar telefone mesmo com e-mail em cache roda providers pagos
         // (Google/Maps/Serper): consome 1 crédito de busca (moeda
         // creditos_contatos, a mesma de desbloquear-lead/buscas de contato).
-        const buscaDisponivelCache = await reservarBuscaContato(admin, orgId);
+        const buscaDisponivelCache = await reservarBuscaContato(admin, orgId, usuarioId);
         if (buscaDisponivelCache == null) {
           return NextResponse.json(
             {
@@ -401,7 +382,7 @@ export async function POST(requisicao: Request) {
   // Busca completa (fora do cache) roda providers pagos
   // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca
   // (moeda creditos_contatos, creditada com as buscas do plano).
-  const buscaDisponivel = await reservarBuscaContato(admin, orgId);
+  const buscaDisponivel = await reservarBuscaContato(admin, orgId, usuarioId);
   if (buscaDisponivel == null) {
     return NextResponse.json(
       {

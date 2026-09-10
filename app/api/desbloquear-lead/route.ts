@@ -4,6 +4,10 @@ import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { verificarCreditosBaixos } from "../../../lib/avisos";
+import {
+  debitarCreditosContatos,
+  creditarCreditosContatos,
+} from "../../../lib/creditos-contatos";
 
 // Desbloqueio REAL de contato: debita 1 crédito de lead e marca
 // a empresa como desbloqueada (companies.contato_desbloqueado_em).
@@ -133,10 +137,8 @@ export async function POST(request: Request) {
   }
 
   const saldoAtual = melhorCredito?.saldo ?? 0;
-  const chaveDebito = orgCredito ? "organizacao_id" : melhorCredito ? "usuario_id" : "";
-  const valorDebito = orgCredito ? orgId : melhorCredito?.usuario_id ?? "";
 
-  if (!chaveDebito || saldoAtual <= 0) {
+  if (saldoAtual <= 0) {
     return NextResponse.json(
       {
         erro: `O servidor não encontrou crédito de lead disponível (saldo: ${saldoAtual}).`,
@@ -149,59 +151,38 @@ export async function POST(request: Request) {
 
   const agora = new Date().toISOString();
 
-  // ============================================================
-  // Débito atômico via RPC de banco: saldo = saldo - 1 ... where saldo > 0
-  // num único UPDATE — elimina corrida de leitura-escrita.
-  // ============================================================
-  let novoSaldo: number | null = null;
-  if (chaveDebito === "organizacao_id") {
-    const { data } = await admin.rpc("debitar_saldo_org", {
-      p_tabela: "creditos_contatos",
-      p_org: valorDebito as string,
-      p_qtd: 1,
-    });
-    novoSaldo = data as number | null;
-  } else if (chaveDebito === "usuario_id") {
-    const { data } = await admin.rpc("debitar_saldo_usuario", {
-      p_tabela: "creditos_contatos",
-      p_usuario: valorDebito as string,
-      p_qtd: 1,
-    });
-    novoSaldo = data as number | null;
-  }
+  // Débito atômico via UPDATE condicional (saldo lido): elimina corrida de
+  // leitura-escrita sem depender de RPC de banco.
+  const novoSaldo = await debitarCreditosContatos(admin, orgId, usuarioId, 1);
 
   if (novoSaldo == null) {
-    // Corrida de concorrência: outro desbloqueio consumiu o saldo entre a
-    // leitura e o débito. Relê ao vivo e retenta uma vez; se realmente
-    // zerou, devolve a mensagem de compra (nunca "recarregue e tente").
-    const { data: saldoVivo } = await admin
-      .from("creditos_contatos")
-      .select("saldo")
-      .eq("organizacao_id", orgId)
-      .maybeSingle();
+    // Corrida de concorrência: o saldo mudou entre a leitura e o débito.
+    // Relê ao vivo para decidir se realmente zerou.
+    const [{ data: saldoVivo }, { data: saldoUser }] = await Promise.all([
+      admin
+        .from("creditos_contatos")
+        .select("saldo")
+        .eq("organizacao_id", orgId)
+        .maybeSingle(),
+      admin
+        .from("creditos_contatos")
+        .select("saldo")
+        .eq("usuario_id", usuarioId)
+        .maybeSingle(),
+    ]);
+    const saldoMax = Math.max(saldoVivo?.saldo ?? 0, saldoUser?.saldo ?? 0);
+    const semSaldo = saldoMax <= 0;
 
-    if ((saldoVivo?.saldo ?? 0) >= 1) {
-      const { data: retentativa } = await admin.rpc("debitar_saldo_org", {
-        p_tabela: "creditos_contatos",
-        p_org: valorDebito as string,
-        p_qtd: 1,
-      });
-      novoSaldo = retentativa as number | null;
-    }
-
-    if (novoSaldo == null) {
-      const semSaldo = (saldoVivo?.saldo ?? 0) <= 0;
-      return NextResponse.json(
-        {
-          erro: semSaldo
-            ? "Você não tem mais créditos de lead neste ciclo. Assine ou renove em /planos para desbloquear mais leads."
-            : "O saldo mudou durante a operação. Recarregue a página e tente novamente.",
-          motivo: "limite_creditos",
-          saldoServidor: saldoVivo?.saldo ?? 0,
-        },
-        { status: 403 }
-      );
-    }
+    return NextResponse.json(
+      {
+        erro: semSaldo
+          ? "Você não tem mais créditos de lead neste ciclo. Assine ou renove em /planos para desbloquear mais leads."
+          : "O saldo mudou durante a operação. Recarregue a página e tente novamente.",
+        motivo: "limite_creditos",
+        saldoServidor: saldoMax,
+      },
+      { status: 403 }
+    );
   }
 
   // Marca o lead como desbloqueado (só após débito confirmado)
@@ -211,20 +192,8 @@ export async function POST(request: Request) {
     .eq("id", empresa.id);
 
   if (erroMarca) {
-    // Reverte o débito se falhar ao marcar (estorno atômico via banco)
-    if (chaveDebito === "organizacao_id") {
-      await admin.rpc("creditar_saldo_org", {
-        p_tabela: "creditos_contatos",
-        p_org: valorDebito as string,
-        p_qtd: 1,
-      });
-    } else if (chaveDebito === "usuario_id") {
-      await admin.rpc("creditar_saldo_usuario", {
-        p_tabela: "creditos_contatos",
-        p_usuario: valorDebito as string,
-        p_qtd: 1,
-      });
-    }
+    // Reverte o débito se falhar ao marcar (estorno atômico via banco).
+    await creditarCreditosContatos(admin, orgId, usuarioId, 1);
 
     return NextResponse.json(
       {
