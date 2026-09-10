@@ -8,9 +8,14 @@ import { DEFINICAO_PLANOS, type PlanoChave } from "../../../../lib/planos";
 // Admin — Liberar brinde temporário para uma empresa.
 //
 // POST /api/admin/liberar-brinde
-//   body: { email, plano?, duracaoHoras? }
+//   body: { email, plano?, duracaoHoras?, creditosBuscador? }
 //     plano (opcional, default "silver"): chave de DEFINICAO_PLANOS
 //     duracaoHoras (opcional, default 24): 1..720
+//     creditosBuscador (opcional): sobrescreve a carteira creditos_contatos
+//       (desbloqueio de leads). Sem isso, segue a definição do plano —
+//       e planos sem buscador (Silver/silver_intl) ficam com saldo 0,
+//       deixando os leads mascarados. Para brindes de demonstração use
+//       um valor > 0 aqui (ex.: 100).
 //
 // Credita as carteiras como o webhook do Mercado Pago faria e marca a
 // assinatura com origem "gift" + renova_em. Quando renova_em vencer, o
@@ -53,7 +58,12 @@ export async function POST(req: Request) {
     );
   }
 
-  let corpo: { email?: string; plano?: string; duracaoHoras?: number };
+  let corpo: {
+    email?: string;
+    plano?: string;
+    duracaoHoras?: number;
+    creditosBuscador?: number;
+  };
   try {
     corpo = await req.json();
   } catch {
@@ -150,23 +160,32 @@ export async function POST(req: Request) {
   // 4. Carteiras — espelha o webhook do Mercado Pago:
   //    creditos_contatos += buscasMes · creditos += listasMes ·
   //    creditos_ia = creditosAbordagem.
-  //    Planos sem buscador (buscasMes nulo) não recebem contatos — zera
-  //    eventuais sobras para o brinde ficar "puro".
-  if (definicao.buscasMes && definicao.buscasMes > 0) {
+  //    `creditosBuscador` no corpo sobrescreve a carteira de leads
+  //    (permite desbloquear contatos em brindes de planos sem buscador).
+  //    Sem o parâmetro, planos sem buscador (buscasMes nulo) ficam com 0.
+  const creditosBuscadorDefinido = typeof corpo.creditosBuscador === "number";
+  const creditosBuscador = creditosBuscadorDefinido
+    ? Math.min(10000, Math.max(0, Math.floor(corpo.creditosBuscador as number)))
+    : (definicao.buscasMes ?? 0);
+
+  if (creditosBuscador > 0) {
     const { data: atual } = await admin
       .from("creditos_contatos")
       .select("saldo")
       .eq("organizacao_id", orgId)
       .maybeSingle();
+    const novoSaldoContatos = creditosBuscadorDefinido
+      ? creditosBuscador
+      : (atual?.saldo ?? 0) + creditosBuscador;
     if (atual) {
       await admin
         .from("creditos_contatos")
-        .update({ saldo: atual.saldo + definicao.buscasMes })
+        .update({ saldo: novoSaldoContatos })
         .eq("organizacao_id", orgId);
     } else {
       await admin
         .from("creditos_contatos")
-        .insert({ organizacao_id: orgId, saldo: definicao.buscasMes });
+        .insert({ organizacao_id: orgId, saldo: novoSaldoContatos });
     }
   } else {
     await admin
@@ -240,6 +259,7 @@ export async function POST(req: Request) {
     plano,
     duracaoHoras: horas,
     renova_em: renovaEm.toISOString(),
+    creditosBuscador,
     saldos,
     revert: "Ao expirar, volta para Teste grátis com carteiras zeradas.",
   });
