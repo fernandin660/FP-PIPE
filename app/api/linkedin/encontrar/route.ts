@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { registrarUso } from "../../../../lib/avisos";
+import { debitarCreditosContatos } from "../../../../lib/creditos-contatos";
 
 function limparNomeEmpresa(nome: string): string {
   return nome
@@ -36,7 +37,7 @@ export async function POST(requisicao: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 
-  const { supabase, orgId } = gate.ctx!;
+  const { supabase, orgId, usuarioId } = gate.ctx!;
 
   let corpo: unknown;
   try {
@@ -310,7 +311,7 @@ export async function POST(requisicao: Request) {
     .eq("id", empresa.id)
     .eq("organizacao_id", orgId);
 
-  // Cobra 1 crédito de contato pelo achado (débito atômico via banco).
+  // Cobra 1 crédito de contato pelo achado (débito atômico sem RPC).
   const admin = criarClienteSupabaseAdmin();
 
   if (!admin) {
@@ -320,22 +321,21 @@ export async function POST(requisicao: Request) {
     );
   }
 
-  try {
-    await admin.rpc("debitar_saldo_org", {
-      p_tabela: "creditos_contatos",
-      p_org: orgId,
-      p_qtd: 1,
-    });
-  } catch {
-    // fallback legado se o RPC ainda não existir (migration pendente)
-    await admin
-      .from("creditos_contatos")
-      .update({ saldo: Math.max(0, (saldo ?? 0) - 1) })
-      .eq("organizacao_id", orgId);
+  const novoSaldo = await debitarCreditosContatos(admin, orgId, usuarioId, 1);
+  if (novoSaldo == null) {
+    return NextResponse.json(
+      {
+        erro:
+          "Você não tem créditos de lead suficientes para usar o localizador de LinkedIn.",
+        motivo: "limite_creditos",
+      },
+      { status: 403 }
+    );
   }
 
   return NextResponse.json({
     linkedin: melhor.link,
     cobrado: true,
+    novoSaldo,
   });
 }
