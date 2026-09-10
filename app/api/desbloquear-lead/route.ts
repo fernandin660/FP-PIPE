@@ -171,14 +171,37 @@ export async function POST(request: Request) {
   }
 
   if (novoSaldo == null) {
-    return NextResponse.json(
-      {
-        erro: `O servidor identificou ${saldoAtual} crédito(s) de lead disponíveis, mas o saldo mudou durante a operação. Recarregue a página e tente novamente.`,
-        motivo: "limite_creditos",
-        saldoServidor: saldoAtual,
-      },
-      { status: 403 }
-    );
+    // Corrida de concorrência: outro desbloqueio consumiu o saldo entre a
+    // leitura e o débito. Relê ao vivo e retenta uma vez; se realmente
+    // zerou, devolve a mensagem de compra (nunca "recarregue e tente").
+    const { data: saldoVivo } = await admin
+      .from("creditos_contatos")
+      .select("saldo")
+      .eq("organizacao_id", orgId)
+      .maybeSingle();
+
+    if ((saldoVivo?.saldo ?? 0) >= 1) {
+      const { data: retentativa } = await admin.rpc("debitar_saldo_org", {
+        p_tabela: "creditos_contatos",
+        p_org: valorDebito as string,
+        p_qtd: 1,
+      });
+      novoSaldo = retentativa as number | null;
+    }
+
+    if (novoSaldo == null) {
+      const semSaldo = (saldoVivo?.saldo ?? 0) <= 0;
+      return NextResponse.json(
+        {
+          erro: semSaldo
+            ? "Você não tem mais créditos de lead neste ciclo. Assine ou renove em /planos para desbloquear mais leads."
+            : "O saldo mudou durante a operação. Recarregue a página e tente novamente.",
+          motivo: "limite_creditos",
+          saldoServidor: saldoVivo?.saldo ?? 0,
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Marca o lead como desbloqueado (só após débito confirmado)

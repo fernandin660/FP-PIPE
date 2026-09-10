@@ -14,6 +14,37 @@ function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
 }
 
+// Reserva 1 crédito de busca (creditos_contatos). Se o débito falhar por
+// corrida de concorrência (saldo lido antes foi consumido por outra
+// requisição), relê ao vivo e retenta uma vez. Retorna novo saldo ou null
+// quando o saldo realmente zerou.
+async function reservarBuscaContato(
+  admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
+  orgId: string
+): Promise<number | null> {
+  const { data } = await admin.rpc("debitar_saldo_org", {
+    p_tabela: "creditos_contatos",
+    p_org: orgId,
+    p_qtd: 1,
+  });
+  if (data != null) return data as number;
+
+  const { data: saldoVivo } = await admin
+    .from("creditos_contatos")
+    .select("saldo")
+    .eq("organizacao_id", orgId)
+    .maybeSingle();
+  if ((saldoVivo?.saldo ?? 0) >= 1) {
+    const { data: retentativa } = await admin.rpc("debitar_saldo_org", {
+      p_tabela: "creditos_contatos",
+      p_org: orgId,
+      p_qtd: 1,
+    });
+    if (retentativa != null) return retentativa as number;
+  }
+  return null;
+}
+
 async function localizarContatoExistente(
   supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
   orgId: string,
@@ -294,11 +325,7 @@ export async function POST(requisicao: Request) {
         // Buscar telefone mesmo com e-mail em cache roda providers pagos
         // (Google/Maps/Serper): consome 1 crédito de busca (moeda
         // creditos_contatos, a mesma de desbloquear-lead/buscas de contato).
-        const { data: buscaDisponivelCache } = await admin.rpc("debitar_saldo_org", {
-          p_tabela: "creditos_contatos",
-          p_org: orgId,
-          p_qtd: 1,
-        });
+        const buscaDisponivelCache = await reservarBuscaContato(admin, orgId);
         if (buscaDisponivelCache == null) {
           return NextResponse.json(
             {
@@ -374,11 +401,7 @@ export async function POST(requisicao: Request) {
   // Busca completa (fora do cache) roda providers pagos
   // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca
   // (moeda creditos_contatos, creditada com as buscas do plano).
-  const { data: buscaDisponivel } = await admin.rpc("debitar_saldo_org", {
-    p_tabela: "creditos_contatos",
-    p_org: orgId,
-    p_qtd: 1,
-  });
+  const buscaDisponivel = await reservarBuscaContato(admin, orgId);
   if (buscaDisponivel == null) {
     return NextResponse.json(
       {
