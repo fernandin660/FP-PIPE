@@ -387,11 +387,7 @@ export async function buscarDadosEmpresaGoogle(
 // ============================================================
 
 type MillionPhonesResposta = {
-  status?: string;
-  data?: {
-    phone_numbers?: string[];
-    emails?: string[];
-  };
+  phone_numbers?: string[];
 };
 
 export async function buscarTelefoneMillionPhones(
@@ -401,11 +397,10 @@ export async function buscarTelefoneMillionPhones(
 
   try {
     const resposta = await fetch(
-      `https://api.millionphones.com/v1/phone?social_url=${encodeURIComponent(linkedinUrl)}`,
+      `https://millionphones.com/v1/phone?social_url=${encodeURIComponent(linkedinUrl)}`,
       {
         headers: {
-          Authorization: `Bearer ${CHAVE_MILLIONPHONES}`,
-          "Content-Type": "application/json",
+          "x-api-key": CHAVE_MILLIONPHONES,
         },
         signal: AbortSignal.timeout(5000),
       }
@@ -414,7 +409,7 @@ export async function buscarTelefoneMillionPhones(
     if (!resposta.ok) return {};
 
     const dados = (await resposta.json()) as MillionPhonesResposta;
-    const telefones = dados.data?.phone_numbers ?? [];
+    const telefones = dados.phone_numbers ?? [];
 
     if (telefones.length > 0 && telefones[0]) {
       return { telefone: telefones[0] };
