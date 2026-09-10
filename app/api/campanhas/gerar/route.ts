@@ -6,6 +6,7 @@ import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { chamarIa } from "../../../../lib/ia";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const gate = await exigirAcesso();

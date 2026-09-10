@@ -6,6 +6,7 @@ import { conhecimentoSegmentos } from "../../../lib/conhecimento-segmentos";
 import { chamarIa } from "../../../lib/ia";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function chamarOllama(prompt: string): Promise<{ response: string }> {
   return new Promise<{ response: string }>((resolve, reject) => {

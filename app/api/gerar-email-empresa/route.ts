@@ -6,6 +6,7 @@ import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type EmpresaEntrada = {
   razaoSocial?: string;

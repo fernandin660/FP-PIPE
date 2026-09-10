@@ -7,6 +7,7 @@ import { resolverOrg } from "../../../lib/org";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const CANAIS_VALIDOS = new Set(["email", "linkedin", "whatsapp", "ligacao"]);
 const CREDITOS_BOAS_VINDAS = 10;

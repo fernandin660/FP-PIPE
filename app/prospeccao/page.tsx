@@ -2006,8 +2006,13 @@ export default function Home() {
     } catch (erro) {
       console.error(erro);
 
+        const mensagemErro =
+          erro instanceof Error
+            ? erro.message
+            : "Não conseguimos concluir sua análise agora. Aguarde alguns instantes e tente novamente.";
+
         alert(
-          "Não conseguimos concluir sua análise agora. Aguarde alguns instantes e tente novamente."
+          mensagemErro || "Não conseguimos concluir sua análise agora. Aguarde alguns instantes e tente novamente."
         );
     } finally {
       setGerandoICP(false);
