@@ -130,11 +130,43 @@ export async function POST(req: Request) {
   const agora = new Date();
   const renovaEm = new Date(agora.getTime() + horas * 3600000);
 
-  // 3. Grava a assinatura como brinde (origem "gift" + término)
-  const { error: erroAssinatura } = await admin
+  // 3. Grava a assinatura como brinde (origem "gift" + término).
+  //    update-or-insert: a tabela assinaturas NÃO tem constraint única em
+  //    organizacao_id, então upsert com onConflict falharia com
+  //    "no unique or exclusion constraint matching the ON CONFLICT
+  //    specification". Busca pela org e atualiza; se não existir, insere.
+  const { data: assinaturaAtual } = await admin
     .from("assinaturas")
-    .upsert(
-      {
+    .select("id")
+    .eq("organizacao_id", orgId)
+    .maybeSingle();
+  if (assinaturaAtual) {
+    const { error: erroAssinatura } = await admin
+      .from("assinaturas")
+      .update({
+        usuario_id: alvo.id,
+        plano,
+        status: "ativa",
+        ciclo: null,
+        origem: "gift",
+        mp_preference_id: null,
+        mp_payment_id: null,
+        inicio: agora.toISOString(),
+        renova_em: renovaEm.toISOString(),
+        atualizado_em: agora.toISOString(),
+      })
+      .eq("organizacao_id", orgId);
+    if (erroAssinatura) {
+      console.error("Erro ao atualizar assinatura brinde:", erroAssinatura);
+      return NextResponse.json(
+        { erro: "Persistência da assinatura falhou." },
+        { status: 500 }
+      );
+    }
+  } else {
+    const { error: erroAssinatura } = await admin
+      .from("assinaturas")
+      .insert({
         usuario_id: alvo.id,
         organizacao_id: orgId,
         plano,
@@ -146,15 +178,14 @@ export async function POST(req: Request) {
         inicio: agora.toISOString(),
         renova_em: renovaEm.toISOString(),
         atualizado_em: agora.toISOString(),
-      },
-      { onConflict: "organizacao_id" }
-    );
-  if (erroAssinatura) {
-    console.error("Erro ao gravar assinatura brinde:", erroAssinatura);
-    return NextResponse.json(
-      { erro: "Persistência da assinatura falhou." },
-      { status: 500 }
-    );
+      });
+    if (erroAssinatura) {
+      console.error("Erro ao inserir assinatura brinde:", erroAssinatura);
+      return NextResponse.json(
+        { erro: "Persistência da assinatura falhou." },
+        { status: 500 }
+      );
+    }
   }
 
   // 4. Carteiras — espelha o webhook do Mercado Pago:

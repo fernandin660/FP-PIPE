@@ -16,6 +16,51 @@ export type RespostaIa = {
   provedor: "openai" | "gemini" | "groq";
 };
 
+// Extrai um payload JSON robusto de respostas de IA: aceita JSON puro,
+// cercado por fences de markdown ou com lixo de texto em volta. Retorna a
+// string JSON canônica (parseável) ou null se nada válido existir.
+export function extrairJson(texto: string): string | null {
+  const entrada = texto.trim();
+  try {
+    JSON.parse(entrada);
+    return entrada;
+  } catch {
+    // segue para os reparos
+  }
+
+  const semFence = entrada
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  try {
+    JSON.parse(semFence);
+    return semFence;
+  } catch {
+    // segue para o recorte
+  }
+
+  const inicio = semFence.indexOf("{");
+  const fim = semFence.lastIndexOf("}");
+  if (inicio >= 0 && fim > inicio) {
+    const bloco = semFence.slice(inicio, fim + 1);
+    try {
+      JSON.parse(bloco);
+      return bloco;
+    } catch {
+      // segue
+    }
+  }
+
+  return null;
+}
+
+// Instrução injetada quando uma resposta sai truncada ou inválida.
+const SUCESSO_JSON = `
+IMPORTANTE: sua resposta anterior saiu truncada ou em formato inválido.
+Retorne AGORA apenas um JSON completo e bem-formado, com todas as strings
+fechadas e sem quebras de linha literais dentro dos valores. Sem texto
+fora do JSON, sem markdown, sem comentários.`;
+
 async function chamarOpenai(
   prompt: string,
   opcoes: Required<OpcoesIa>
@@ -147,6 +192,30 @@ async function chamarGroq(
   return texto;
 }
 
+// Chamada a um provedor com auto-reparo: se o JSON sair truncado/inválido,
+// tenta UMA vez de novo no MESMO provedor com instrução de corrigir. Só aí
+// devolve erro para a cadeia seguir para o próximo provedor.
+async function chamarComReparo(
+  provedor: (prompt: string, opcoes: Required<OpcoesIa>) => Promise<string>,
+  prompt: string,
+  config: Required<OpcoesIa>
+): Promise<string> {
+  let texto = await provedor(prompt, config);
+  const limpo = extrairJson(texto);
+  if (limpo) return limpo;
+
+  console.warn("Resposta JSON truncada/inválida; repetindo no mesmo provedor.");
+  const textoReparado = await provedor(prompt + SUCESSO_JSON, {
+    ...config,
+    maxTokens: Math.max(config.maxTokens, 3200),
+  });
+  const limpoReparado = extrairJson(textoReparado);
+  if (!limpoReparado) {
+    throw new Error("provedor retornou JSON inválido/truncado.");
+  }
+  return limpoReparado;
+}
+
 // Cadeia única de IA do FP Pipe: Gemini primeiro (rápido e com camada
 // gratuita generosa); se cair, Groq (gpt-oss-120b, também gratuito);
 // OpenAI (paga) fica como ÚLTIMO recurso para reduzir custo. Todas as
@@ -170,7 +239,7 @@ export async function chamarIa(
 
   try {
     return {
-      response: await chamarGemini(prompt, config),
+      response: await chamarComReparo(chamarGemini, prompt, config),
       provedor: "gemini",
     };
   } catch (erroGemini) {
@@ -184,7 +253,10 @@ export async function chamarIa(
   try {
     const restante = Math.max(10000, LIMITE_TOTAL - (Date.now() - inicio));
     return {
-      response: await chamarGroq(prompt, { ...config, timeoutMs: restante }),
+      response: await chamarComReparo(chamarGroq, prompt, {
+        ...config,
+        timeoutMs: restante,
+      }),
       provedor: "groq",
     };
   } catch (erroGroq) {
@@ -198,7 +270,10 @@ export async function chamarIa(
   try {
     const restante = Math.max(15000, LIMITE_TOTAL - (Date.now() - inicio));
     return {
-      response: await chamarOpenai(prompt, { ...config, timeoutMs: restante }),
+      response: await chamarComReparo(chamarOpenai, prompt, {
+        ...config,
+        timeoutMs: restante,
+      }),
       provedor: "openai",
     };
   } catch (erroOpenai) {
