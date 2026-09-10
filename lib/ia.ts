@@ -105,14 +105,14 @@ async function chamarGemini(
   return texto;
 }
 
-// Cadeia única de IA do FP Pipe: OpenAI primeiro; se cair (cota,
-// instabilidade, chave), Gemini assume. Todas as chamadas pedem
-// JSON estruturado nos dois provedores.
+// Cadeia única de IA do FP Pipe: Gemini primeiro (rápido e com camada
+// gratuita generosa); se faltar chave/cair, OpenAI assume. Todas as
+// chamadas pedem JSON estruturado nos dois provedores.
 export async function chamarIa(
   prompt: string,
   opcoes?: OpcoesIa
 ): Promise<RespostaIa> {
-  // Teto seguro: 45s por provedor, ~50s no total (OpenAI + fallback Gemini).
+  // Teto seguro: 45s por provedor, ~50s no total (Gemini + fallback OpenAI).
   const config: Required<OpcoesIa> = {
     maxTokens: opcoes?.maxTokens ?? 2500,
     temperature: opcoes?.temperature ?? 0.5,
@@ -125,27 +125,27 @@ export async function chamarIa(
 
   try {
     return {
-      response: await chamarOpenai(prompt, config),
-      provedor: "openai",
+      response: await chamarGemini(prompt, config),
+      provedor: "gemini",
     };
-  } catch (erroOpenai) {
-    erroFinal = erroOpenai;
+  } catch (erroGemini) {
+    erroFinal = erroGemini;
     console.warn(
-      "OpenAI indisponível, tentando Gemini:",
-      erroOpenai instanceof Error ? erroOpenai.message : erroOpenai
+      "Gemini indisponível, tentando OpenAI:",
+      erroGemini instanceof Error ? erroGemini.message : erroGemini
     );
   }
 
   try {
-    // Se a OpenAI já consumiu o orçamento, o Gemini não tem direito a 45s de novo.
+    // Se o Gemini já consumiu o orçamento, a OpenAI não tem direito a 45s de novo.
     const restante = Math.max(10000, 50000 - (Date.now() - inicio));
     return {
-      response: await chamarGemini(prompt, { ...config, timeoutMs: restante }),
-      provedor: "gemini",
+      response: await chamarOpenai(prompt, { ...config, timeoutMs: restante }),
+      provedor: "openai",
     };
-  } catch (erroGemini) {
+  } catch (erroOpenai) {
     throw new Error(
-      `OpenAI e Gemini indisponíveis (${String(erroGemini ?? erroFinal).slice(0, 100)})`
+      `OpenAI e Gemini indisponíveis (${String(erroOpenai ?? erroFinal).slice(0, 100)})`
     );
   }
 }

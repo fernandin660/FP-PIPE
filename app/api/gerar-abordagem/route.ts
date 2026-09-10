@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
-import { chamarOpenaiJson } from "../../../lib/providers/openai";
+import { chamarIa } from "../../../lib/ia";
 import { resolverOrg } from "../../../lib/org";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 
@@ -352,16 +352,32 @@ REGRAS DE ARGUMENTAÇÃO:
 RESPONDA APENAS COM ESTE JSON:
 {"argumento":"o melhor argumento em 1 frase","assunto":"assunto curto ou string vazia para canais sem assunto","conteudo":"a abordagem completa pronta para copiar"}`;
 
-  const respostaIA = await chamarOpenaiJson<{
+  const promptFinal = `Você é um especialista em prospecção B2B no Brasil e sales copilot. Responda SEMPRE apenas com JSON válido.
+
+${prompt}`;
+
+  let respostaJson: {
     argumento?: string;
     assunto?: string;
     conteudo?: string;
-  }>(
-    "Você é um especialista em prospecção B2B no Brasil e sales copilot. Responda SEMPRE apenas com JSON válido.",
-    prompt
-  );
+  } | null = null;
 
-  if (!respostaIA?.conteudo) {
+  try {
+    const respostaIA = await chamarIa(promptFinal, {
+      maxTokens: 900,
+      temperature: 0.7,
+      timeoutMs: 45000,
+    });
+    respostaJson = JSON.parse(respostaIA.response) as {
+      argumento?: string;
+      assunto?: string;
+      conteudo?: string;
+    };
+  } catch {
+    respostaJson = null;
+  }
+
+  if (!respostaJson?.conteudo) {
     return NextResponse.json(
       { erro: "Não conseguimos gerar a abordagem agora. Tente novamente." },
       { status: 502 }
@@ -396,9 +412,9 @@ RESPONDA APENAS COM ESTE JSON:
       produto,
       objetivo: objetivoLegivel,
       canal,
-      argumento: respostaIA.argumento ?? null,
-      assunto: canal === "email" ? (respostaIA.assunto ?? "") : null,
-      conteudo: respostaIA.conteudo,
+      argumento: respostaJson.argumento ?? null,
+      assunto: canal === "email" ? (respostaJson.assunto ?? "") : null,
+      conteudo: respostaJson.conteudo,
       creditos_usados: CUSTO_ABORDAGEM,
     })
     .select()

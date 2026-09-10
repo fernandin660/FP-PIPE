@@ -274,7 +274,7 @@ Retorne APENAS um JSON válido:
       console.log("Resposta recebida da OpenAI!");
     } catch (erroOpenAI) {
       console.error(
-        "OpenAI falhou:",
+        "IA em nuvem (Gemini+OpenAI) falhou:",
         erroOpenAI instanceof Error ? erroOpenAI.message : erroOpenAI
       );
 
