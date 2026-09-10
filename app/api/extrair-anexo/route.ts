@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const URL_GEMINI =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
 const INSTRUCAO_EXTRACAO =
   "Esta imagem faz parte do portfólio de uma empresa (print de site, slide, catálogo, diagrama etc.). Extraia e resuma em português, em até 200 palavras: o que a empresa vende, serviços/produtos citados, público-alvo e diferenciais. Responda apenas o texto corrido.";
