@@ -779,8 +779,11 @@ export async function enriquecerTelefonesContato(
     await agregar("brasilapi");
   }
 
-  // 6. MillionPhones — telefone via LinkedIn (pago), SÓ sem telefone gratuito.
-  if (telefones.length === 0 && linkedinUrl) {
+  // 6. MillionPhones — telefone pessoal via LinkedIn (pago, 1 crédito de
+  // telefone). Sempre quando há LinkedIn: complementa os números grátis da
+  // empresa (cascata acima) com o contato pessoal, em vez de parar no
+  // primeiro "company". Sem saldo, o engine registra sem_creditos e segue.
+  if (linkedinUrl) {
     await agregar("millionphones");
   }
 

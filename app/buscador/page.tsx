@@ -1407,26 +1407,35 @@ function BuscadorContent() {
                           </div>
 
                           <div className="px-6 py-5 space-y-5">
-                            {resultadoPessoa.id && (
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {resultadoPessoa.id && (
                                 <span className="text-[11px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-2.5 py-1 font-semibold">
                                   ✅ Salvo nos contatos
                                 </span>
-                                {!resultadoPessoa.id && (
-                                  <CadastrarComoLead
-                                    contato={{
-                                      id: resultadoPessoa.id ?? undefined,
-                                      company_id: null,
-                                      nome: resultadoPessoa.nome,
-                                      cargo: resultadoPessoa.cargo,
-                                      empresa: resultadoPessoa.empresa,
-                                      email: resultadoPessoa.email ?? resultadoPessoa.emails[0] ?? "",
-                                      linkedin_url: resultadoPessoa.linkedin_url,
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            )}
+                              )}
+                              {resultadoPessoa.id ? (
+                                <AtribuirLead
+                                  contatoId={resultadoPessoa.id}
+                                  empresas={empresas}
+                                  aoVincular={() => void carregarHistorico()}
+                                />
+                              ) : (
+                                <CadastrarComoLead
+                                  contato={{
+                                    id: resultadoPessoa.id ?? undefined,
+                                    company_id: null,
+                                    nome: resultadoPessoa.nome,
+                                    cargo: resultadoPessoa.cargo,
+                                    empresa: resultadoPessoa.empresa,
+                                    email:
+                                      resultadoPessoa.email ??
+                                      resultadoPessoa.emails[0] ??
+                                      "",
+                                    linkedin_url: resultadoPessoa.linkedin_url,
+                                  }}
+                                />
+                              )}
+                            </div>
 
                             {resultadoPessoa.linkedin_url && (
                               <a

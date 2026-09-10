@@ -1,9 +1,10 @@
 import { buscarTelefoneMillionPhones } from "../enriquecimento";
 import type { Alvo, Pedido, Provider, ResultadoProvider, TelefoneEncontrado } from "../enrichment/types";
 
-// MillionPhones — telefone via LinkedIn. NÃO distingue tipo (mobile/direct/
-// landline/company): hoje a resposta só traz um número, então classificamos
-// como "unknown". Provider PAGO: custa créditos de telefone.
+// MillionPhones — telefone via LinkedIn (contato direto/pessoal). A API não
+// distingue mobile/landline; a doc indica números diretos de contato, então
+// classificamos como "direct" (pessoal). Provider PAGO: custa 1 crédito de
+// telefone, só debitado quando acha número.
 export const millionphonesProvider: Provider = {
   nome: "millionphones",
   suporta: ["telefone"],
@@ -15,7 +16,7 @@ export const millionphonesProvider: Provider = {
       const telefones: TelefoneEncontrado[] = [];
       if (alvo.linkedin) {
         const m = await buscarTelefoneMillionPhones(alvo.linkedin);
-        if (m.telefone) telefones.push({ numero: m.telefone, tipo: "unknown", fonte: "millionphones", confianca: 55 });
+        if (m.telefone) telefones.push({ numero: m.telefone, tipo: "direct", fonte: "millionphones", confianca: 55 });
       }
       const encontrado = telefones.length > 0;
       return {
