@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { sanitizarBusca } from "../../../lib/busca";
-import { sugerirEmailsEmpresa } from "../../../lib/enriquecimento";
+import { sugerirEmailsEmpresa, buscarDadosCnpj } from "../../../lib/enriquecimento";
 import { runProvider } from "../../../lib/enrichment/engine";
 import type { ContextoEnriquecimento } from "../../../lib/enrichment/types";
 
@@ -146,13 +146,27 @@ async function enriquecerFicha(
 
 export async function GET(requisicao: Request) {
   const url = new URL(requisicao.url);
-  const q = (url.searchParams.get("q") ?? "").trim();
+  let q = (url.searchParams.get("q") ?? "").trim();
 
   if (q.length < 2) {
     return NextResponse.json(
       { erro: "Digite pelo menos 2 caracteres." },
       { status: 400 }
     );
+  }
+
+  // Se o usuário digitou um CNPJ na busca de empresa, resolvemos a Razão Social oficial primeiro
+  const qDigits = q.replace(/\D/g, "");
+  let cnpjDetectado: string | null = null;
+  let razaoSocialDetectada: string | null = null;
+
+  if (qDigits.length === 13 || qDigits.length === 14) {
+    cnpjDetectado = qDigits.length === 13 ? `0${qDigits}` : qDigits;
+    const dadosCnpj = await buscarDadosCnpj(cnpjDetectado);
+    if (dadosCnpj.razaoSocial) {
+      razaoSocialDetectada = dadosCnpj.razaoSocial;
+      q = dadosCnpj.razaoSocial; // Usa a razão social oficial para o restante da busca e do Google/Serper
+    }
   }
 
   const supabase = await criarClienteSupabaseServidor();
@@ -223,8 +237,8 @@ export async function GET(requisicao: Request) {
 
   const empresa: EmpresaFicha = {
     nome: q,
-    cnpj: null,
-    razao_social: null,
+    cnpj: cnpjDetectado,
+    razao_social: razaoSocialDetectada,
     socio_nome: null,
     socio_cargo: null,
     endereco: null,
@@ -233,7 +247,7 @@ export async function GET(requisicao: Request) {
     website: null,
     linkedin_url: null,
     emails_genericos: [],
-    fontes: [],
+    fontes: cnpjDetectado ? ["brasil_api"] : [],
     origem: "web",
   };
 

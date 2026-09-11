@@ -4,7 +4,7 @@ import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
-import { buscarContatoCompleto } from "../../../lib/enriquecimento";
+import { buscarContatoCompleto, buscarDadosCnpj } from "../../../lib/enriquecimento";
 import { exigirRateLimit } from "../../../lib/rate-limit";
 import { debitarCreditosContatos } from "../../../lib/creditos-contatos";
 
@@ -168,13 +168,26 @@ export async function POST(requisicao: Request) {
   }
 
   const linkedinInput = String(corpo.linkedinUrl ?? "").trim();
-  const empresaInput = String(corpo.empresa ?? "").trim();
+  const empresaInputRaw = String(corpo.empresa ?? "").trim();
   let nomeInput = String(corpo.nome ?? "").trim();
 
   // CNPJ normalizado (só dígitos; completa com 0 à esquerda se veio 13).
   const cnpjBruto = String(corpo.cnpj ?? "").replace(/\D/g, "");
-  const cnpjNormalizado =
-    cnpjBruto.length === 13 ? `0${cnpjBruto}` : cnpjBruto;
+  const cnpjCampoNormalizado = cnpjBruto.length === 13 ? `0${cnpjBruto}` : cnpjBruto;
+  const temCnpjCampo = cnpjCampoNormalizado.length === 14;
+
+  // Se o valor digitado no campo "empresa" é na verdade um CNPJ (13 ou 14
+  // dígitos), busca a Razão Social oficial via Brasil API antes da cascata.
+  let empresaInput = empresaInputRaw;
+  let cnpjNormalizado = temCnpjCampo && !empresaInputRaw ? cnpjCampoNormalizado : "";
+
+  const empresaDigits = empresaInputRaw.replace(/\D/g, "");
+  if (!cnpjNormalizado && (empresaDigits.length === 13 || empresaDigits.length === 14)) {
+    cnpjNormalizado = empresaDigits.length === 13 ? `0${empresaDigits}` : empresaDigits;
+    const dadosCnpj = await buscarDadosCnpj(cnpjNormalizado);
+    if (dadosCnpj.razaoSocial) empresaInput = dadosCnpj.razaoSocial;
+  }
+
   const temCnpj = cnpjNormalizado.length === 14;
 
   const linkedinNormalizado = linkedinInput

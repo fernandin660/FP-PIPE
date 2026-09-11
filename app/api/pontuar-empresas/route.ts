@@ -67,6 +67,7 @@ async function enriquecer(cnpj: string): Promise<EmpresaEnriquecida> {
 
   try {
     const respostaBrasilApi = await fetch(`${URL_BRASILAPI}/${cnpj}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
       signal: AbortSignal.timeout(6000),
     });
     if (respostaBrasilApi.ok) {

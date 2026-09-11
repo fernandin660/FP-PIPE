@@ -148,6 +148,7 @@ export async function buscarTelefoneMaps(
 
 type RespostaBrasilApi = {
   nome?: string;
+  razao_social?: string;
   ddd_telefone_1?: string;
   ddd_telefone_2?: string;
   email?: string;
@@ -169,7 +170,10 @@ export async function buscarDadosCnpj(
   try {
     const resposta = await fetch(
       `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
-      { signal: AbortSignal.timeout(5000) }
+      {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+        signal: AbortSignal.timeout(5000),
+      }
     );
 
     if (!resposta.ok) return {};
@@ -183,7 +187,7 @@ export async function buscarDadosCnpj(
       telefone: tel1 || undefined,
       telefone2: tel2 || undefined,
       email: dados.email ?? undefined,
-      razaoSocial: dados.nome ?? undefined,
+      razaoSocial: dados.razao_social ?? dados.nome ?? undefined,
       socios: dados.qsa?.map((s) => s.nome_socio) ?? [],
     };
   } catch {
@@ -609,7 +613,10 @@ export async function buscarWebsitePorCnpj(
   try {
     const resposta = await fetch(
       `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`,
-      { signal: AbortSignal.timeout(6000) }
+      {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+        signal: AbortSignal.timeout(6000),
+      }
     );
 
     if (!resposta.ok) return {};
