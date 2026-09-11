@@ -18,9 +18,10 @@ const MAX_CHAMADAS = 6;
 const LIMITE_TOTAL_EMPRESAS = 50;
 
 const MAPA_PORTE: Record<string, string[]> = {
-  Pequena: ["01", "03"],
-  "Média": ["05"],
-  Grande: ["05"],
+  MEI: [],
+  ME: ["01"],
+  EPP: ["03"],
+  "Médio/Grande": ["05"],
 };
 
 // Segmentos onde empresas imobiliárias são o alvo legítimo da busca.
@@ -95,7 +96,8 @@ async function pesquisarRecorte(
   codigosCnae: string[],
   uf?: string,
   municipios: string[] = [],
-  codigosPorte: string[] = []
+  codigosPorte: string[] = [],
+  incluirMei = false
 ): Promise<RespostaCasadosDados | null> {
   const corpo: Record<string, unknown> = {
     codigo_atividade_principal: codigosCnae,
@@ -106,6 +108,9 @@ async function pesquisarRecorte(
   if (municipios.length > 0) corpo.municipio = municipios.slice(0, 4);
   if (codigosPorte.length > 0) {
     corpo.porte_empresa = { codigos: codigosPorte };
+  }
+  if (incluirMei) {
+    corpo.mei = { optante: true };
   }
 
   const resposta = await fetch(URL_CASADOSDADOS, {
@@ -211,6 +216,9 @@ export async function POST(request: Request) {
         )
       : [];
     const codigosPorte = mapearPortesParaCodigos(portes);
+    // MEI é uma subcategoria da Microempresa (porte 01). Quando "ME" também
+    // está selecionado, o código 01 já cobre os MEIs — evita AND indevido.
+    const incluirMei = portes.includes("MEI") && !portes.includes("ME");
 
     if (segmentos.length === 0) {
       return NextResponse.json(
@@ -241,7 +249,8 @@ export async function POST(request: Request) {
             [codigo],
             estado,
             cidades,
-            codigosPorte
+            codigosPorte,
+            incluirMei
           );
           if (resposta?.cnpjs) {
             for (const item of resposta.cnpjs) {

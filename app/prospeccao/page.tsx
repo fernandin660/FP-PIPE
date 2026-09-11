@@ -2384,26 +2384,49 @@ export default function Home() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    "Pequena",
-                    "Média",
-                    "Grande",
-                    "Sem preferência",
+                    {
+                      rotulo: "MEI",
+                      descricao: "Faturamento até R$ 81 mil/ano",
+                    },
+                    {
+                      rotulo: "ME",
+                      descricao: "Faturamento até R$ 360 mil/ano",
+                    },
+                    {
+                      rotulo: "EPP",
+                      descricao: "R$ 360 mil a R$ 4,8 milhões/ano",
+                    },
+                    {
+                      rotulo: "Médio/Grande",
+                      descricao: "Acima de R$ 4,8 milhões/ano",
+                    },
                   ].map((porte) => {
                     const selecionado =
-                      porteEmpresa.includes(porte);
+                      porteEmpresa.includes(porte.rotulo);
 
                     return (
                       <button
-                        key={porte}
-                        onClick={() => alternarPorte(porte)}
-                        className={`border rounded-lg p-3 transition ${
+                        key={porte.rotulo}
+                        onClick={() => alternarPorte(porte.rotulo)}
+                        className={`border rounded-lg p-3 text-left transition ${
                           selecionado
                             ? "bg-pipe-blue text-black border-pipe-blue font-medium"
                             : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                         }`}
                       >
                         {selecionado ? "✓ " : ""}
-                        {porte}
+                        <span className="block font-semibold">
+                          {porte.rotulo}
+                        </span>
+                        <span
+                          className={`block text-xs mt-1 ${
+                            selecionado
+                              ? "text-black/70"
+                              : "text-pipe-muted"
+                          }`}
+                        >
+                          {porte.descricao}
+                        </span>
                       </button>
                     );
                   })}
