@@ -1185,6 +1185,13 @@ function BuscadorContent() {
                 {mensagem}
               </p>
             )}
+            <div>
+            <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">CNPJ (opcional)</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+            <input type="text" inputMode="numeric" value={cnpjPessoa} onChange={(e) => setCnpjPessoa(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); } }} placeholder="CNPJ (ex: 03.001.329/0001-65)" className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue" disabled={buscandoEmpresaFicha} />
+            <button onClick={() => { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); }} disabled={buscandoEmpresaFicha || cnpjPessoa.trim().length < 13} className="bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap">🔍 Buscar por CNPJ</button>
+            </div>
+            </div>
           </div>
 
           {fichaEmpresa && (
@@ -1308,18 +1315,6 @@ function BuscadorContent() {
                     value={linkedinPessoa}
                     onChange={(e) => setLinkedinPessoa(e.target.value)}
                     placeholder="LinkedIn (opcional)"
-                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
-                    disabled={buscandoPessoa}
-                  />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={cnpjPessoa}
-                    onChange={(e) => setCnpjPessoa(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void buscarPessoa();
-                    }}
-                    placeholder="CNPJ (opcional)"
                     className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
                     disabled={buscandoPessoa}
                   />
