@@ -10,6 +10,7 @@ import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { mesAtual } from "../../../lib/planos";
 import { registrarUso } from "../../../lib/avisos";
 import { exigirRateLimit } from "../../../lib/rate-limit";
+import { registrarUsoMensalEmpresas } from "../../../lib/uso-mensal";
 
 const URL_CASADOSDADOS =
   "https://api.casadosdados.com.br/v5/public/cnpj/pesquisa";
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, orgId, acesso } = gate.ctx!;
+    const { supabase, orgId, usuarioId, acesso } = gate.ctx!;
 
     const mes = mesAtual();
     const admin = criarClienteSupabaseAdmin();
@@ -306,15 +307,19 @@ export async function POST(request: Request) {
       const totalAcumulado = empresasUsadas + empresasFinais.length;
       // Escritas de cobrança sempre com cliente admin: o usuário não
       // pode manipular seu próprio consumo via RLS.
-      await admin.from("uso_mensal").upsert(
-        {
-          organizacao_id: orgId,
-          mes,
-          empresas_geradas: totalAcumulado,
-          atualizado_em: new Date().toISOString(),
-        },
-        { onConflict: "organizacao_id,mes" }
+      const erroUso = await registrarUsoMensalEmpresas(
+        admin,
+        orgId,
+        usuarioId,
+        mes,
+        totalAcumulado
       );
+      if (erroUso) {
+        return NextResponse.json(
+          { erro: "Não conseguimos registrar seu consumo. Tente novamente." },
+          { status: 500 }
+        );
+      }
 
       if (acesso.def.listasMes > 0) {
         await admin.rpc("debitar_saldo_org", {

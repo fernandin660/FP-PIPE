@@ -6,6 +6,7 @@ import { mesAtual } from "../../../lib/planos";
 import { registrarUso } from "../../../lib/avisos";
 import { formatarCnpj } from "@/lib/conhecimento-cnae";
 import { exigirRateLimit } from "../../../lib/rate-limit";
+import { registrarUsoMensalEmpresas } from "../../../lib/uso-mensal";
 
 export const maxDuration = 60;
 
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
     if (gate.resposta) {
       return gate.resposta;
     }
-    const { supabase, orgId, acesso } = gate.ctx!;
+    const { supabase, orgId, usuarioId, acesso } = gate.ctx!;
 
     // Busca internacional é exclusiva dos planos Internacionais.
     if (!acesso.def.internacional) {
@@ -407,15 +408,19 @@ export async function POST(request: Request) {
 
     if (empresasFinais.length > 0) {
       const totalAcumulado = empresasUsadas + empresasFinais.length;
-      await admin.from("uso_mensal").upsert(
-        {
-          organizacao_id: orgId,
-          mes,
-          empresas_geradas: totalAcumulado,
-          atualizado_em: new Date().toISOString(),
-        },
-        { onConflict: "organizacao_id,mes" }
+      const erroUso = await registrarUsoMensalEmpresas(
+        admin,
+        orgId,
+        usuarioId,
+        mes,
+        totalAcumulado
       );
+      if (erroUso) {
+        return NextResponse.json(
+          { erro: "Não conseguimos registrar seu consumo. Tente novamente." },
+          { status: 500 }
+        );
+      }
 
       if (acesso.def.listasMes > 0) {
         await admin.rpc("debitar_saldo_org", {
