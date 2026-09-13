@@ -47,35 +47,53 @@ WHERE organizacao_id IS NULL;
 -- 3. Torna NOT NULL (se ainda houver NULLs, corrigir a membership antes)
 ALTER TABLE uso_mensal ALTER COLUMN organizacao_id SET NOT NULL;
 
--- 4. Apaga duplicados: mantém a linha mais recente de cada (org, mês).
---    A PK da tabela é (usuario_id, mes) — não existe coluna id.
-DELETE FROM uso_mensal u
-USING (
-  SELECT usuario_id, mes, row_number() OVER (
-    PARTITION BY organizacao_id, mes
-    ORDER BY atualizado_em DESC, empresas_geradas DESC
-  ) AS rn
-  FROM uso_mensal
-  WHERE organizacao_id IS NOT NULL
-) d
-WHERE u.usuario_id = d.usuario_id AND u.mes = d.mes AND d.rn > 1;
-
--- 5. A linha sobrevivente de cada (org, mês) recebe a SOMA das contagens
---    (o contador antigo era por usuário; o da org é a soma da equipe)
+-- 4. Colapsa duplicatas de (org, mes) NUMA ÚNICA declaração: calcula a SOMA
+--    sobre TODAS as linhas do grupo ANTES, mantém a mais recente e a ajusta
+--    para o total (evita o bug "soma após apagar"). PK é (usuario_id, mes).
+WITH pacto AS (
+  SELECT u.usuario_id, u.mes, u.organizacao_id,
+         sum(u.empresas_geradas) OVER (PARTITION BY u.organizacao_id, u.mes) AS total,
+         row_number() OVER (
+           PARTITION BY u.organizacao_id, u.mes
+           ORDER BY u.atualizado_em DESC, u.empresas_geradas DESC
+         ) AS rn
+  FROM uso_mensal u
+  WHERE u.organizacao_id IS NOT NULL
+),
+para_apagar AS (
+  SELECT usuario_id, mes FROM pacto WHERE rn > 1
+),
+para_atualizar AS (
+  SELECT usuario_id, mes, total FROM pacto WHERE rn = 1
+),
+apagados AS (
+  DELETE FROM uso_mensal u USING para_apagar p
+  WHERE u.usuario_id = p.usuario_id AND u.mes = p.mes
+  RETURNING u.usuario_id
+)
 UPDATE uso_mensal u
-SET empresas_geradas = g.total,
-    atualizado_em = g.ultimo
-FROM (
-  SELECT organizacao_id, mes,
-         sum(empresas_geradas) AS total,
-         max(atualizado_em) AS ultimo
-  FROM uso_mensal
-  GROUP BY organizacao_id, mes
-) g
-WHERE u.organizacao_id = g.organizacao_id AND u.mes = g.mes;
+SET empresas_geradas = p.total
+FROM para_atualizar p
+WHERE u.usuario_id = p.usuario_id AND u.mes = p.mes;
 
--- 6. Constraint única canônica: uma linha por organização por mês
-ALTER TABLE uso_mensal ADD CONSTRAINT uso_mensal_org_mes_key UNIQUE (organizacao_id, mes);
+-- 5. Diagnóstico final: espera-se 1 linha por (org, mes)
+SELECT organizacao_id, mes, count(*) AS linhas
+FROM uso_mensal
+WHERE organizacao_id IS NOT NULL
+GROUP BY organizacao_id, mes
+HAVING count(*) > 1;
+
+-- 6. Constraint única canônica: uma linha por organização por mês.
+--    Bloco idempotente: não falha se já existir.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'uso_mensal_org_mes_key'
+  ) THEN
+    ALTER TABLE uso_mensal ADD CONSTRAINT uso_mensal_org_mes_key UNIQUE (organizacao_id, mes);
+  END IF;
+END
+$$;
 
 -- 7. Índice para queries por org+mes
 CREATE INDEX IF NOT EXISTS idx_uso_mensal_org_mes ON uso_mensal(organizacao_id, mes);

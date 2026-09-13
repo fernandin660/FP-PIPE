@@ -28,6 +28,7 @@ export async function registrarUsoMensalEmpresas(
       .from("uso_mensal")
       .upsert(
         {
+          usuario_id: usuarioId,
           organizacao_id: orgId,
           mes,
           empresas_geradas: totalAcumulado,
