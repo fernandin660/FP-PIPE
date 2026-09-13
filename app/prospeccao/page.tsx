@@ -29,6 +29,11 @@ import {
 import { formatarCnpj } from "../../lib/conhecimento-cnae";
 import { baixarCsv } from "../../lib/exportar-csv";
 import {
+  segmentosClassificacao,
+  tiposEmpresaDisponiveis,
+  obterSubsegmento,
+} from "../../lib/classificacao";
+import {
   gerarLinkBuscaEmpresa,
   gerarLinkBuscaPessoas,
   limparNomeEmpresa,
@@ -118,37 +123,6 @@ function formatarTelefone(telefone: string): string {
     return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
   return telefone;
 }
-
-const segmentosDisponiveis = [
-  "Agronegócio e Agricultura",
-  "Alimentos e Bebidas",
-  "Automotivo",
-  "Construção Civil",
-  "Consultoria",
-  "E-commerce",
-  "Educação",
-  "Energia e Utilities",
-  "Farmacêutica",
-  "Governo e Setor Público",
-  "Hotelaria e Turismo",
-  "Imobiliário",
-  "Indústria Química",
-  "Jurídico",
-  "Logística e Transporte",
-  "Manufatura",
-  "Mídia e Marketing",
-  "Mineração",
-  "ONGs e Terceiro Setor",
-  "Papel e Celulose",
-  "Petróleo e Gás",
-  "Saúde e Hospitais",
-  "Seguros",
-  "Serviços Financeiros",
-  "Tecnologia e Software",
-  "Telecomunicações",
-  "Têxtil e Moda",
-  "Varejo",
-];
 
 const passosLanding = [
   {
@@ -605,6 +579,15 @@ export default function Home() {
   const [cidadesBusca, setCidadesBusca] = useState<string[]>([]);
 
   const [segmentosSelecionados, setSegmentosSelecionados] = useState<string[]>([]);
+  const [subsegmentosSelecionados, setSubsegmentosSelecionados] = useState<
+    string[]
+  >([]);
+  const [segmentosAbertos, setSegmentosAbertos] = useState<Set<string>>(
+    new Set()
+  );
+  const [tiposEmpresaSelecionados, setTiposEmpresaSelecionados] = useState<
+    string[]
+  >([]);
 
   // =========================
   // ICP GERADO
@@ -1177,6 +1160,10 @@ export default function Home() {
       else if (d.cidade) setCidadesBusca([d.cidade]);
       if (Array.isArray(d.segmentosSelecionados))
         setSegmentosSelecionados(d.segmentosSelecionados);
+      if (Array.isArray(d.subsegmentosSelecionados))
+        setSubsegmentosSelecionados(d.subsegmentosSelecionados);
+      if (Array.isArray(d.tiposEmpresaSelecionados))
+        setTiposEmpresaSelecionados(d.tiposEmpresaSelecionados);
     } catch {}
   }, []);
   
@@ -1192,16 +1179,20 @@ export default function Home() {
           estadoSelecionado,
           cidadesBusca,
           segmentosSelecionados,
+          subsegmentosSelecionados,
+          tiposEmpresaSelecionados,
         })
       );
     } catch {}
   }, [
-    porteEmpresa,
-    faixaFuncionarios,
-    tipoLocalizacao,
-    estadoSelecionado,
-    cidadesBusca,
-    segmentosSelecionados,
+porteEmpresa,
+          faixaFuncionarios,
+          tipoLocalizacao,
+          estadoSelecionado,
+          cidadesBusca,
+          segmentosSelecionados,
+          subsegmentosSelecionados,
+          tiposEmpresaSelecionados,
   ]);
 
   const copiar = async (rotulo: string, texto: string) => {
@@ -1317,14 +1308,58 @@ export default function Home() {
 
   const alternarSegmento = (segmento: string) => {
     if (segmentosSelecionados.includes(segmento)) {
+      const subIds = new Set(
+        (segmentosClassificacao.find((s) => s.id === segmento)
+          ?.subsegmentos ?? []).map((s) => s.id)
+      );
       setSegmentosSelecionados(
         segmentosSelecionados.filter((item) => item !== segmento)
+      );
+      setSubsegmentosSelecionados(
+        subsegmentosSelecionados.filter((id) => !subIds.has(id))
       );
     } else {
       setSegmentosSelecionados([
         ...segmentosSelecionados,
         segmento,
       ]);
+    }
+  };
+
+  const alternarAberturaSegmento = (segmento: string) => {
+    setSegmentosAbertos((anterior) => {
+      const novo = new Set(anterior);
+      if (novo.has(segmento)) novo.delete(segmento);
+      else novo.add(segmento);
+      return novo;
+    });
+  };
+
+  const alternarSubsegmento = (id: string) => {
+    if (subsegmentosSelecionados.includes(id)) {
+      setSubsegmentosSelecionados(
+        subsegmentosSelecionados.filter((item) => item !== id)
+      );
+      return;
+    }
+    const item = obterSubsegmento(id);
+    setSubsegmentosSelecionados([...subsegmentosSelecionados, id]);
+    // Selecionar um subsegmento implica no segmento-pai selecionado.
+    if (item && !segmentosSelecionados.includes(item.segmento.id)) {
+      setSegmentosSelecionados([
+        ...segmentosSelecionados,
+        item.segmento.id,
+      ]);
+    }
+  };
+
+  const alternarTipoEmpresa = (tipo: string) => {
+    if (tiposEmpresaSelecionados.includes(tipo)) {
+      setTiposEmpresaSelecionados(
+        tiposEmpresaSelecionados.filter((item) => item !== tipo)
+      );
+    } else {
+      setTiposEmpresaSelecionados([...tiposEmpresaSelecionados, tipo]);
     }
   };
 
@@ -1356,6 +1391,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           segmentos: segmentosSelecionados,
+          subsegmentos: subsegmentosSelecionados,
+          tiposEmpresa: tiposEmpresaSelecionados,
           estado:
             tipoLocalizacao === "Estado específico" ? estadoSelecionado : "",
           cidades:
@@ -1647,6 +1684,17 @@ export default function Home() {
       segmentosSelecionados.length > 0
         ? `Segmentos-alvo: ${segmentosSelecionados.join(", ")}`
         : null,
+      subsegmentosSelecionados.length > 0
+        ? `Subsegmentos específicos: ${subsegmentosSelecionados
+            .map((id) => {
+              const item = obterSubsegmento(id);
+              return item ? `${item.segmento.id} → ${item.subsegmento.nome}` : id;
+            })
+            .join("; ")}`
+        : null,
+      tiposEmpresaSelecionados.length > 0
+        ? `Tipo de empresa-alvo: ${tiposEmpresaSelecionados.join(", ")}`
+        : null,
       porteEmpresa.length > 0
         ? `Porte de empresa preferido: ${porteEmpresa.join(", ")}`
         : null,
@@ -1674,6 +1722,7 @@ export default function Home() {
             modoBusca === "internacional" && segmentoIntl.trim()
               ? [segmentoIntl, ...segmentosSelecionados]
               : segmentosSelecionados,
+          tiposEmpresa: tiposEmpresaSelecionados,
           portes: porteEmpresa,
           empresas: lista.map((e) => ({
             cnpj: e.cnpj,
@@ -2657,35 +2706,154 @@ export default function Home() {
               {/* SEGMENTOS */}
 
               {modoBusca === "brasil" && (
-              <div className="mb-8">
-                <h2 className="font-bold text-xl mb-2 text-white">
-                  Existe algum segmento específico?
-                </h2>
+              <div className="mb-8 space-y-8">
+                <div>
+                  <h2 className="font-bold text-xl mb-2 text-white">
+                    Existe algum segmento específico?
+                  </h2>
 
-                <p className="text-pipe-muted mb-4">
-                  Opcional. Selecione os mercados que você deseja atingir.
-                </p>
+                  <p className="text-pipe-muted mb-4">
+                    Opcional. Escolha os mercados e, se quiser refinar, abra um
+                    segmento e marque os subsegmentos relevantes.
+                  </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {segmentosDisponiveis.map((segmento) => {
-                    const selecionado =
-                      segmentosSelecionados.includes(segmento);
+                  <div className="space-y-2">
+                    {segmentosClassificacao.map((segmento) => {
+                      const selecionado =
+                        segmentosSelecionados.includes(segmento.id);
+                      const aberto = segmentosAbertos.has(segmento.id);
+                      const subSelecionados = segmento.subsegmentos.filter(
+                        (sub) => subsegmentosSelecionados.includes(sub.id)
+                      );
+                      const algumSubMarcado = subSelecionados.length > 0;
 
-                    return (
-                      <button
-                        key={segmento}
-                        onClick={() => alternarSegmento(segmento)}
-                        className={`border rounded-lg p-3 text-sm text-left transition ${
-                          selecionado
-                            ? "bg-pipe-blue text-black border-pipe-blue font-medium"
-                            : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
-                        }`}
-                      >
-                        {selecionado ? "✓ " : ""}
-                        {segmento}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <div
+                          key={segmento.id}
+                          className={`border rounded-lg overflow-hidden transition ${
+                            selecionado
+                              ? "border-pipe-blue/70 bg-pipe-card/50"
+                              : "border-pipe-border bg-pipe-card"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 p-3">
+                            <button
+                              onClick={() => alternarSegmento(segmento.id)}
+                              className="flex items-start gap-2 text-left flex-1"
+                            >
+                              <span
+                                className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs ${
+                                  selecionado
+                                    ? "bg-pipe-blue text-black border-pipe-blue font-bold"
+                                    : "border-pipe-border"
+                                }`}
+                              >
+                                {selecionado ? "✓" : ""}
+                              </span>
+                              <span
+                                className={
+                                  selecionado
+                                    ? "text-white font-medium"
+                                    : "text-gray-300"
+                                }
+                              >
+                                {segmento.nome}
+                              </span>
+                              {algumSubMarcado && (
+                                <span className="text-[11px] text-pipe-blue mt-0.5">
+                                  {subSelecionados.length}{" "}
+                                  {subSelecionados.length === 1
+                                    ? "subsegmento"
+                                    : "subsegmentos"}
+                                </span>
+                              )}
+                            </button>
+                            <button
+                              onClick={() =>
+                                alternarAberturaSegmento(segmento.id)
+                              }
+                              aria-label={
+                                aberto
+                                  ? `Recolher ${segmento.nome}`
+                                  : `Expandir ${segmento.nome}`
+                              }
+                              className="text-pipe-muted text-xs mt-1.5"
+                            >
+                              {aberto ? "▲" : "▼"}
+                            </button>
+                          </div>
+
+                          {aberto && (
+                            <div className="px-3 pb-3 pt-2 border-t border-pipe-border bg-pipe-dark/40">
+                              <p className="text-[11px] text-pipe-muted mb-2">
+                                {segmento.descricao}
+                              </p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                {segmento.subsegmentos.map((sub) => {
+                                  const subSelecionado =
+                                    subsegmentosSelecionados.includes(sub.id);
+                                  return (
+                                    <label
+                                      key={sub.id}
+                                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs cursor-pointer transition ${
+                                        subSelecionado
+                                          ? "bg-pipe-blue/20 text-white border border-pipe-blue/50"
+                                          : "text-gray-400 hover:bg-pipe-card hover:text-gray-200 border border-transparent"
+                                      }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={subSelecionado}
+                                        onChange={() =>
+                                          alternarSubsegmento(sub.id)
+                                        }
+                                        className="accent-pipe-blue"
+                                      />
+                                      {sub.nome}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* TIPO DE EMPRESA */}
+
+                <div>
+                  <h3 className="font-semibold text-base mb-1 text-white">
+                    Tipo de empresa
+                  </h3>
+
+                  <p className="text-pipe-muted mb-3 text-sm">
+                    Opcional. Por característica da atividade: indústria,
+                    comércio, serviço, distribuição.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {tiposEmpresaDisponiveis.map((tipo) => {
+                      const selecionado =
+                        tiposEmpresaSelecionados.includes(tipo);
+                      return (
+                        <button
+                          key={tipo}
+                          onClick={() => alternarTipoEmpresa(tipo)}
+                          className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                            selecionado
+                              ? "bg-pipe-lime text-black border-pipe-lime font-medium"
+                              : "bg-pipe-card border-pipe-border text-gray-300 hover:border-pipe-lime/60"
+                          }`}
+                        >
+                          {selecionado ? "✓ " : ""}
+                          {tipo}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               )}
@@ -2791,6 +2959,47 @@ export default function Home() {
                             className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-gray-300"
                           >
                             {segmento}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {subsegmentosSelecionados.length > 0 && (
+                    <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                        Subsegmentos
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {subsegmentosSelecionados.map((id) => {
+                          const item = obterSubsegmento(id);
+                          return (
+                            <span
+                              key={id}
+                              className="bg-pipe-lime/10 border border-pipe-lime/30 px-2 py-0.5 rounded-full text-xs text-pipe-lime"
+                            >
+                              {item ? item.subsegmento.nome : id}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {tiposEmpresaSelecionados.length > 0 && (
+                    <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                        Tipo de empresa
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {tiposEmpresaSelecionados.map((tipo) => (
+                          <span
+                            key={tipo}
+                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-gray-300"
+                          >
+                            {tipo}
                           </span>
                         ))}
                       </div>

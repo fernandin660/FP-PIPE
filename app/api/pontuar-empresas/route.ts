@@ -294,6 +294,11 @@ export async function POST(request: Request) {
           (p: unknown): p is string => typeof p === "string"
         )
       : [];
+    const tiposEmpresaAlvo: string[] = Array.isArray(dados.tiposEmpresa)
+      ? dados.tiposEmpresa.filter(
+          (t: unknown): t is string => typeof t === "string"
+        )
+      : [];
 
     const empresas: EmpresaEntrada[] = Array.isArray(dados.empresas)
       ? dados.empresas
@@ -399,6 +404,13 @@ ${
     ? `
 QUEM VENDE (perfil real da empresa que usa a plataforma — use como fonte principal do que é vendido):
 ${perfilVendedor}`
+    : ""
+}
+${
+  tiposEmpresaAlvo.length
+    ? `
+TIPO DE EMPRESA-ALVO (característica da atividade: indústria, comércio, serviço etc.):
+${tiposEmpresaAlvo.join(", ")}`
     : ""
 }
 

@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import {
-  conhecimentoCnae,
   normalizarTextoLocal,
   formatarCnpj,
 } from "@/lib/conhecimento-cnae";
+import {
+  cnaesDeSegmentoComSubselecao,
+  filtrarCnaesPorTipos,
+  segmentosClassificacao,
+  segmentosDosSubsegmentos,
+  tiposEmpresaDisponiveis,
+} from "@/lib/classificacao";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
@@ -60,10 +66,12 @@ function chaveSemAcento(texto: string): string {
     .toLowerCase();
 }
 
-const mapaCnae = new Map<string, string[]>(
-  Object.entries(conhecimentoCnae).map(([chave, codigos]) => [
-    chaveSemAcento(chave),
-    codigos,
+// Segmento (rótulo oficial) → id canônico, aceitando variação de acento/caixa
+// (o `.id` do segmento é o mesmo rótulo exibido na interface).
+const mapaSegmentoId = new Map<string, string>(
+  segmentosClassificacao.map((segmento) => [
+    chaveSemAcento(segmento.id),
+    segmento.id,
   ])
 );
 
@@ -221,7 +229,26 @@ export async function POST(request: Request) {
     // está selecionado, o código 01 já cobre os MEIs — evita AND indevido.
     const incluirMei = portes.includes("MEI") && !portes.includes("ME");
 
-    if (segmentos.length === 0) {
+    // Subsegmentos (ids canônicos da hierarquia) e tipos de empresa são
+    // refinamentos opcionais: segmento sozinho já cobre todos os subsegmentos.
+    const subsegmentos: string[] = Array.isArray(dados.subsegmentos)
+      ? dados.subsegmentos.filter(
+          (s: unknown): s is string => typeof s === "string"
+        )
+      : [];
+    const tiposEmpresa: string[] = Array.isArray(dados.tiposEmpresa)
+      ? dados.tiposEmpresa.filter(
+          (t: unknown): t is string =>
+            typeof t === "string" &&
+            (tiposEmpresaDisponiveis as readonly string[]).includes(t)
+        )
+      : [];
+
+    // Se o cliente mandar só subsegmentos (sem segmentos), infere os pais.
+    const segmentosEfetivos =
+      segmentos.length > 0 ? segmentos : segmentosDosSubsegmentos(subsegmentos);
+
+    if (segmentosEfetivos.length === 0 && subsegmentos.length === 0) {
       return NextResponse.json(
         { erro: "Nenhum segmento informado." },
         { status: 400 }
@@ -234,68 +261,107 @@ export async function POST(request: Request) {
 
     void registrarUso("casadosdados");
 
-    const excluiImobiliarios =
-      !segmentos.some((s) => SEGMENTOS_IMOBILIARIOS.has(s));
-
-    for (const segmento of segmentos) {
-      const codigos = mapaCnae.get(chaveSemAcento(segmento));
-      if (!codigos || codigos.length === 0) continue;
-
-      for (const codigo of codigos) {
-        if (chamadas >= MAX_CHAMADAS) break;
-        if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
-        chamadas += 1;
-        try {
-          const resposta = await pesquisarRecorte(
-            [codigo],
-            estado,
-            cidades,
-            codigosPorte,
-            incluirMei
-          );
-          if (resposta?.cnpjs) {
-            for (const item of resposta.cnpjs) {
-              const digitos = (item.cnpj ?? "").replace(/\D/g, "");
-              if (!digitos || digitos.length !== 14) continue;
-              if (mapaEmpresas.has(digitos)) continue;
-
-              const razaoSocialItem = item.razao_social ?? "";
-              const chaveRazao = normalizarTextoLocal(razaoSocialItem);
-
-              // Filiais/matrizes da mesma empresa: mantém só o primeiro CNPJ
-              if (
-                chaveRazao &&
-                mapaRazoesSociais.has(chaveRazao)
-              ) {
-                continue;
-              }
-
-              if (excluiImobiliarios && nomePareceImobiliario(razaoSocialItem)) {
-                continue;
-              }
-
-              mapaRazoesSociais.add(chaveRazao);
-              mapaEmpresas.set(digitos, {
-                cnpj: digitos,
-                cnpjFormatado: formatarCnpj(digitos),
-                razaoSocial: razaoSocialItem,
-                nomeFantasia: item.nome_fantasia ?? "",
-                situacao:
-                  item.situacao_cadastral?.situacao_atual ?? "ATIVA",
-                dataSituacao: item.situacao_cadastral?.data?.slice(0, 10) ?? "",
-                segmentoIcp: segmento,
-                uf: estado ?? "",
-                municipio: cidades[0] ?? "",
-              });
-            }
-          }
-        } catch {
-          // Recorte falhou — segue para o próximo
-        }
-        await new Promise((r) => setTimeout(r, 300));
+    // Expande segmentos → subsegmentos → CNAEs, aplicando o tipo de empresa.
+    const recortes: Array<{ segmento: string; codigo: string }> = [];
+    for (const segmento of segmentosEfetivos) {
+      const segmentoId = mapaSegmentoId.get(chaveSemAcento(segmento));
+      if (!segmentoId) continue;
+      const codigosTodos = cnaesDeSegmentoComSubselecao(
+        segmentoId,
+        subsegmentos
+      );
+      const codigoFiltrados = filtrarCnaesPorTipos(codigosTodos, tiposEmpresa);
+      for (const codigo of codigoFiltrados) {
+        recortes.push({ segmento: segmentoId, codigo });
       }
-      if (chamadas >= MAX_CHAMADAS) break;
+    }
+
+    // Distribui as chamadas em rodadas entre os segmentos escolhidos: com o
+    // custo atual (máx. MAX_CHAMADAS), cada segmento participa da busca em vez
+    // de esgotar a cota no primeiro segmento da lista.
+    const recortesEscolhidos: typeof recortes = [];
+    {
+      const porSegmento = new Map<string, string[]>();
+      for (const recorte of recortes) {
+        const lista = porSegmento.get(recorte.segmento);
+        if (lista) lista.push(recorte.codigo);
+        else porSegmento.set(recorte.segmento, [recorte.codigo]);
+      }
+      const chavesSegmento = Array.from(porSegmento.keys());
+      const indicePorSegmento = new Map<string, number>(
+        chavesSegmento.map((chave) => [chave, 0])
+      );
+      let restantes = MAX_CHAMADAS;
+      while (restantes > 0) {
+        let avancou = false;
+        for (const chave of chavesSegmento) {
+          if (restantes === 0) break;
+          const lista = porSegmento.get(chave)!;
+          const indice = indicePorSegmento.get(chave)!;
+          if (indice >= lista.length) continue;
+          recortesEscolhidos.push({ segmento: chave, codigo: lista[indice] });
+          indicePorSegmento.set(chave, indice + 1);
+          restantes -= 1;
+          avancou = true;
+        }
+        if (!avancou) break;
+      }
+    }
+
+    const excluiImobiliarios =
+      !recortes.some((r) => SEGMENTOS_IMOBILIARIOS.has(r.segmento));
+
+    for (const { segmento, codigo } of recortesEscolhidos) {
       if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
+      chamadas += 1;
+      try {
+        const resposta = await pesquisarRecorte(
+          [codigo],
+          estado,
+          cidades,
+          codigosPorte,
+          incluirMei
+        );
+        if (resposta?.cnpjs) {
+          for (const item of resposta.cnpjs) {
+            const digitos = (item.cnpj ?? "").replace(/\D/g, "");
+            if (!digitos || digitos.length !== 14) continue;
+            if (mapaEmpresas.has(digitos)) continue;
+
+            const razaoSocialItem = item.razao_social ?? "";
+            const chaveRazao = normalizarTextoLocal(razaoSocialItem);
+
+            // Filiais/matrizes da mesma empresa: mantém só o primeiro CNPJ
+            if (
+              chaveRazao &&
+              mapaRazoesSociais.has(chaveRazao)
+            ) {
+              continue;
+            }
+
+            if (excluiImobiliarios && nomePareceImobiliario(razaoSocialItem)) {
+              continue;
+            }
+
+            mapaRazoesSociais.add(chaveRazao);
+            mapaEmpresas.set(digitos, {
+              cnpj: digitos,
+              cnpjFormatado: formatarCnpj(digitos),
+              razaoSocial: razaoSocialItem,
+              nomeFantasia: item.nome_fantasia ?? "",
+              situacao:
+                item.situacao_cadastral?.situacao_atual ?? "ATIVA",
+              dataSituacao: item.situacao_cadastral?.data?.slice(0, 10) ?? "",
+              segmentoIcp: segmento,
+              uf: estado ?? "",
+              municipio: cidades[0] ?? "",
+            });
+          }
+        }
+      } catch {
+        // Recorte falhou — segue para o próximo
+      }
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     const empresasFinais = Array.from(mapaEmpresas.values()).slice(
