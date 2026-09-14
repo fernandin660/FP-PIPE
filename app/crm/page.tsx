@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/preserve-manual-memoization */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -344,6 +346,15 @@ export default function PaginaCrm() {
     ProdutoCadastro[]
   >([]);
 
+  // Ações em massa
+  const [modoMassa, setModoMassa] = useState(false);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [massaStageId, setMassaStageId] = useState("");
+  const [processandoMassa, setProcessandoMassa] = useState(false);
+  const [modalCadenciaMassa, setModalCadenciaMassa] = useState(false);
+  const [cadenciasMassa, setCadenciasMassa] = useState<CadenciaModelo[]>([]);
+  const [cadenciaMassaId, setCadenciaMassaId] = useState("");
+
   // Atividade manual
   const [formAtividade, setFormAtividade] = useState({
     tipo_atividade: "tarefa",
@@ -384,6 +395,183 @@ export default function PaginaCrm() {
       setErro(e instanceof Error ? e.message : "Falha ao carregar o CRM.");
     } finally {
       setCarregando(false);
+    }
+  }
+
+  function entrarModoMassa() {
+    setModoMassa(true);
+    setSelecionados([]);
+  }
+
+  function sairModoMassa() {
+    setModoMassa(false);
+    setSelecionados([]);
+    setMassaStageId("");
+  }
+
+  function alternarSelecao(leadId: string) {
+    setSelecionados((atual) =>
+      atual.includes(leadId)
+        ? atual.filter((i) => i !== leadId)
+        : [...atual, leadId]
+    );
+  }
+
+  function selecionarVisiveis() {
+    setSelecionados(leadsFiltrados.map((l) => l.id));
+  }
+
+  const alvosSelecionados = () => leads.filter((l) => selecionados.includes(l.id));
+
+  async function moverSelecionados() {
+    const stageId = massaStageId;
+    const alvos = alvosSelecionados();
+    if (!stageId || alvos.length === 0) return;
+
+    setProcessandoMassa(true);
+    const destino = (leadsPorStage.get(stageId) ?? []).filter(
+      (l) => !selecionados.includes(l.id)
+    );
+    const falhas: string[] = [];
+    let base = destino.length;
+
+    for (const l of alvos) {
+      const ordem = base;
+      base += 1;
+      try {
+        const res = await fetch(`/api/crm/${ledIdEscape(l.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stage_id: stageId,
+            stage_origem_id: l.stage_id,
+            ordenacao: ordem,
+          }),
+        });
+        if (!res.ok) {
+          const dados = await res.json().catch(() => null);
+          throw new Error(dados?.erro ?? "Falha ao mover o lead.");
+        }
+        setLeads((atual) =>
+          atual.map((x) =>
+            x.id === l.id ? { ...x, stage_id: stageId, ordenacao: ordem } : x
+          )
+        );
+      } catch {
+        falhas.push(nomeEmpresa(l.company));
+      }
+    }
+
+    setProcessandoMassa(false);
+    setSelecionados([]);
+    setMassaStageId("");
+    if (falhas.length > 0) {
+      setErro(
+        `Não movidos: ${falhas.length} (${falhas.slice(0, 3).join(", ")}${
+          falhas.length > 3 ? "…" : ""
+        }).`
+      );
+    }
+  }
+
+  async function abrirCadenciaMassa() {
+    setModalCadenciaMassa(true);
+    setCadenciaMassaId("");
+    setCadenciasMassa([]);
+    try {
+      const res = await fetch("/api/crm/cadencia");
+      const dados = await res.json().catch(() => null);
+      setCadenciasMassa(dados?.cadencias ?? []);
+    } catch {
+      setCadenciasMassa([]);
+    }
+  }
+
+  async function aplicarCadenciaMassa() {
+    const cadenciaId = cadenciaMassaId;
+    const alvos = alvosSelecionados();
+    if (!cadenciaId || alvos.length === 0) return;
+
+    setProcessandoMassa(true);
+    const falhas: string[] = [];
+    for (const l of alvos) {
+      try {
+        const res = await fetch("/api/crm/cadencia?acao=entrar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            company_id: l.company_id,
+            cadencia_id: cadenciaId,
+          }),
+        });
+        if (!res.ok) {
+          const dados = await res.json().catch(() => null);
+          throw new Error(dados?.erro ?? "Falha ao aplicar a cadência.");
+        }
+      } catch {
+        falhas.push(nomeEmpresa(l.company));
+      }
+    }
+
+    setProcessandoMassa(false);
+    setModalCadenciaMassa(false);
+    setCadenciasMassa([]);
+    setCadenciaMassaId("");
+    setSelecionados([]);
+    if (falhas.length > 0) {
+      setErro(
+        `Cadência não aplicada em ${falhas.length} (${
+          falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "")
+        }).`
+      );
+    }
+  }
+
+  async function excluirSelecionados() {
+    const alvos = alvosSelecionados();
+    if (alvos.length === 0) return;
+    if (
+      !window.confirm(
+        `Remover ${alvos.length} lead${
+          alvos.length === 1 ? "" : "s"
+        } do pipeline? Essa ação não pode ser desfeita.`
+      )
+    ) {
+      return;
+    }
+
+    setProcessandoMassa(true);
+    const removidos: string[] = [];
+    const falhas: string[] = [];
+    for (const l of alvos) {
+      try {
+        const res = await fetch(`/api/crm/${ledIdEscape(l.id)}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          removidos.push(l.id);
+        } else {
+          throw new Error("Falha ao remover do pipeline.");
+        }
+      } catch {
+        falhas.push(nomeEmpresa(l.company));
+      }
+    }
+
+    setProcessandoMassa(false);
+    if (removidos.length > 0) {
+      setLeads((atual) => atual.filter((x) => !removidos.includes(x.id)));
+      setLeadDetalhe(null);
+      setSelecionados((atual) => atual.filter((i) => !removidos.includes(i)));
+    }
+    if (falhas.length > 0) {
+      setErro(
+        `Não removidos: ${falhas.length} (${falhas.slice(0, 3).join(", ")}${
+          falhas.length > 3 ? "…" : ""
+        }).`
+      );
+    } else {
+      setSelecionados([]);
     }
   }
 
@@ -1104,11 +1292,13 @@ export default function PaginaCrm() {
       if (detalhe && detalhe.company_id === lead.company_id) {
         setHistorico([]);
         void buscarHistorico(detalhe);
-      }
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : "Falha ao concluir atividade.");
-    }
-  }
+}
+     } catch (e) {
+       setErro(e instanceof Error ? e.message : "Falha ao concluir atividade.");
+     }
+   }
+
+
 
   function renderCard(lead: LeadCrm) {
     const c = lead.company;
@@ -1116,10 +1306,11 @@ export default function PaginaCrm() {
     const corBarra =
       COR_ATIVIDADE_STATUS[lead.atividade_status] ??
       COR_ATIVIDADE_STATUS.sem;
+    const selecionado = modoMassa && selecionados.includes(lead.id);
     return (
       <div
         key={lead.id}
-        draggable
+        draggable={!modoMassa}
         onDragStart={(e) => {
           arrastouRef.current = true;
           setArrastandoId(lead.id);
@@ -1136,20 +1327,41 @@ export default function PaginaCrm() {
             arrastouRef.current = false;
             return;
           }
+          if (modoMassa) {
+            alternarSelecao(lead.id);
+            return;
+          }
           abrirDetalhe(lead);
         }}
-        title={ROTULO_ATIVIDADE_STATUS[lead.atividade_status]}
+        title={modoMassa ? undefined : ROTULO_ATIVIDADE_STATUS[lead.atividade_status]}
         style={{ borderLeftWidth: 5, borderLeftColor: corBarra }}
-        className={`group bg-pipe-bg border rounded-xl p-3 cursor-pointer transition select-none ${
+        className={`group bg-pipe-bg border rounded-xl p-3 transition select-none ${
           arrastandoId === lead.id
             ? "opacity-40 border-pipe-blue"
-            : sobreLeadId === lead.id
-              ? "border-pipe-lime ring-2 ring-pipe-lime/40"
-              : "border-pipe-border hover:border-pipe-blue/50"
+            : selecionado
+              ? "border-pipe-lime ring-2 ring-pipe-lime/50"
+              : sobreLeadId === lead.id
+                ? "border-pipe-lime ring-2 ring-pipe-lime/40"
+                : "border-pipe-border hover:border-pipe-blue/50"
         }`}
       >
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-bold text-white leading-snug line-clamp-2">
+          {modoMassa && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                alternarSelecao(lead.id);
+              }}
+              className={`mt-0.5 shrink-0 w-4 h-4 rounded-md border flex items-center justify-center text-[10px] leading-none transition ${
+                selecionado
+                  ? "bg-pipe-lime border-pipe-lime text-pipe-bg"
+                  : "border-pipe-border bg-pipe-card"
+              }`}
+            >
+              {selecionado ? "✓" : ""}
+            </span>
+          )}
+          <p className="text-sm font-bold text-white leading-snug line-clamp-2 flex-1">
             {lead.company_inconsistente
               ? "Dados da empresa indisponíveis"
               : nomeEmpresa(c)}
@@ -1283,12 +1495,24 @@ export default function PaginaCrm() {
                 {salvandoMovimento > 0 ? " · salvando…" : ""}
               </p>
             </div>
-            <button
-              onClick={abrirAdicionar}
-              className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
-            >
-              + Adicionar empresa
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={modoMassa ? sairModoMassa : entrarModoMassa}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+                  modoMassa
+                    ? "bg-pipe-lime text-pipe-bg hover:brightness-110"
+                    : "bg-pipe-card border border-pipe-border text-white hover:border-pipe-blue/50"
+                }`}
+              >
+                {modoMassa ? "Sair da seleção" : "Selecionar em massa"}
+              </button>
+              <button
+                onClick={abrirAdicionar}
+                className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
+              >
+                + Adicionar empresa
+              </button>
+            </div>
           </div>
 
           {/* Filtros */}
@@ -1338,6 +1562,117 @@ export default function PaginaCrm() {
               <p className="w-full text-sm text-red-400">{erro}</p>
             )}
           </div>
+
+          {/* Ações em massa */}
+          {modoMassa && (
+            <div className="bg-pipe-card border border-dashed border-pipe-lime/40 rounded-2xl p-3 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-bold text-white">
+                {selecionados.length} selecionado
+                {selecionados.length === 1 ? "" : "s"}
+              </span>
+              <button
+                onClick={selecionarVisiveis}
+                className="text-xs text-pipe-muted hover:text-white transition"
+              >
+                Selecionar visíveis ({totalFiltrado})
+              </button>
+              <span className="w-px h-5 bg-pipe-border hidden sm:block" />
+              <select
+                value={massaStageId}
+                onChange={(e) => setMassaStageId(e.target.value)}
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              >
+                <option value="">Mover para estágio…</option>
+                {etagias.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={moverSelecionados}
+                disabled={
+                  !massaStageId || selecionados.length === 0 || processandoMassa
+                }
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white font-bold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Mover
+              </button>
+              <button
+                onClick={abrirCadenciaMassa}
+                disabled={selecionados.length === 0 || processandoMassa}
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white font-bold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Aplicar cadência
+              </button>
+              <button
+                onClick={excluirSelecionados}
+                disabled={selecionados.length === 0 || processandoMassa}
+                className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-sm text-red-400 font-bold hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Excluir
+              </button>
+              {processandoMassa && (
+                <span className="text-xs text-pipe-muted">salvando…</span>
+              )}
+              <button
+                onClick={sairModoMassa}
+                className="ml-auto text-xs text-pipe-muted hover:text-white transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {/* Modal cadência em massa */}
+          {modalCadenciaMassa && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+              <div className="bg-pipe-card border border-pipe-border rounded-2xl p-5 w-full max-w-md">
+                <h3 className="font-display text-lg text-white">
+                  Aplicar cadência
+                </h3>
+                <p className="text-sm text-pipe-muted mt-1">
+                  Escolha o modelo que será aplicado a{" "}
+                  {selecionados.length} lead
+                  {selecionados.length === 1 ? "" : "s"}.
+                </p>
+                {cadenciasMassa.length === 0 ? (
+                  <p className="text-sm text-pipe-muted mt-4">
+                    Nenhuma cadência criada ainda. Crie um modelo para aplicar
+                    em massa.
+                  </p>
+                ) : (
+                  <select
+                    value={cadenciaMassaId}
+                    onChange={(e) => setCadenciaMassaId(e.target.value)}
+                    className="mt-4 w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  >
+                    <option value="">Escolher cadência…</option>
+                    {cadenciasMassa.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <div className="flex justify-end gap-2 mt-5">
+                  <button
+                    onClick={() => setModalCadenciaMassa(false)}
+                    className="px-4 py-2 rounded-xl text-sm text-pipe-muted hover:text-white transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={aplicarCadenciaMassa}
+                    disabled={!cadenciaMassaId || processandoMassa}
+                    className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Loading */}
           {carregando ? (
