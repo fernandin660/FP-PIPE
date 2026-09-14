@@ -14,9 +14,12 @@ create table if not exists public.produtos (
   id uuid primary key default gen_random_uuid(),
   organizacao_id uuid not null references public.organizacoes(id) on delete cascade,
   nome text not null check (char_length(trim(nome)) between 1 and 120),
-  criado_em timestamptz not null default now(),
-  unique (organizacao_id, lower(trim(nome)))
+  criado_em timestamptz not null default now()
 );
+
+-- Unicidade por org com nome ignorando espaços/caixa (expressão exige índice)
+create unique index if not exists idx_produtos_nome_org_uniq
+  on public.produtos (organizacao_id, lower(trim(nome)));
 
 create index if not exists idx_produtos_org
   on public.produtos(organizacao_id);
@@ -28,11 +31,13 @@ create index if not exists idx_produtos_org
 alter table public.produtos enable row level security;
 
 -- Leitura: qualquer membro ativo da organização
+drop policy if exists "produtos_leitura_membro" on public.produtos;
 create policy "produtos_leitura_membro" on public.produtos
   for select to authenticated
   using (public._usuario_membro(organizacao_id));
 
 -- Escrita: membro ativo E (admin OU única pessoa na org)
+drop policy if exists "produtos_escrita_admin" on public.produtos;
 create policy "produtos_escrita_admin" on public.produtos
   for all to authenticated
   using (
