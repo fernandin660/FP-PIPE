@@ -64,6 +64,11 @@ type Produto = {
   perdidos: number;
 };
 
+type ProdutoCadastro = {
+  id: string;
+  nome: string;
+};
+
 type AtividadeVendedor = {
   usuario_id: string;
   nome: string | null;
@@ -382,12 +387,18 @@ function PaginaMetricas() {
   const [editando, setEditando] = useState<AtividadePendente | null>(null);
   const [filtroDe, setFiltroDe] = useState("");
   const [filtroAte, setFiltroAte] = useState("");
+  const [filtroProduto, setFiltroProduto] = useState("");
+  const [produtosCadastrados, setProdutosCadastrados] = useState<
+    ProdutoCadastro[]
+  >([]);
 
-  const carregar = useCallback(async (dias: string) => {
+  const carregar = useCallback(async (dias: string, produto?: string) => {
     setCarregando(true);
     setErro("");
     try {
-      const res = await fetch(`/api/metricas?dias=${dias}`);
+      const params = new URLSearchParams({ dias });
+      if (produto) params.set("produto", produto);
+      const res = await fetch(`/api/metricas?${params.toString()}`);
       if (!res.ok) {
         const d = await res.json().catch(() => null);
         throw new Error(d?.erro ?? "Falha ao carregar métricas.");
@@ -403,10 +414,24 @@ function PaginaMetricas() {
 
   useEffect(() => {
     const temporizador = setTimeout(() => {
-      void carregar(periodo);
+      void carregar(periodo, filtroProduto);
     }, 0);
     return () => clearTimeout(temporizador);
-  }, [periodo, carregar]);
+  }, [periodo, filtroProduto, carregar]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/produtos");
+        if (res.ok) {
+          const dados = await res.json();
+          setProdutosCadastrados(dados.produtos ?? []);
+        }
+      } catch {
+        // Sem produtos cadastrados, o filtro fica apenas em "Todos".
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const supabase = criarClienteSupabase();
@@ -479,7 +504,7 @@ function PaginaMetricas() {
     }
     await Promise.all([
       carregarPendentes(filtroDe || undefined, filtroAte || undefined),
-      carregar(periodo),
+      carregar(periodo, filtroProduto),
     ]);
   };
 
@@ -502,7 +527,7 @@ function PaginaMetricas() {
     setEditando(null);
     await Promise.all([
       carregarPendentes(filtroDe || undefined, filtroAte || undefined),
-      carregar(periodo),
+      carregar(periodo, filtroProduto),
     ]);
   };
 
@@ -599,6 +624,37 @@ function PaginaMetricas() {
                 {p.rotulo}
               </button>
             ))}
+            <span className="hidden sm:inline-block w-px h-6 bg-pipe-border mx-1" />
+            <span className="text-xs text-pipe-muted font-semibold">
+              Produto:
+            </span>
+            <select
+              value={filtroProduto}
+              onChange={(e) => setFiltroProduto(e.target.value)}
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-pipe-blue"
+            >
+              <option value="">Todos os produtos</option>
+              {produtosCadastrados.map((p) => (
+                <option key={p.id} value={p.nome}>
+                  {p.nome}
+                </option>
+              ))}
+              <option value="__sem__">Sem produto</option>
+            </select>
+            {filtroProduto && (
+              <button
+                onClick={() => setFiltroProduto("")}
+                className="text-xs text-pipe-muted hover:text-pipe-lime transition"
+              >
+                Limpar
+              </button>
+            )}
+            <Link
+              href="/produtos"
+              className="text-xs text-pipe-blue hover:text-white font-semibold"
+            >
+              Gerenciar produtos
+            </Link>
           </div>
 
           {erro && (
@@ -816,9 +872,18 @@ function PaginaMetricas() {
 
               {/* Resultado por produto */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-4">
+                <h2 className="font-display text-lg text-white mb-1">
                   Resultado por produto
                 </h2>
+                <p className="text-xs text-pipe-muted mb-4">
+                  {filtroProduto
+                    ? `Filtrando por: ${
+                        filtroProduto === "__sem__"
+                          ? "Sem produto"
+                          : filtroProduto
+                      }`
+                    : "Lead, valor e ganhos/perdidos por produto do pipeline."}
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {dados.produtos.map((p) => (
                     <div
@@ -839,6 +904,12 @@ function PaginaMetricas() {
                     </div>
                   ))}
                 </div>
+                {dados.produtos.length === 0 && (
+                  <p className="text-sm text-pipe-muted">
+                    Nenhum lead no pipeline até agora. Os produtos aparecem aqui
+                    conforme os leads ganham produto no CRM.
+                  </p>
+                )}
               </section>
 
               {/* Atividade por vendedor */}

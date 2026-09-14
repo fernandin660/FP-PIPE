@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     const de = url.searchParams.get("de") ?? undefined; // ISO
     const ate = url.searchParams.get("ate") ?? undefined; // ISO
     const dias = url.searchParams.get("dias"); // 30/60/90 ou vazio
+    const produto = url.searchParams.get("produto"); // filtro por produto cadastrado ou "__sem__"
 
     // Lista de estágios (ordem/pipeline).
     const { data: stages } = await supabase
@@ -85,6 +86,19 @@ export async function GET(request: Request) {
       produto: string | null;
       criado_em: string;
     }>;
+
+    // Filtro por produto: recorta o pipeline aos leads do produto selecionado.
+    // "__sem__" agrupa os leads que ainda não têm produto. Sem filtro, todos.
+    let linhasPipeline = pipelines;
+    if (produto) {
+      if (produto === "__sem__") {
+        linhasPipeline = pipelines.filter((p) => !p.produto?.trim());
+      } else {
+        linhasPipeline = pipelines.filter(
+          (p) => (p.produto?.trim() || "") === produto
+        );
+      }
+    }
     const eventos = (histLinhas ?? []) as Array<{
       company_id: string;
       tipo_evento: string;
@@ -129,7 +143,7 @@ export async function GET(request: Request) {
     let oportunidadesAbertas = 0;
     let valorAberto = 0;
 
-    for (const p of pipelines) {
+    for (const p of linhasPipeline) {
       const idx = mapaIndiceStage.get(p.stage_id);
       const nome = mapaNomeStage.get(p.stage_id) ?? "";
       const v = p.valor_oportunidade ?? 0;
@@ -242,15 +256,15 @@ export async function GET(request: Request) {
     // ---- Série temporal ----
     // Agrupa adicionados ao pipeline por bucket (dia/mês) dentro do período.
     const nBuckets = dias ? Number(dias) : 30;
-    const serie = agruparSerie(eventos, pipelines, nBuckets, de, ate);
+    const serie = agruparSerie(eventos, linhasPipeline, nBuckets, de, ate);
 
     // ---- Resultado por produto ----
     const porProduto = new Map<
       string,
       { total: number; valor: number; ganhos: number; perdidos: number }
     >();
-    for (const p of pipelines) {
-      const prod = p.produto?.trim() || "(sem produto)";
+    for (const p of linhasPipeline) {
+      const prod = p.produto?.trim() || "Sem produto";
       const e = porProduto.get(prod) ?? { total: 0, valor: 0, ganhos: 0, perdidos: 0 };
       e.total += 1;
       e.valor += p.valor_oportunidade ?? 0;
@@ -259,6 +273,17 @@ export async function GET(request: Request) {
       else if (ehStage(nome, "PERDIDO")) e.perdidos += 1;
       porProduto.set(prod, e);
     }
+
+    // Com produto selecionado, mostra sempre o produto escolhido (mesmo com
+    // zero leads), em vez de só as linhas que têm leads.
+    if (produto) {
+      const chave = produto === "__sem__" ? "Sem produto" : produto;
+      const existente =
+        porProduto.get(chave) ?? { total: 0, valor: 0, ganhos: 0, perdidos: 0 };
+      porProduto.clear();
+      porProduto.set(chave, existente);
+    }
+
     const produtos = Array.from(porProduto.entries()).map(([nome, v]) => ({
       produto: nome,
       ...v,
@@ -269,7 +294,7 @@ export async function GET(request: Request) {
       eventos,
       empresas,
       contatos,
-      pipelines
+      linhasPipeline
     );
 
     // Resolve nomes/emails dos vendedores (perfil + membros da org).
