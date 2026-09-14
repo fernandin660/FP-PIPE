@@ -3,9 +3,27 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import { criarClienteSupabase } from "../lib/supabase/client";
 import type { PerfilVendedor } from "./ModalPerfil";
+import {
+  IconeAlvo,
+  IconeBusca,
+  IconeCartao,
+  IconeCasa,
+  IconeEmpresa,
+  IconeEnviar,
+  IconeEquipe,
+  IconeEscrever,
+  IconeEstrela,
+  IconeGrafico,
+  IconeLista,
+  IconePasta,
+  IconeSair,
+  IconeSetaExterna,
+  IconeVerificado,
+} from "./Icones";
 
 type Props = {
   perfil: PerfilVendedor | null;
@@ -105,7 +123,7 @@ export default function Sidebar({
   const item = (
     href: string,
     rotulo: string,
-    icone: string,
+    icone: ReactNode,
     ativo: boolean
   ) => (
     <Link
@@ -138,7 +156,7 @@ export default function Sidebar({
           onClick={() => setPopupBuscadorAberto(true)}
           className={classes}
         >
-          <span>🔎</span>
+          <IconeBusca className="w-4 h-4 text-gray-400 shrink-0" />
           Buscador de contatos
           <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
             Gold
@@ -147,7 +165,12 @@ export default function Sidebar({
       );
     }
 
-    return item("/buscador", "Buscador de contatos", "🔎", pathname === "/buscador");
+    return item(
+      "/buscador",
+      "Buscador de contatos",
+      <IconeBusca className="w-4 h-4 shrink-0" />,
+      pathname === "/buscador"
+    );
   }
 
   return (
@@ -184,13 +207,21 @@ export default function Sidebar({
               </p>
               {orgNome && orgNome !== perfil?.nome_empresa && (
                 <p className="text-[11px] text-pipe-muted truncate">
-                  🏢 {orgNome}
+                  <IconeEmpresa className="w-3 h-3 inline-block mr-1" />
+                  {orgNome}
                 </p>
               )}
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-[11px] text-pipe-muted truncate">
-                  {perfil?.produtos_servicos ? "✏️ Editar perfil" : "⚠️ Perfil incompleto"}
-                </p>
+                {perfil?.produtos_servicos ? (
+                  <p className="inline-flex items-center gap-1 text-[11px] text-pipe-muted truncate">
+                    <IconeEscrever className="w-3 h-3" />
+                    Editar perfil
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-400 truncate">
+                    Perfil incompleto
+                  </p>
+                )}
                 {orgPapel && (
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -207,8 +238,9 @@ export default function Sidebar({
           </button>
 
           {saldoCreditos !== null && (
-            <p className="mt-3 px-1 text-[11px] text-pipe-muted">
-              🔎 Buscas:{" "}
+            <p className="mt-3 px-1 text-[11px] text-pipe-muted flex items-center gap-1">
+              <IconeBusca className="w-3 h-3 text-pipe-lime shrink-0" />
+              Buscas:{" "}
               <span className="text-pipe-lime font-bold">{saldoCreditos}</span>
             </p>
           )}
@@ -218,20 +250,25 @@ export default function Sidebar({
           {item(
             "/prospeccao",
             "Nova prospecção",
-            "🎯",
+            <IconeAlvo className="w-4 h-4 shrink-0" />,
             pathname === "/prospeccao"
           )}
-          {item("/listas", "Minhas listas", "📋", pathname === "/listas")}
+          {item(
+            "/listas",
+            "Minhas listas",
+            <IconeLista className="w-4 h-4 shrink-0" />,
+            pathname === "/listas"
+          )}
           {item(
             "/metricas",
             "Dashboard",
-            "📊",
+            <IconeGrafico className="w-4 h-4 shrink-0" />,
             pathname === "/metricas"
           )}
           {item(
             "/crm",
             "CRM",
-            "🗂️",
+            <IconeEquipe className="w-4 h-4 shrink-0" />,
             pathname === "/crm" || pathname.startsWith("/crm/")
           )}
           {crmResumo && crmResumo.total > 0 && (
@@ -261,7 +298,7 @@ export default function Sidebar({
               onClick={() => setPopupDisparosAberto(true)}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:bg-pipe-dark hover:text-white border border-dashed border-pipe-border"
             >
-              <span>✉️</span>
+              <IconeEnviar className="w-4 h-4 text-gray-400 shrink-0" />
               Disparos em massa
               <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
                 Gold
@@ -277,7 +314,7 @@ export default function Sidebar({
                   : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
               }`}
             >
-              <span>✉️</span>
+              <IconeEnviar className="w-4 h-4 shrink-0" />
               Disparos em massa
               <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
                 Gold
@@ -285,12 +322,32 @@ export default function Sidebar({
             </Link>
           )}
           {itemBuscador()}
-          {item("/modelos", "Modelos/Cadências", "⭐", pathname === "/modelos")}
-          {item("/equipe", "Equipe", "👥", pathname === "/equipe")}
+          {item(
+            "/modelos",
+            "Modelos/Cadências",
+            <IconePasta className="w-4 h-4 shrink-0" />,
+            pathname === "/modelos"
+          )}
+          {item(
+            "/equipe",
+            "Equipe",
+            <IconeEstrela className="w-4 h-4 shrink-0" />,
+            pathname === "/equipe"
+          )}
           {ehAdmin && (
             <>
-              {item("/admin", "Admin · Usuários", "👑", pathname === "/admin")}
-              {item("/admin/uso", "Admin · Uso de APIs", "📊", pathname === "/admin/uso")}
+              {item(
+                "/admin",
+                "Admin · Usuários",
+                <IconeEquipe className="w-4 h-4 shrink-0" />,
+                pathname === "/admin"
+              )}
+              {item(
+                "/admin/uso",
+                "Admin · Uso de APIs",
+                <IconeGrafico className="w-4 h-4 shrink-0" />,
+                pathname === "/admin/uso"
+              )}
             </>
           )}
         </nav>
@@ -301,9 +358,9 @@ export default function Sidebar({
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
           >
-            <span>🏠</span>
+            <IconeCasa className="w-4 h-4 text-slate-500 shrink-0" />
             <span>Início</span>
-            <span className="ml-auto text-[10px] text-slate-400">↗</span>
+            <IconeSetaExterna className="ml-auto w-3 h-3 text-slate-400" />
           </a>
         </div>
 
@@ -316,7 +373,7 @@ export default function Sidebar({
                 : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
             }`}
           >
-            <span>💳</span>
+            <IconeCartao className="w-4 h-4 shrink-0" />
             Gerenciar meus créditos
           </Link>
 
@@ -324,7 +381,8 @@ export default function Sidebar({
             onClick={sair}
             className="w-full text-left text-xs font-semibold text-pipe-muted hover:text-red-400 transition px-4 py-2"
           >
-            ⏻ Sair da conta
+            <IconeSair className="w-4 h-4 inline-block mr-2" />
+            Sair da conta
           </button>
         </div>
       </aside>
@@ -339,9 +397,11 @@ export default function Sidebar({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="text-5xl mb-3">🔎</div>
+              <div className="flex justify-center mb-3">
+                <IconeBusca tamanho={48} className="text-pipe-lime" />
+              </div>
               <h2 className="font-display text-2xl text-white">
-                Buscador de Contatos
+                Buscador de contatos
               </h2>
             </div>
 
@@ -353,10 +413,22 @@ export default function Sidebar({
             </p>
 
             <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
-              <p>✅ E-mail corporativo verificado</p>
-              <p>✅ Telefone verificado</p>
-              <p>✅ Nome, cargo e empresa completos</p>
-              <p>✅ Salva automático na sua lista</p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                E-mail corporativo verificado
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Telefone verificado
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Nome, cargo e empresa completos
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Salvo na sua lista automaticamente
+              </p>
             </div>
 
             <p className="text-[12px] text-pipe-muted text-center">
@@ -370,7 +442,7 @@ export default function Sidebar({
                 href="/planos"
                 className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
               >
-                ⭐ Fazer upgrade para ter e-mails e telefones verificados do LinkedIn
+                Fazer upgrade para e-mails e telefones do LinkedIn
               </Link>
               <button
                 onClick={() => setPopupBuscadorAberto(false)}
@@ -393,23 +465,33 @@ export default function Sidebar({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="text-5xl mb-3">✉️</div>
+              <div className="flex justify-center mb-3">
+                <IconeEnviar tamanho={48} className="text-pipe-lime" />
+              </div>
               <h2 className="font-display text-2xl text-white">
-                Disparos em Massa
+                Disparos em massa
               </h2>
             </div>
 
             <p className="text-gray-300 text-sm leading-relaxed text-center">
-              Dispare <strong className="text-white">e-mails personalizados</strong>{" "}
-              em massa para as empresas da sua lista, com abordagem gerada por IA
-              e acompanhamento de quem abriu e respondeu — tudo automático.
+              Dispare e-mails em massa para as empresas da sua lista. A
+              abordagem vem escrita para cada empresa, e você acompanha quem
+              abriu e quem respondeu.
             </p>
 
             <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
-              <p>✅ Envio em massa com mensagens personalizadas</p>
-              <p>✅ Abordagens geradas por IA por empresa</p>
-              <p>✅ Acompanhe envios, aberturas e respostas</p>
-              <p>✅ Conecte seu Gmail, Outlook ou Zoho</p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Envio em massa com mensagens escritas para cada empresa
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Acompanhe envios, aberturas e respostas
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
+                Conecte seu Gmail, Outlook ou Zoho
+              </p>
             </div>
 
             <p className="text-[12px] text-pipe-muted text-center">
@@ -423,7 +505,7 @@ export default function Sidebar({
                 href="/planos"
                 className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
               >
-                ⭐ Fazer upgrade para ativar o disparo em massa
+                Fazer upgrade para ativar o disparo em massa
               </Link>
               <button
                 onClick={() => setPopupDisparosAberto(false)}

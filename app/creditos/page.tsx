@@ -5,10 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
+import {
+  IconeBusca,
+  IconeCartao,
+  IconeEscrever,
+  IconeLista,
+  IconeTelefone,
+} from "../../components/Icones";
 
 type Moeda = {
   chave: "listas" | "buscador" | "telefone" | "abordagens";
-  icone: string;
   nome: string;
   descricao: string;
   tabela: string;
@@ -18,25 +24,22 @@ type Moeda = {
 const MOEDAS_INICIAIS: Moeda[] = [
   {
     chave: "listas",
-    icone: "🧭",
     nome: "Créditos de listas",
     descricao:
-      "Usados na Nova prospecção para gerar listas de empresas com score de IA.",
+      "Use na Nova prospecção para gerar listas de empresas com score de aderência.",
     tabela: "creditos",
     saldo: null,
   },
   {
     chave: "buscador",
-    icone: "🔎",
     nome: "Créditos de buscador",
     descricao:
-      "Cada busca de e-mail verificado pelo LinkedIn gasta 1 crédito. Perfis já buscados saem do cache sem custo extra pra você.",
+      "Cada busca de e-mail verificado gasta 1 crédito. Contatos já buscados saem do cache sem custo para você.",
     tabela: "creditos_contatos",
     saldo: null,
   },
   {
     chave: "telefone",
-    icone: "📞",
     nome: "Créditos de telefone",
     descricao:
       "Cada telefone verificado gasta 1 crédito. Gold inclui 50 telefones e Platinum 100 telefones.",
@@ -45,14 +48,27 @@ const MOEDAS_INICIAIS: Moeda[] = [
   },
   {
     chave: "abordagens",
-    icone: "✍️",
-    nome: "Créditos de abordagem (IA)",
+    nome: "Créditos de abordagem",
     descricao:
-      "Gera e-mail, WhatsApp e mensagem de LinkedIn personalizados para cada lead.",
+      "Gera e-mail, WhatsApp e mensagem de LinkedIn escritos para cada contato.",
     tabela: "creditos_ia",
     saldo: null,
   },
 ];
+
+function IconeMoeda({ chave }: { chave: Moeda["chave"] }) {
+  const cls = "w-5 h-5 text-pipe-lime";
+  switch (chave) {
+    case "listas":
+      return <IconeLista className={cls} />;
+    case "buscador":
+      return <IconeBusca className={cls} />;
+    case "telefone":
+      return <IconeTelefone className={cls} />;
+    case "abordagens":
+      return <IconeEscrever className={cls} />;
+  }
+}
 
 export default function PaginaCreditos() {
   const router = useRouter();
@@ -93,15 +109,17 @@ export default function PaginaCreditos() {
           href="/prospeccao"
           className="text-xs text-pipe-muted hover:text-white transition"
         >
-          ← voltar
+          ← Voltar
         </Link>
 
         <h1 className="font-display text-3xl text-white mt-3">
-          Meus créditos 💳
+          <span className="inline-flex items-center gap-3">
+            <IconeCartao className="w-7 h-7 text-pipe-lime" /> Meus créditos
+          </span>
         </h1>
           <p className="text-pipe-muted text-sm mt-1">
-            Cada atividade usa uma moeda própria — você nunca mistura as
-            coisas.
+            Cada tipo de uso tem saldo próprio — você não mistura créditos de
+            funções diferentes.
           </p>
 
           {carregando ? (
@@ -113,8 +131,9 @@ export default function PaginaCreditos() {
                   key={moeda.chave}
                   className="bg-pipe-card border border-pipe-border rounded-xl p-5 flex flex-col"
                 >
-                  <p className="text-xs font-semibold text-pipe-muted">
-                    {moeda.icone} {moeda.nome}
+                  <p className="text-xs font-semibold text-pipe-muted flex items-center gap-2">
+                    <IconeMoeda chave={moeda.chave} />
+                    {moeda.nome}
                   </p>
 
                   <p className="font-display text-4xl text-white mt-3">
@@ -143,7 +162,7 @@ export default function PaginaCreditos() {
               href="/planos"
               className="relative overflow-hidden anim-shine bg-pipe-lime text-black font-bold text-sm rounded-lg px-6 py-3 hover:brightness-110 transition shrink-0"
             >
-              💎 Ver planos
+              Ver planos
             </Link>
           </div>
         </div>

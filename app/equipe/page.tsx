@@ -74,7 +74,7 @@ function EquipeContent() {
       const dados = await res.json();
 
       if (res.ok) {
-        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite aceito!" });
+        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite aceito." });
         window.history.replaceState({}, "", "/equipe");
         await carregarOrg();
       } else {
@@ -123,7 +123,7 @@ function EquipeContent() {
         return;
       }
 
-      setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite enviado!" });
+      setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite enviado." });
       setEmailConvite("");
       carregarOrg();
     } catch {
@@ -166,7 +166,7 @@ function EquipeContent() {
 
       if (res.ok) {
         setReenvios((prev) => ({ ...prev, [membroId]: Date.now() }));
-        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite reenviado!" });
+        setMsg({ tipo: "ok", texto: dados.mensagem ?? "Convite reenviado." });
       } else {
         setMsg({ tipo: "erro", texto: dados.erro ?? "Falha ao reenviar." });
       }
@@ -342,14 +342,14 @@ function EquipeContent() {
       {org.papel === "admin" && !org.permiteConvidar && org.plano !== "teste" && (
         <section className="bg-gray-800/40 border border-gray-700 rounded-lg p-6 text-center">
           <p className="text-gray-300 mb-3">
-            Seu plano <strong>{org.planoNome}</strong> inclui apenas 1 assento.
+            Seu plano <strong>{org.planoNome}</strong> inclui apenas 1 usuário.
             Faça upgrade para Gold ou Platinum e adicione colaboradores.
           </p>
           <Link
             href="/planos"
             className="inline-block bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-5 py-2 rounded-lg transition"
           >
-            Fazer upgrade do plano
+            Fazer upgrade
           </Link>
         </section>
       )}
@@ -358,13 +358,13 @@ function EquipeContent() {
       {org.papel === "admin" && org.permiteConvidar && vagasRestantes <= 0 && (
         <section className="bg-gray-800/40 border border-gray-700 rounded-lg p-6 text-center">
           <p className="text-gray-300 mb-3">
-            Limite de assentos atingido ({org.usuariosInclusos}/{org.usuariosInclusos}).
+            Limite de usuários atingido ({org.usuariosInclusos}/{org.usuariosInclusos}).
           </p>
           <Link
             href="/planos"
             className="inline-block bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-5 py-2 rounded-lg transition"
           >
-            Fazer upgrade do plano
+            Fazer upgrade
           </Link>
         </section>
       )}

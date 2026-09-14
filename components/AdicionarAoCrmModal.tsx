@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { IconeVerificado } from "./Icones";
+
 export type AlvosCrm = {
   cnpjs?: string[];
   company_ids?: string[];
@@ -160,7 +162,7 @@ export default function AdicionarAoCrmModal({
     conteudo = (
       <div className="flex flex-col items-center gap-3 py-6 text-sm text-pipe-muted">
         <div className="w-6 h-6 rounded-full border-2 border-pipe-blue border-t-transparent animate-spin" />
-        Verificando leads no CRM…
+        Verificando empresas no CRM…
       </div>
     );
   } else if (etapa === "erro") {
@@ -187,8 +189,8 @@ export default function AdicionarAoCrmModal({
     conteudo = (
       <div className="space-y-4">
         <div className="text-center py-3">
-          <div className="text-4xl mb-2">✅</div>
-          <p className="text-white font-semibold">Adicionadas ao CRM!</p>
+          <IconeVerificado tamanho={40} className="mx-auto mb-2 text-pipe-lime" />
+          <p className="text-white font-semibold">Adicionadas ao CRM.</p>
           {precheck && (
             <p className="text-sm text-pipe-muted mt-1">
               {precheck.novas} novas {precheck.jaExistem.length > 0
@@ -208,7 +210,7 @@ export default function AdicionarAoCrmModal({
             href="/crm"
             className="text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
           >
-            → Ver no CRM
+            Ver no CRM
           </a>
         </div>
       </div>
@@ -302,7 +304,7 @@ export default function AdicionarAoCrmModal({
       <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-bold text-lg text-white">
-            📥 Adicionar ao CRM
+            Adicionar ao CRM
             {titulo ? (
               <span className="block text-xs font-semibold text-pipe-blue mt-0.5">
                 {titulo}
@@ -315,7 +317,7 @@ export default function AdicionarAoCrmModal({
               className="text-gray-400 hover:text-white transition text-lg leading-none"
               title="Fechar"
             >
-              ✕
+              ×
             </button>
           )}
         </div>

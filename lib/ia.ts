@@ -200,7 +200,7 @@ async function chamarComReparo(
   prompt: string,
   config: Required<OpcoesIa>
 ): Promise<string> {
-  let texto = await provedor(prompt, config);
+  const texto = await provedor(prompt, config);
   const limpo = extrairJson(texto);
   if (limpo) return limpo;
 

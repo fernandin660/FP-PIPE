@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
 import { validarSenhaForca } from "../lib/senhas";
+import { IconeEnviar, IconeVerificado } from "./Icones";
 
 export default function TelaEntrada() {
   const router = useRouter();
@@ -115,9 +116,9 @@ export default function TelaEntrada() {
       if (data.session) {
         router.push(destinoFinal);
       } else {
-        setMensagem(
-          "Conta criada! Confira seu e-mail e clique no link de confirmação."
-        );
+setMensagem(
+        "Conta criada. Confira seu e-mail e clique no link de confirmação."
+      );
       }
     }
   }
@@ -128,7 +129,7 @@ export default function TelaEntrada() {
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-pipe-dark via-pipe-bg to-pipe-card border-r border-pipe-border overflow-hidden">
         <div>
           <p className="font-display text-4xl text-white">
-            FP <span className="text-pipe-lime">PIPE</span>
+            FP <span className="text-pipe-lime">Pipe</span>
           </p>
 
           <h1 className="font-display text-5xl leading-tight text-white mt-14">
@@ -145,12 +146,12 @@ export default function TelaEntrada() {
 
           <ul className="mt-8 space-y-3 text-gray-300">
             {[
-              "ICP completo em menos de 1 minuto",
+              "Perfil de cliente ideal (ICP) completo em menos de 1 minuto",
               "Empresas reais com score de aderência 0-100",
               "Decisor certo: aprovador e influenciador da venda",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3">
-                <span className="text-pipe-lime mt-0.5">✓</span>
+                <IconeVerificado className="w-4 h-4 text-pipe-lime mt-0.5 shrink-0" />
                 {item}
               </li>
             ))}
@@ -161,9 +162,6 @@ export default function TelaEntrada() {
         <div className="relative h-64 mt-10">
           <div className="absolute left-0 top-4 w-80 bg-pipe-card border border-pipe-border rounded-xl p-5 shadow-2xl -rotate-2">
             <div className="flex items-center gap-3">
-              <span className="w-11 h-11 rounded-lg bg-pipe-blue/15 flex items-center justify-center text-2xl">
-                📅
-              </span>
               <div>
                 <p className="text-white font-semibold text-sm">
                   Reunião agendada
@@ -175,7 +173,7 @@ export default function TelaEntrada() {
             </div>
             <div className="mt-4 flex items-center gap-2">
               <span className="text-xs bg-lime-500/15 text-lime-400 px-2 py-1 rounded-full font-semibold">
-                ✓ Confirmado
+                Confirmado
               </span>
               <span className="text-xs text-pipe-muted">
                 Diretor de TI · Logística
@@ -196,20 +194,20 @@ export default function TelaEntrada() {
               </div>
             </div>
             <p className="text-xs text-gray-300 mt-3">
-              🎯 Fale com:{" "}
+              Fale com:{" "}
               <span className="text-pipe-lime">Gerente Comercial</span>
             </p>
           </div>
 
-          <span className="absolute left-40 bottom-24 text-3xl animate-bounce">
-            ✉️
+          <span className="absolute left-40 bottom-24 animate-bounce">
+            <IconeEnviar tamanho={32} className="text-pipe-lime" />
           </span>
         </div>
 
         <p className="text-pipe-muted/60 text-xs mt-8">
           © FP Pipe — Inteligência comercial para quem vende B2B.{" "}
           <a href="/" className="hover:text-pipe-blue transition">
-            Conheça os diferenciais →
+            Conheça os diferenciais
           </a>
         </p>
       </div>
@@ -219,17 +217,17 @@ export default function TelaEntrada() {
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-10">
             <p className="font-display text-3xl text-white">
-              FP <span className="text-pipe-lime">PIPE</span>
+              FP <span className="text-pipe-lime">Pipe</span>
             </p>
           </div>
 
           <h2 className="font-display text-4xl text-white">
-            Bem-vindo ao{" "}
-            <span className="text-pipe-lime">seu pipeline</span>
+            Bem-vindo à{" "}
+            <span className="text-pipe-lime">FP Pipe</span>
           </h2>
 
           <p className="text-pipe-muted text-sm mt-2">
-            Crie sua conta grátis: 1 lista com até 25 leads pra testar de verdade.{" "}
+            Crie sua conta grátis: 1 lista com até 25 empresas pra testar de verdade.{" "}
             <a
               href="/planos"
               className="text-pipe-blue hover:underline font-medium"
@@ -263,7 +261,7 @@ export default function TelaEntrada() {
 
           {modo === "recuperar" && (
             <p className="text-sm text-pipe-blue font-semibold mt-6">
-              🔑 Recuperar acesso
+              Recuperar acesso
             </p>
           )}
 
@@ -309,10 +307,10 @@ export default function TelaEntrada() {
               {carregando
                 ? "Aguarde..."
                 : modo === "entrar"
-                  ? "Entrar no sistema →"
+                  ? "Entrar"
                   : modo === "recuperar"
-                    ? "Enviar link de redefinição →"
-                    : "Criar conta grátis →"}
+                    ? "Enviar link de redefinição"
+                    : "Criar conta grátis"}
             </button>
           </form>
 
@@ -326,7 +324,7 @@ export default function TelaEntrada() {
                 }}
                 className="text-xs text-pipe-muted hover:text-white transition"
               >
-                ← Voltar para o login
+                Voltar para o login
               </button>
             ) : (
               <button

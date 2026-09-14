@@ -30,9 +30,9 @@
 //   Estágio do pipeline     até 8 pts   (estágio avançado = mais quente)
 //
 // Faixas:
-//   >= 70  → 🔥 ALTA
-//   >= 40  → 🟡 MÉDIA
-//   < 40   → ⚪ BAIXA
+//   >= 70  -> ALTA
+//   >= 40  -> MÉDIA
+//   < 40   -> BAIXA
 //
 // Regras de segurança:
 //   - Empresas GANHO e PERDIDO NÃO recebem prioridade de ataque (nivel "baixa",
@@ -44,7 +44,7 @@ export type PrioridadeNivel = "alta" | "media" | "baixa";
 
 export type PrioridadeResultado = {
   nivel: PrioridadeNivel;
-  rotulo: string; // "🔥 ALTA" | "🟡 MÉDIA" | "⚪ BAIXA"
+  rotulo: string; // "Alta" | "Média" | "Baixa"
   pontos: number;
   fatoresPositivos: string[];
   fatoresNegativos: string[];
@@ -184,7 +184,7 @@ export function calcularPrioridade(e: EntradaPrioridade): PrioridadeResultado {
     motivos.push("Dados insuficientes para uma recomendação confiável.");
   } else {
     const etapa = pontosStage >= 6 ? "Estágio quente" : "Estágio em andamento";
-    let contato =
+    const contato =
       e.decisorContato
         ? "Decisor alcançável"
         : e.temTelefone || e.temEmail
@@ -213,7 +213,7 @@ export function calcularPrioridade(e: EntradaPrioridade): PrioridadeResultado {
 
   return {
     nivel,
-    rotulo: nivel === "alta" ? "🔥 ALTA" : nivel === "media" ? "🟡 MÉDIA" : "⚪ BAIXA",
+    rotulo: nivel === "alta" ? "Alta" : nivel === "media" ? "Média" : "Baixa",
     pontos,
     fatoresPositivos: positivos,
     fatoresNegativos: negativos,

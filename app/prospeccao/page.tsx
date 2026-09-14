@@ -39,6 +39,14 @@ import {
   limparNomeEmpresa,
 } from "../../lib/linkedin-links";
 
+import {
+  IconeAlvo,
+  IconeEmail,
+  IconeEquipe,
+  IconeTelefone,
+  IconeVerificado,
+} from "../../components/Icones";
+
 const estadosBrasil = [
   { sigla: "AC", nome: "Acre" },
   { sigla: "AL", nome: "Alagoas" },
@@ -240,7 +248,7 @@ function EntradaCidades({
           disabled={cheio || !rascunho.trim()}
           className="px-4 rounded-lg border border-pipe-border bg-pipe-card hover:border-pipe-blue/60 disabled:opacity-40 transition font-medium text-white"
         >
-          + Add
+          + Adicionar
         </button>
       </div>
 
@@ -251,7 +259,7 @@ function EntradaCidades({
               key={cidade.toLowerCase()}
               className="inline-flex items-center gap-2 bg-pipe-blue/15 border border-pipe-blue/50 text-white text-sm rounded-full pl-3 pr-1.5 py-1"
             >
-              📍 {cidade}
+              {cidade}
               <button
                 type="button"
                 onClick={() =>
@@ -264,7 +272,7 @@ function EntradaCidades({
                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-pipe-blue/40 transition text-xs"
                 aria-label={`Remover ${cidade}`}
               >
-                ✕
+                ×
               </button>
             </span>
           ))}
@@ -781,12 +789,12 @@ export default function Home() {
       const ganho = dadosResposta?.creditosIaGanhos ?? 0;
       const autoDesbloqueados = dadosResposta?.desbloqueadosAgora ?? 0;
       alert(
-        `✅ Lista salva com ${dadosResposta?.leadsSalvos ?? selecionadasComScore.length} leads!` +
+        `Lista salva com ${dadosResposta?.leadsSalvos ?? selecionadasComScore.length} leads.` +
           (autoDesbloqueados > 0
-            ? `\n🔓 ${autoDesbloqueados} lead(s) foram desbloqueados automaticamente ao salvar.`
+            ? `\n${autoDesbloqueados} lead(s) foram desbloqueados automaticamente ao salvar.`
             : "") +
           (ganho > 0
-            ? `\n🎁 Você ganhou ${ganho} Créditos de IA para gerar abordagens.`
+            ? `\nVocê ganhou ${ganho} créditos de IA para gerar abordagens.`
             : "")
       );
 
@@ -804,7 +812,7 @@ export default function Home() {
   };
 
   const exportarCsv = () => {
-    const bloqueado = "🔒 Desbloqueie com créditos";
+    const bloqueado = "Desbloqueie com créditos";
 
     const liberada = (_indice: number, cnpj: string) =>
       !CONTATOS_BLOQUEADOS || empresasDesbloqueadas.has(cnpj);
@@ -1743,7 +1751,7 @@ porteEmpresa,
 
       if (dados.modoFallback) {
         setErroEmpresas(
-          "⚠️ IA indisponível agora — os scores exibidos são ESTIMATIVAS automáticas (sem análise de IA)."
+          "IA indisponível agora — os scores exibidos são estimativas automáticas, sem análise de IA."
         );
       }
 
@@ -2271,8 +2279,8 @@ porteEmpresa,
                     key={item.titulo}
                     className="bg-pipe-card border border-pipe-border rounded-xl p-6 hover:border-pipe-lime/50 transition"
                   >
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pipe-lime/15 text-pipe-lime font-bold">
-                      ✓
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pipe-lime/15 text-pipe-lime">
+                      <IconeVerificado tamanho={18} />
                     </span>
 
                     <h3 className="font-bold text-lg mt-4 text-white">
@@ -2291,7 +2299,7 @@ porteEmpresa,
                   onClick={iniciarApp}
                   className="bg-pipe-lime text-black font-bold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
                 >
-                  Quero meu ICP agora →
+                  Quero meu ICP agora
                 </button>
               </div>
             </div>
@@ -2302,7 +2310,7 @@ porteEmpresa,
           <section className="border-t border-pipe-border bg-pipe-dark">
             <div className="max-w-6xl mx-auto px-6 py-20 text-center">
               <h2 className="font-display text-5xl md:text-6xl text-white">
-                Chega de prospectar no escuro.
+                Encontre as empresas que merecem sua próxima abordagem.
               </h2>
 
               <p className="text-pipe-muted mt-4">
@@ -2313,7 +2321,7 @@ porteEmpresa,
                 onClick={iniciarApp}
                 className="mt-8 bg-pipe-lime text-black font-bold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
               >
-                Começar agora →
+                Começar agora
               </button>
             </div>
           </section>
@@ -2463,7 +2471,7 @@ porteEmpresa,
                             : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                         }`}
                       >
-                        {selecionado ? "✓ " : ""}
+                        {selecionado ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
                         <span className="block font-semibold">
                           {porte.rotulo}
                         </span>
@@ -2517,7 +2525,7 @@ porteEmpresa,
                             : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                         }`}
                       >
-                        {selecionado ? "✓ " : ""}
+                        {selecionado ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
                         {faixa}
                       </button>
                     );
@@ -2535,10 +2543,10 @@ porteEmpresa,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(
                     [
-                      { chave: "brasil", rotulo: "🇧🇷 Brasil" },
+                      { chave: "brasil", rotulo: "Brasil" },
                       {
                         chave: "internacional",
-                        rotulo: "🌎 Internacional (Américas)",
+                        rotulo: "Internacional (Américas)",
                       },
                     ] as const
                   ).map((modo) => (
@@ -2551,7 +2559,7 @@ porteEmpresa,
                           : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                       }`}
                     >
-                      {modoBusca === modo.chave ? "✓ " : ""}
+                      {modoBusca === modo.chave ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
                       {modo.rotulo}
                     </button>
                   ))}
@@ -2600,7 +2608,7 @@ porteEmpresa,
                           : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                       }`}
                     >
-                      {tipoLocalizacao === tipo ? "✓ " : ""}
+                      {tipoLocalizacao === tipo ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
                       {tipo}
                     </button>
                   ))}
@@ -2748,7 +2756,7 @@ porteEmpresa,
                                     : "border-pipe-border"
                                 }`}
                               >
-                                {selecionado ? "✓" : ""}
+                                {selecionado ? <IconeVerificado tamanho={12} /> : ""}
                               </span>
                               <span
                                 className={
@@ -2848,7 +2856,7 @@ porteEmpresa,
                               : "bg-pipe-card border-pipe-border text-gray-300 hover:border-pipe-lime/60"
                           }`}
                         >
-                          {selecionado ? "✓ " : ""}
+                          {selecionado ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
                           {tipo}
                         </button>
                       );
@@ -3131,7 +3139,7 @@ porteEmpresa,
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="font-bold text-lg text-lime-400">
-                        🎯 Cargos-alvo da caça
+                        Cargos-alvo
                       </h2>
                       {cargosEscolhidos.length > 0 && (
                         <span className="text-xs font-semibold bg-pipe-lime/10 text-pipe-lime px-2 py-1 rounded-full">
@@ -3142,7 +3150,7 @@ porteEmpresa,
                     </div>
 
                     <p className="text-xs text-pipe-muted mb-4">
-                      A IA sugeriu os cargos abaixo. Busque e ajuste à vontade —
+                      Sugerimos os cargos abaixo. Busque e ajuste à vontade —
                       a numeração é a hierarquia de autoridade: procuramos o
                       cargo 1 primeiro; se a empresa não tiver, vamos para o
                       próximo.
@@ -3176,7 +3184,7 @@ porteEmpresa,
                                 className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-500/20 text-pipe-muted hover:text-red-400 transition"
                                 aria-label={`Remover ${cargo}`}
                               >
-                                ✕
+                                ×
                               </button>
                             </span>
                           );
@@ -3228,7 +3236,7 @@ porteEmpresa,
                                     : "text-pipe-lime font-bold"
                                 }
                               >
-                                {jaEscolhido ? "✓" : "+"}
+                                {jaEscolhido ? <IconeVerificado tamanho={14} /> : "+"}
                               </span>
                             </button>
                           );
@@ -3320,7 +3328,7 @@ porteEmpresa,
 
                   <div className="bg-pipe-card/60 border border-pipe-border p-4 rounded-lg">
                     <p className="text-sm text-pipe-muted">
-                      💡 Cada empresa da sua lista vai receber um{" "}
+                      Cada empresa da sua lista vai receber um{" "}
                       <span className="text-gray-200 font-semibold">
                         e-mail personalizado pronto para copiar e colar
                       </span>{" "}
@@ -3342,7 +3350,7 @@ porteEmpresa,
                       ? pontuandoEmpresas
                         ? "Analisando aderência das empresas..."
                         : "Buscando empresas no seu ICP..."
-                      : "Descobrir e pontuar empresas do meu ICP →"}
+                      : "Buscar e pontuar empresas do meu ICP →"}
                   </button>
 
                   <button
@@ -3390,10 +3398,10 @@ porteEmpresa,
                       }`}
                     >
                       {listaJaSalva
-                        ? "✓ Salva em minhas listas"
+                        ? "Salva em minhas listas"
                         : salvandoLista
                           ? "Salvando..."
-                          : "💾 Salvar em minhas listas"}
+                          : "Salvar em minhas listas"}
                     </button>
 
                     <button
@@ -3401,7 +3409,7 @@ porteEmpresa,
                       disabled={empresasSelecionadas.size === 0}
                       className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
                     >
-                      📥 Adicionar ao CRM
+                      Adicionar ao CRM
                       {empresasSelecionadas.size > 0
                         ? ` (${empresasSelecionadas.size})`
                         : ""}
@@ -3411,7 +3419,7 @@ porteEmpresa,
                       onClick={exportarCsv}
                       className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-card hover:text-white transition"
                     >
-                      ⬇️ Exportar CSV
+                      Exportar CSV
                     </button>
 
                     <button
@@ -3424,7 +3432,7 @@ porteEmpresa,
                       }}
                       className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-pipe-muted hover:bg-pipe-card hover:text-white transition"
                     >
-                      🔄 Nova busca
+                      Nova busca
                     </button>
                   </div>
                 </div>
@@ -3439,11 +3447,11 @@ porteEmpresa,
                     <div className="flex items-center gap-3">
                       <span
                         className="text-xs font-semibold bg-pipe-lime/10 text-pipe-lime px-2 py-1 rounded-full"
-                        title="🔎 Buscas = gerações de lista no mês · 🎫 Leads = desbloqueio/salvamento de leads (integração Anymail Finder)"
+                        title="Buscas = gerações de lista no mês · Leads = desbloqueio/salvamento de leads (integração Anymail Finder)"
                       >
-                        🔎 {saldoCreditos ?? 0} busca{(saldoCreditos ?? 0) === 1 ? "" : "s"}
+                        {saldoCreditos ?? 0} busca{(saldoCreditos ?? 0) === 1 ? "" : "s"}
                         {" · "}
-                        🎫 {saldoBuscador ?? 0} lead{(saldoBuscador ?? 0) === 1 ? "" : "s"}
+                        {saldoBuscador ?? 0} lead{(saldoBuscador ?? 0) === 1 ? "" : "s"}
                       </span>
                       <label className="flex items-center gap-2 text-xs text-pipe-muted cursor-pointer">
                       <input
@@ -3479,7 +3487,7 @@ porteEmpresa,
                           onClick={desbloquearSelecionadas}
                           className="text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-1 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
                         >
-                          🔓 Desbloquear selecionadas (
+                          Desbloquear selecionadas (
                           {empresasSelecionadas.size} crédito
                           {empresasSelecionadas.size > 1 ? "s" : ""})
                         </button>
@@ -3533,7 +3541,7 @@ porteEmpresa,
                             <div className="flex items-center gap-2 flex-wrap">
                               {empresa.origem === "manual" && (
                                 <span className="shrink-0 text-[10px] font-bold bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
-                                  📌 LEAD MANUAL
+                                  LEAD MANUAL
                                 </span>
                               )}
                               <p
@@ -3576,7 +3584,7 @@ porteEmpresa,
                             )}
                             {(empresa.decisorNome || empresa.campeaoNome) && (
                               <p className="text-xs text-pipe-muted mt-1.5">
-                                👤{" "}
+                                <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" />{" "}
                                 <span className="text-gray-200">
                                   {empresa.decisorNome || empresa.campeaoNome}
                                 </span>
@@ -3595,29 +3603,29 @@ porteEmpresa,
                                     <p className="text-xs text-pipe-muted select-none blur-[3px] cursor-not-allowed">
                                       {[
                                         empresa.telefone
-                                          ? `📞 ${formatarTelefone(empresa.telefone)}`
+                                          ? `${formatarTelefone(empresa.telefone)}`
                                           : "",
                                         empresa.email
-                                          ? `✉ ${empresa.email}`
+                                          ? `${empresa.email}`
                                           : "",
                                       ]
                                         .filter(Boolean)
                                         .join("  ·  ")}
                                     </p>
                                     <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                      🔒 desbloqueia com créditos
+                                      desbloqueia com créditos
                                     </span>
                                   </>
                                 ) : (
                                   <p className="text-xs text-pipe-blue font-medium">
                                     {empresa.telefone
-                                      ? `📞 ${formatarTelefone(empresa.telefone)}`
+                                      ? `${formatarTelefone(empresa.telefone)}`
                                       : ""}
                                     {empresa.telefone && empresa.email
                                       ? "  ·  "
                                       : ""}
                                     {empresa.email
-                                      ? `✉ ${empresa.email}`
+                                      ? `${empresa.email}`
                                       : ""}
                                   </p>
                                 )}
@@ -3640,7 +3648,7 @@ porteEmpresa,
                                   >
                                     {buscandoEmailSite === empresa.cnpj
                                       ? "Analisando o site..."
-                                      : "📧 Procurar e-mail no site"}
+                                      : "Procurar e-mail no site"}
                                   </button>
                                 </div>
                               )}
@@ -3650,16 +3658,16 @@ porteEmpresa,
                                 {!liberado ? (
                                   <>
                                     <p className="text-xs text-pipe-muted select-none blur-[3px] cursor-not-allowed">
-                                      👤 {empresa.decisorNome} ·{" "}
+                                      <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.decisorNome} ·{" "}
                                       {empresa.decisorCargo}
                                     </p>
                                     <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                      🔒 créditos
+                                      créditos
                                     </span>
                                   </>
                                 ) : (
                                   <p className="text-xs text-gray-300 font-medium">
-                                    👤 {empresa.decisorNome}
+                                    <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.decisorNome}
                                     {empresa.decisorCargo
                                       ? ` · ${empresa.decisorCargo}`
                                       : ""}
@@ -3675,12 +3683,12 @@ porteEmpresa,
                                         onClick={(e) => e.stopPropagation()}
                                         className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                       >
-                                        🔗 Perfil →
+                                        Perfil →
                                       </a>
                                     )}
                                     {empresa.aprovadorTelefone && (
                                       <span className="text-xs text-pipe-blue">
-                                        📞{" "}
+                                        <IconeTelefone tamanho={13} className="inline mr-1 -mt-0.5" />{" "}
                                         {formatarTelefone(
                                           empresa.aprovadorTelefone
                                         )}
@@ -3692,7 +3700,7 @@ porteEmpresa,
                                         onClick={(e) => e.stopPropagation()}
                                         className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                       >
-                                        ✉ {empresa.aprovadorEmail}
+                                        <IconeEmail tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.aprovadorEmail}
                                       </a>
                                     )}
                                     <a
@@ -3714,7 +3722,7 @@ porteEmpresa,
                                       }
                                       className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                     >
-                                      🔎 Buscar{" "}
+                                      Buscar{" "}
                                       {(empresa.decisorCargo ?? "pessoas")
                                         .toLowerCase()}{" "}
                                       →
@@ -3727,13 +3735,13 @@ porteEmpresa,
                               <div className="mt-1 flex items-center gap-2 flex-wrap">
                                 {!liberado ? (
                                   <p className="text-xs text-pipe-muted select-none blur-[3px] cursor-not-allowed">
-                                    🎯 Influenciador sugerido:{" "}
+                                    <IconeAlvo tamanho={13} className="inline mr-1 -mt-0.5" /> Influenciador sugerido:{" "}
                                     {empresa.cargoPrioritario}
                                   </p>
                                 ) : (
                                   <>
                                     <p className="text-xs text-lime-400 font-medium">
-                                      🎯 Fale com:{" "}
+                                      <IconeAlvo tamanho={13} className="inline mr-1 -mt-0.5" /> Fale com:{" "}
                                       {empresa.campeaoNome
                                         ? `${empresa.campeaoNome} · `
                                         : ""}
@@ -3757,7 +3765,7 @@ porteEmpresa,
                                         title="Passo 1: encontre e abra a página da empresa no LinkedIn"
                                         className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                       >
-                                        1️⃣ Achar empresa →
+                                        1. Achar empresa →
                                       </a>
                                       <a
                                         href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
@@ -3772,7 +3780,7 @@ porteEmpresa,
                                         title="Passo 2: busca direta das pessoas com esse cargo nesta empresa"
                                         className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                       >
-                                        2️⃣ Ver{" "}
+                                        2. Ver{" "}
                                         {empresa.cargoPrioritario.toLowerCase()}{" "}
                                         →
                                       </a>
@@ -3784,12 +3792,12 @@ porteEmpresa,
                                           onClick={(e) => e.stopPropagation()}
                                           className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                         >
-                                          🔗 Perfil →
+                                          Perfil →
                                         </a>
                                       )}
                                       {empresa.campeaoTelefone && (
                                         <span className="text-xs text-pipe-blue">
-                                          📞{" "}
+                                          <IconeTelefone tamanho={13} className="inline mr-1 -mt-0.5" />{" "}
                                           {formatarTelefone(
                                             empresa.campeaoTelefone
                                           )}
@@ -3801,7 +3809,7 @@ porteEmpresa,
                                           onClick={(e) => e.stopPropagation()}
                                           className="text-xs text-pipe-blue hover:underline whitespace-nowrap"
                                         >
-                                          ✉ {empresa.campeaoEmail}
+                                          <IconeEmail tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.campeaoEmail}
                                         </a>
                                       )}
                                     </span>
@@ -3813,7 +3821,7 @@ porteEmpresa,
                               <div className="mt-2 bg-pipe-blue/5 border border-pipe-border rounded-lg p-3">
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
                                   <p className="text-[11px] font-bold text-pipe-blue uppercase tracking-wide">
-                                    ✉️ E-mail pronto para este lead
+                                    E-mail pronto para este lead
                                   </p>
                                   <button
                                     onClick={(e) => {
@@ -3831,7 +3839,7 @@ porteEmpresa,
                                   >
                                     {copiado === `email-${empresa.cnpj}`
                                       ? "Copiado!"
-                                      : "📋 Copiar"}
+                                      : "Copiar"}
                                   </button>
                                 </div>
                                 {empresa.emailProspeccao.assunto && (
@@ -3854,7 +3862,7 @@ porteEmpresa,
                                   onClick={(e) => e.stopPropagation()}
                                   className="text-xs text-pipe-blue hover:underline"
                                 >
-                                  🔗 LinkedIn da empresa →
+                                  LinkedIn da empresa →
                                 </a>
                               </div>
                             )}
@@ -3867,11 +3875,11 @@ porteEmpresa,
                                   }}
                                   className="text-[11px] font-semibold bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30 px-2 py-1 rounded-lg hover:bg-pipe-blue/20 transition"
                                 >
-                                  ✏️ Editar pessoas
+                                  Editar pessoas
                                 </button>
                                 {empresa.confirmado ? (
                                   <span className="text-[11px] font-semibold text-pipe-lime">
-                                    ✔️ Confirmado
+                                    Confirmado
                                   </span>
                                 ) : (
                                   <button
@@ -3881,7 +3889,7 @@ porteEmpresa,
                                     }}
                                     className="text-[11px] font-semibold bg-pipe-lime/10 text-pipe-lime border border-pipe-lime/30 px-2 py-1 rounded-lg hover:bg-pipe-lime/20 transition"
                                   >
-                                    ✅ Confirmar lead
+                                    Confirmar lead
                                   </button>
                                 )}
                               </div>
@@ -3895,7 +3903,7 @@ porteEmpresa,
                               }}
                               className="shrink-0 self-center text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
                             >
-                              🔓 1 crédito
+                              1 crédito
                             </button>
                           )}
                         </div>
@@ -4014,7 +4022,7 @@ porteEmpresa,
 
                 return {
                   linkedin: link,
-                  mensagem: dados.mensagem ?? "✅ LinkedIn encontrado!",
+                  mensagem: dados.mensagem ?? "LinkedIn encontrado.",
                 };
               }
 

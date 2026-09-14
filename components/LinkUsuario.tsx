@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { criarClienteSupabase } from "../lib/supabase/client";
+import { IconeAlvo, IconeSair } from "./Icones";
 
 export default function LinkUsuario() {
   const router = useRouter();
@@ -127,13 +128,15 @@ export default function LinkUsuario() {
               onClick={() => setAberto(false)}
               className="block px-3 py-2 rounded-lg text-sm font-semibold text-white hover:bg-pipe-dark transition"
             >
-              🎯 Acessar inteligência
+              <IconeAlvo className="w-4 h-4 text-pipe-lime inline-block mr-2" />
+              Abrir FP Pipe
             </Link>
             <button
               onClick={sair}
               className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-pipe-muted hover:text-red-400 hover:bg-pipe-dark transition"
             >
-              ⏻ Sair
+              <IconeSair className="w-4 h-4 inline-block mr-2" />
+              Sair
             </button>
           </div>
         </div>

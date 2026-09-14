@@ -18,9 +18,9 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "FP Pipe | Inteligência Comercial e Listas de Prospecção",
+  title: "FP Pipe | Listas de Prospecção B2B, Contatos e Primeira Abordagem",
   description:
-    "Defina seu cliente ideal com IA e gere listas de prospecção B2B enriquecidas, com decisores, dores e materiais prontos para o SDR.",
+    "Encontre empresas com o perfil do seu cliente ideal, veja quem decide a compra e receba uma primeira abordagem pronta. Prospecção B2B no Brasil e nas Américas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

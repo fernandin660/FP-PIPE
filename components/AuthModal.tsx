@@ -85,7 +85,7 @@ export default function AuthModal({ aberto, onFechar }: Props) {
         onFechar();
       } else {
         setMensagem(
-          "Conta criada! Confira seu e-mail e clique no link de confirmação. Esta janela pode ser fechada — seus dados continuam aqui."
+          "Conta criada. Confira seu e-mail e clique no link de confirmação. Esta janela pode ser fechada — seus dados continuam aqui."
         );
       }
     }
@@ -103,8 +103,8 @@ export default function AuthModal({ aberto, onFechar }: Props) {
         </button>
 
         <h2 className="font-display text-3xl text-white">
-          Falta pouco!{" "}
-          <span className="text-pipe-lime">Crie sua conta grátis</span>
+          Crie sua conta{" "}
+          <span className="text-pipe-lime">grátis</span>
         </h2>
 
         <p className="text-pipe-muted text-sm mt-2">
@@ -166,8 +166,8 @@ export default function AuthModal({ aberto, onFechar }: Props) {
             {carregando
               ? "Aguarde..."
               : modo === "entrar"
-                ? "Entrar e continuar →"
-                : "Criar conta e continuar →"}
+                ? "Entrar"
+                : "Criar conta grátis"}
           </button>
         </form>
 

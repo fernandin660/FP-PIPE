@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AvatarConsultor from "../../components/AvatarConsultor";
+import {
+  IconeEstrela,
+  IconeGrafico,
+  IconeLista,
+  IconeSetaExterna,
+  IconeVerificado,
+} from "../../components/Icones";
 
 type Ciclo = "mensal" | "anual";
 type PlanoChave =
@@ -16,7 +23,6 @@ type PlanoChave =
 
 const planos: Array<{
   chave: PlanoChave;
-  icone: string;
   nome: string;
   precoMensal: number;
   precoAnual: number;
@@ -29,46 +35,43 @@ const planos: Array<{
 }> = [
   {
     chave: "silver",
-    icone: "🥈",
     nome: "Silver",
     precoMensal: 147,
     precoAnual: 117,
-    descricao: "Para montar listas de prospecção com inteligência.",
+    descricao: "Para montar listas de empresas com score de aderência.",
     itens: [
       "250 empresas prontas por mês",
       "15 gerações de lista por mês",
-      "ICP completo + Score 0–100 gerados por IA",
+      "ICP + score de aderência 0–100",
       "Fichas: CNPJ, porte, região",
-      "25 abordagens de IA por mês",
-      "Exportação CSV pro CRM",
+      "25 abordagens por mês",
+      "Exportação CSV para o CRM",
       "— Sem Buscador de contatos",
-      "📨 Disparo em massa: 100 e-mails/dia",
     ],
-    cta: "Assinar o Silver →",
+    cta: "Assinar Silver",
   },
   {
     chave: "gold",
-    icone: "🥇",
     nome: "Gold",
     precoMensal: 297,
     precoAnual: 227,
-    descricao: "Para quem prospecta e DISPARA toda semana.",
+    descricao: "Para quem prospecta e dispara campanhas toda semana.",
     destaques: true,
-    selo: "⭐ Mais escolhido",
+    selo: "Mais escolhido",
     itens: [
       "Tudo do Silver, mais:",
       "400 empresas prontas por mês",
-      "🔎 Buscador de contatos (400 buscas/mês)",
-      "📞 50 telefones verificados do decisor",
-      "📨 Disparo em massa: 100 e-mails/dia",
-      "✍️ 100 abordagens de IA por mês",
+      "40 gerações de lista por mês",
+      "Buscador de contatos: 400 buscas/mês",
+      "50 telefones verificados do decisor",
+      "Disparo em massa: 100 e-mails/dia",
+      "100 abordagens por mês",
       "Até 3 usuários na mesma conta",
     ],
-    cta: "Assinar o Gold →",
+    cta: "Assinar Gold",
   },
   {
     chave: "platinum",
-    icone: "💎",
     nome: "Platinum",
     precoMensal: 497,
     precoAnual: 387,
@@ -76,23 +79,22 @@ const planos: Array<{
     itens: [
       "Tudo do Gold, mais:",
       "1.000 empresas prontas por mês",
-      "🔎 Buscador de contatos (1.000 buscas/mês)",
-      "📞 100 telefones verificados do decisor",
-      "📨 Disparo em massa: 300 e-mails/dia",
-      "✍️ 300 abordagens de IA por mês",
+      "90 gerações de lista por mês",
+      "Buscador de contatos: 1.000 buscas/mês",
+      "100 telefones verificados do decisor",
+      "Disparo em massa: 300 e-mails/dia",
+      "300 abordagens por mês",
       "Prioridade na fila + suporte prioritário",
       "Até 6 usuários na mesma conta",
     ],
-    cta: "Assinar o Platinum →",
+    cta: "Assinar Platinum",
   },
   {
     chave: "silver_intl",
-    icone: "🌎",
     nome: "Silver Internacional",
     precoMensal: 197,
     precoAnual: 157,
-    descricao:
-      "Prospecção em toda a América com a inteligência do Silver.",
+    descricao: "Empresas em toda a América com os recursos do Silver.",
     grupo: "internacional",
     itens: [
       "Tudo do Silver, mais:",
@@ -101,42 +103,39 @@ const planos: Array<{
       "Site da empresa para abordagem direta",
       "Listas persistentes + exportação CSV",
     ],
-    cta: "Assinar o Silver Internacional →",
+    cta: "Assinar Silver Internacional",
   },
   {
     chave: "gold_intl",
-    icone: "🌍",
     nome: "Gold Internacional",
     precoMensal: 397,
     precoAnual: 317,
-    descricao:
-      "E-mails verificados e abordagens de IA em toda a América.",
+    descricao: "E-mails verificados e primeiras abordagens em toda a América.",
     grupo: "internacional",
     itens: [
       "Tudo do Gold, mais:",
       "400 empresas por mês em qualquer país da América",
-      "🔎 400 buscas de e-mail verificado por mês",
-      "✍️ Primeiro e-mail escrito pela IA para cada lead",
+      "400 buscas de e-mail verificado por mês",
+      "Primeiro e-mail redigido para cada empresa",
       "Contato extra raspado do site da empresa*",
     ],
-    cta: "Assinar o Gold Internacional →",
+    cta: "Assinar Gold Internacional",
   },
   {
     chave: "platinum_intl",
-    icone: "🌐",
     nome: "Platinum Internacional",
     precoMensal: 697,
     precoAnual: 557,
-    descricao: "Volume alto nas Américas inteiras, todos os dias.",
+    descricao: "Volume alto em toda a América, todos os dias.",
     grupo: "internacional",
     itens: [
       "Tudo do Platinum, mais:",
       "1.000 empresas/mês em toda a América",
-      "🔎 1.000 buscas de e-mail verificado por mês",
+      "1.000 buscas de e-mail verificado por mês",
       "Prioridade na geração de listas",
       "Suporte prioritário via WhatsApp",
     ],
-    cta: "Assinar o Platinum Internacional →",
+    cta: "Assinar Platinum Internacional",
   },
 ];
 
@@ -144,17 +143,17 @@ const faq = [
   {
     pergunta: "O que o teste grátis inclui?",
     resposta:
-      "Você cria a conta sem cartão e ganha 1 lista com até 25 leads para explorar a plataforma de verdade — no Brasil e nos países das Américas: gera a lista, desbloqueia leads e testa abordagens de IA. Para escalar ou disparar campanhas, escolha um plano.",
+      "Você cria a conta sem cartão e ganha 1 lista com até 25 empresas para explorar a plataforma — no Brasil e nos países das Américas: gera a lista, abre as fichas e testa abordagens escritas por IA. Para produzir mais listas ou enviar campanhas, escolha um plano.",
   },
   {
     pergunta: "Quem pode disparar e-mails em massa?",
     resposta:
-      "O disparo de campanhas está nos planos Silver e Gold (100 e-mails/dia) e Platinum (300 e-mails/dia). No teste você gera a lista e escreve a abordagem com IA para testar — o envio em massa libera a partir do Silver.",
+      "O disparo em massa de campanhas está nos planos Gold (100 e-mails/dia) e Platinum (300 e-mails/dia). No teste e no Silver você gera empresas, abordagens e busca contatos; o envio real de campanhas parte do Gold.",
   },
   {
     pergunta: "Precisa de cartão de crédito para começar?",
     resposta:
-      "Não. Você cria a conta, ganha créditos de teste e usa a plataforma de verdade — gera lista, busca contatos e recebe abordagens escritas por IA. Só assina se fizer sentido.",
+      "Não. Você cria a conta, ganha créditos de teste e usa a plataforma — gera lista, busca contatos e recebe abordagens escritas por IA. Só assina se fizer sentido.",
   },
   {
     pergunta: "Como funciona a cobrança?",
@@ -164,19 +163,27 @@ const faq = [
   {
     pergunta: "O que são 'empresas prontas'?",
     resposta:
-      "São leads B2B já filtrados pelo seu perfil ideal de cliente: CNPJ ativo, segmento certo, região certa e nota de aderência 0–100. Você abre a ficha e já tem contexto para vender.",
+      "São empresas já filtradas pelo seu perfil de cliente ideal (ICP): CNPJ ativo, segmento certo, região certa e score de aderência de 0 a 100. Você abre a ficha e já tem contexto para vender.",
   },
   {
     pergunta: "As buscas de e-mail não usadas acumulam?",
     resposta:
-      "Não — o saldo de buscas renova a cada ciclo contratado. Por isso o anual sai tão mais barato: você garante o preço cheio por 12 meses.",
+      "Não — o saldo de buscas renova a cada ciclo contratado. No anual, o desconto vem do pagamento único por 12 meses.",
   },
   {
     pergunta: "Tem fidelidade?",
     resposta:
-      "Não. No mensal você não renova quando quiser parar. No anual vale a pena justamente pelo desconto, mas não há multa nem letra miúda.",
+      "Não. No mensal, é só não renovar quando quiser parar. No anual vale a pena justamente pelo desconto, mas não há multa nem letra miúda.",
   },
 ];
+
+function IconeDoPlano({ chave }: { chave: PlanoChave }) {
+  const base = chave.replace("_intl", "");
+  const cls = "w-6 h-6 text-pipe-lime";
+  if (base === "gold") return <IconeEstrela className={cls} />;
+  if (base === "platinum") return <IconeGrafico className={cls} />;
+  return <IconeLista className={cls} />;
+}
 
 function CartaoPlano({
   plano,
@@ -208,7 +215,10 @@ function CartaoPlano({
       )}
 
       <h2 className="font-display text-xl text-white">
-        {plano.icone} {plano.nome}
+        <span className="inline-flex items-center gap-2">
+          <IconeDoPlano chave={plano.chave} />
+          {plano.nome}
+        </span>
       </h2>
       <p className="text-pipe-muted text-sm mt-1 min-h-[40px]">
         {plano.descricao}
@@ -229,7 +239,7 @@ function CartaoPlano({
       <ul className="mt-6 space-y-2.5 text-sm flex-1">
         {plano.itens.map((item) => (
           <li key={item} className="flex items-start gap-2">
-            <span className="text-pipe-lime mt-0.5">✓</span>
+            <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0 mt-0.5" />
             <span className="text-gray-300">{item}</span>
           </li>
         ))}
@@ -285,19 +295,19 @@ export default function Planos() {
         ? {
             tipo: "ok",
             texto:
-              "🎉 Pagamento aprovado! Estamos ativando seu plano — recarregue a página em alguns segundos.",
+              "Pagamento aprovado. Estamos ativando seu plano — recarregue a página em alguns segundos.",
           }
         : status === "pendente"
           ? {
               tipo: "pendente",
               texto:
-                "⏳ Pagamento pendente. Se foi Pix, aguarde a confirmação de alguns minutos.",
+                "Pagamento pendente. Se foi Pix, aguarde a confirmação em alguns minutos.",
             }
           : status === "falhou"
             ? {
                 tipo: "falhou",
                 texto:
-                  "😕 O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
+                  "O pagamento não foi concluído. Você pode tentar novamente quando quiser.",
               }
             : null;
     if (avisoStatusInicial) {
@@ -351,7 +361,7 @@ export default function Planos() {
             href="/"
             className="font-display text-2xl text-white hover:opacity-90 transition"
           >
-            FP <span className="text-pipe-lime">PIPE</span>
+            FP <span className="text-pipe-lime">Pipe</span>
           </Link>
 
           <div className="flex items-center gap-3">
@@ -375,12 +385,12 @@ export default function Planos() {
 
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-10 text-center">
         <h1 className="font-display text-4xl md:text-5xl text-white">
-          Planos que cabem no{" "}
-          <span className="text-pipe-lime">seu funil</span>
+          Planos com o limite que você precisa{" "}
+          <span className="text-pipe-lime">por mês</span>
         </h1>
 
         <p className="text-pipe-muted text-lg mt-4 max-w-2xl mx-auto">
-          Teste grátis: 1 lista com até 25 leads, sem cartão. Quando ver o
+          Teste grátis: 1 lista com até 25 empresas, sem cartão. Quando ver o
           resultado, escolha um plano — sem fidelidade e sem letra miúda.
         </p>
 
@@ -430,12 +440,12 @@ export default function Planos() {
 
         {ciclo === "anual" ? (
           <p className="text-pipe-muted/70 text-xs mt-3">
-            💳 Cartão ou ⚡ Pix · cobrança única por ano · sem renovação
+            Cartão de crédito ou Pix · cobrança única por ano · sem renovação
             automática
           </p>
         ) : (
           <p className="text-pipe-muted/70 text-xs mt-3">
-            💳 Somente cartão de crédito · cancele quando quiser · troque pro
+            Somente cartão de crédito · cancele quando quiser · troque para o
             anual e economize até 24%
           </p>
         )}
@@ -469,7 +479,11 @@ export default function Planos() {
       {/* INTERNACIONAL */}
 
       <div className="max-w-6xl mx-auto px-6 pb-5 text-center">
-        <h2 className="font-display text-3xl text-white">🌎 Internacional</h2>
+        <h2 className="font-display text-3xl text-white">
+          <span className="inline-flex items-center gap-3">
+            <IconeSetaExterna className="w-7 h-7 text-pipe-lime" /> Internacional
+          </span>
+        </h2>
         <p className="text-pipe-muted text-sm mt-2 max-w-2xl mx-auto">
           Os mesmos planos, com busca de empresas em{" "}
           <span className="text-white font-semibold">toda a América</span> —
@@ -508,9 +522,9 @@ export default function Planos() {
             <span className="text-white font-semibold">
               R$ 1–6 por lead
             </span>{" "}
-            e vêm sem e-mail escrito. No FP Pipe,{" "}
+            e vêm sem abordagem escrita. Na FP Pipe,{" "}
             <span className="text-pipe-lime font-semibold">
-              cada lead já sai com o e-mail redigido
+              cada contato já sai com o primeiro e-mail redigido
             </span>{" "}
             e você{" "}
             <span className="text-white font-semibold">

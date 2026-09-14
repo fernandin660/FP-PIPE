@@ -15,6 +15,11 @@ import {
 
 import Sidebar from "../../components/Sidebar";
 import { criarClienteSupabase } from "../../lib/supabase/client";
+import {
+  IconeEscrever,
+  IconeGrafico,
+  IconeVerificado,
+} from "../../components/Icones";
 import type { PerfilVendedor } from "../../components/ModalPerfil";
 
 type Resumo = {
@@ -160,7 +165,7 @@ function baixarArquivo(nome: string, conteudo: string, tipo: string) {
 
 function exportarCsv(dados: PayloadMetricas) {
   const linhas: string[][] = [];
-  linhas.push(["Relatório FP PIPE+", ""]);
+  linhas.push(["Relatório FP Pipe", ""]);
   linhas.push(["Gerado em", new Date().toLocaleString("pt-BR")]);
   linhas.push([]);
   linhas.push(["RESUMO", ""]);
@@ -237,7 +242,7 @@ async function exportarPdf(dados: PayloadMetricas) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(255, 255, 255);
-    doc.text("FP PIPE+", MARGIN + 18, 52);
+    doc.text("FP Pipe", MARGIN + 18, 52);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(180, 180, 180);
@@ -397,7 +402,10 @@ function PaginaMetricas() {
   }, []);
 
   useEffect(() => {
-    void carregar(periodo);
+    const temporizador = setTimeout(() => {
+      void carregar(periodo);
+    }, 0);
+    return () => clearTimeout(temporizador);
   }, [periodo, carregar]);
 
   useEffect(() => {
@@ -452,7 +460,10 @@ function PaginaMetricas() {
   );
 
   useEffect(() => {
-    void carregarPendentes(filtroDe || undefined, filtroAte || undefined);
+    const temporizador = setTimeout(() => {
+      void carregarPendentes(filtroDe || undefined, filtroAte || undefined);
+    }, 0);
+    return () => clearTimeout(temporizador);
   }, [filtroDe, filtroAte, carregarPendentes]);
 
   const alternarConcluida = async (a: AtividadePendente) => {
@@ -544,10 +555,10 @@ function PaginaMetricas() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="font-display text-2xl text-white flex items-center gap-2">
-                📊 Dashboard
+                <IconeGrafico className="w-6 h-6 text-pipe-lime" /> Dashboard
               </h1>
               <p className="text-sm text-pipe-muted mt-0.5">
-                Indicadores de prospecção, conversão e resultado · FP PIPE+
+                Indicadores de prospecção, conversão e resultado · FP Pipe
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -557,13 +568,13 @@ function PaginaMetricas() {
                     onClick={exportar.csv}
                     className="bg-pipe-card border border-pipe-border text-gray-200 px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-pipe-lime/50 transition"
                   >
-                    ⬇ CSV
+                    Exportar CSV
                   </button>
                   <button
                     onClick={exportar.pdf}
                     className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
                   >
-                    ⬇ PDF
+                    Exportar PDF
                   </button>
                 </>
               )}
@@ -671,7 +682,7 @@ function PaginaMetricas() {
                   </p>
                 ) : pendentes.length === 0 ? (
                   <p className="text-sm text-pipe-muted">
-                    Nenhuma atividade pendente. Aplicar uma cadência a um lead
+                    Nenhuma atividade pendente. Aplicar uma cadência a um contato
                     cria os próximos passos aqui.
                   </p>
                 ) : (
@@ -725,15 +736,15 @@ function PaginaMetricas() {
                           </Link>
                           <button
                             onClick={() => setEditando(a)}
-                            className="text-xs text-gray-200 font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
+                            className="inline-flex items-center gap-1.5 text-xs text-gray-200 font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
                           >
-                            ✏️ Editar
+                            <IconeEscrever className="w-4 h-4" /> Editar
                           </button>
                           <button
                             onClick={() => void alternarConcluida(a)}
-                            className="text-xs bg-pipe-lime text-pipe-bg font-bold px-2.5 py-1.5 rounded-lg hover:brightness-110 transition"
+                            className="inline-flex items-center gap-1.5 text-xs bg-pipe-lime text-pipe-bg font-bold px-2.5 py-1.5 rounded-lg hover:brightness-110 transition"
                           >
-                            ✓ Concluir
+                            <IconeVerificado className="w-4 h-4" /> Concluir
                           </button>
                         </div>
                       </div>
@@ -885,7 +896,7 @@ function PaginaMetricas() {
               {/* Geração por origem */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
                 <h2 className="font-display text-lg text-white mb-4">
-                  Geração de leads por origem
+                  Empresas geradas por origem
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {dados.geracao.empresasPorOrigem.map((g) => (
@@ -913,7 +924,7 @@ function PaginaMetricas() {
                 href="/crm"
                 className="inline-block mt-3 text-pipe-lime font-semibold text-sm hover:underline"
               >
-                → Ir para o CRM
+                Ir para o CRM
               </Link>
             </div>
           )}

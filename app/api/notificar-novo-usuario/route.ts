@@ -54,7 +54,7 @@ export async function POST() {
           body: JSON.stringify({
             from: "FP Pipe <avisos@fppipe.com.br>",
             to: [EMAIL_DONO],
-            subject: `🎉 Novo usuário no FP Pipe: ${emailUsuario}`,
+            subject: `Novo usuário no FP Pipe: ${emailUsuario}`,
             text: `Um novo usuário entrou na plataforma.\n\nE-mail: ${emailUsuario}\nPlano atual: ${acesso.def.nome}\nConta criada em: ${criadoEm}\n\nEste aviso dispara uma única vez por usuário.`,
           }),
           signal: AbortSignal.timeout(10000),

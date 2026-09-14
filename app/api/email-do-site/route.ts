@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           erro:
-            "A busca de e-mail pelo site faz parte dos planos 🌎 Internacionais.",
+            "Busca de e-mail pelo site faz parte dos planos Internacionais.",
           motivo: "plano_nacional",
         },
         { status: 403 }

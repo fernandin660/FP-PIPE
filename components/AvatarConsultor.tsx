@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 const mensagens = [
-  "👋 Fale com um consultor",
-  "💬 Tire suas dúvidas na hora",
-  "⭐ Plano Platinum · R$ 0,39 por lead pronto",
+  "Fale com um consultor",
+  "Tire suas dúvidas na hora",
+  "Plano Platinum · R$ 0,39 por contato pronto",
 ];
 
 const WHATSAPP = "https://wa.me/5516997700593?text=" +
@@ -57,7 +57,7 @@ export default function AvatarConsultor() {
             aria-label="Fechar mensagem"
             className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-pipe-card text-white text-xs leading-none border border-white/30 hover:bg-red-500 transition"
           >
-            ✕
+            ×
           </button>
 
           <p
@@ -73,7 +73,7 @@ export default function AvatarConsultor() {
             rel="noopener noreferrer"
             className="mt-2 block text-xs font-bold text-center text-black bg-pipe-lime hover:brightness-110 transition rounded-md py-1.5"
           >
-            Chamar no WhatsApp →
+            Chamar no WhatsApp
           </a>
         </div>
       )}
@@ -103,7 +103,7 @@ export default function AvatarConsultor() {
           onClick={() => setBolhaAberta((aberta) => !aberta)}
           className="text-[10px] font-semibold text-white bg-pipe-card/90 border border-pipe-border rounded-full px-2 py-0.5 hover:border-pipe-blue transition"
         >
-          {bolhaAberta ? "ocultar" : "fale comigo"}
+          {bolhaAberta ? "Ocultar" : "Fale comigo"}
         </button>
       </div>
     </div>

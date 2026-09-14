@@ -154,8 +154,8 @@ export async function registrarUso(api: string) {
 
     if (limite && chamadas === limite) {
       await enviarAviso(
-        `⚠️ FP Pipe: ${api} atingiu ${chamadas} chamadas em ${mes}`,
-        `A API "${api}" registrou ${chamadas} chamadas neste mês, chegando ao limite configurado (${limite}).\n\nO que fazer:\n- Conferir consumo no painel do provedor\n- Ajustar o limite no console /admin/uso (botão de lápis)\n- Considerar upgrade da conta no provedor\n\nEste e-mail é automático e só dispara uma vez por mês.`,
+        `FP Pipe: ${api} atingiu ${chamadas} chamadas em ${mes}`,
+        `A API "${api}" registrou ${chamadas} chamadas neste mês, chegando ao limite configurado (${limite}).\n\nO que fazer:\n- Conferir consumo no painel do provedor\n- Ajustar o limite no console /admin/uso\n- Considerar upgrade da conta no provedor\n\nEste e-mail é automático e só dispara uma vez por mês.`,
       );
     }
   } catch {
@@ -220,7 +220,7 @@ export async function verificarCreditosBaixos(orgId: string) {
       const nomeOrg = org?.nome ?? "Desconhecida";
 
       await enviarAviso(
-        `🚨 FP Pipe: ${label} baixo — ${nomeOrg}`,
+        `FP Pipe: ${label} baixo — ${nomeOrg}`,
         `A organização "${nomeOrg}" está com ${saldo} ${label.toLowerCase()} restante(s).\n\nTabela: ${tabela}\nSaldo: ${saldo}\n\nAção recomendada:\n- Verificar se o plano atual cobre a demanda\n- Considere upgrade em /planos\n- Verificar se há créditos extras disponíveis\n\nEste e-mail é automático e só dispara uma vez por mês por organização.`,
       );
 
@@ -308,13 +308,6 @@ export async function enviarUpsellCreditosEsgotados(
           <tr>
             <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:16px;padding:40px 36px;border:1px solid #2a2a4a;">
 
-              <!-- Ícone -->
-              <tr>
-                <td style="padding:0 0 24px;text-align:center;font-size:48px;">
-                  🚀
-                </td>
-              </tr>
-
               <tr>
                 <td>
                   <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
@@ -340,21 +333,21 @@ export async function enviarUpsellCreditosEsgotados(
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                     <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
                       <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
-                        <strong>Continuar prospectando</strong> — escolha um plano e volte a gerar listas em segundos
+                        <strong>Continuar prospectando</strong> — escolha um plano e volte a gerar listas
                       </td>
                     </tr>
                     <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
                       <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
                         <strong>Desbloquear contatos</strong> — e-mails e telefones verificados de decisores
                       </td>
                     </tr>
                     <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;font-size:18px;">✅</td>
+                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
                       <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
-                        <strong>IA trabalhando pra você</strong> — pontuação de aderência e e-mails personalizados
+                        <strong>Abordagens por empresa</strong> — primeira mensagem escrita para cada alvo, com score de aderência
                       </td>
                     </tr>
                   </table>
@@ -491,14 +484,13 @@ export async function enviarAvisoRenovacao(
               <!-- Ícone -->
               <tr>
                 <td style="padding:0 0 24px;text-align:center;font-size:48px;">
-                  ✅
                 </td>
               </tr>
 
               <tr>
                 <td>
                   <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
-                    Assinatura renovada!
+                    Assinatura renovada.
                   </h1>
                   <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;text-align:center;">
                     A assinatura <strong style="color:#7fff00;">${nomePlano}</strong> da <strong style="color:#7fff00;">${nomeOrg}</strong> foi renovada com sucesso.
@@ -564,7 +556,7 @@ export async function enviarAvisoRenovacao(
 </body>
 </html>`;
 
-    const textoFallback = `Assinatura renovada com sucesso!
+    const textoFallback = `Assinatura renovada.
 
 Plano: ${nomePlano} (${ciclo})
 Próxima cobrança: ${dataRenovacao}

@@ -19,6 +19,14 @@ import ModalPerfil, {
 import ModalAbordagem from "../../components/ModalAbordagem";
 import AdicionarAoCrmModal from "../../components/AdicionarAoCrmModal";
 
+import {
+  IconeEmail,
+  IconeEquipe,
+  IconeEscrever,
+  IconeTelefone,
+  IconeVerificado,
+} from "../../components/Icones";
+
 function montarPerfilVendedor(perfil: PerfilVendedor | null): string {
   if (!perfil?.nome_empresa && !perfil?.produtos_servicos) return "";
 
@@ -711,7 +719,7 @@ export default function PaginaListas() {
         const link = dados.linkedin;
         setEdicaoEmpresa((v) => ({ ...v, linkedin: link }));
         void salvarDadosEmpresa({ linkedin: link });
-        setAvisoLinkedin("✅ LinkedIn encontrado e salvo!");
+        setAvisoLinkedin("LinkedIn encontrado e salvo.");
       } else {
         setAvisoLinkedin(
           dados.mensagem ?? "Nenhum LinkedIn da empresa encontrado."
@@ -1157,7 +1165,7 @@ export default function PaginaListas() {
                             title="Salvar nome"
                             className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
                           >
-                            ✅
+                            <IconeVerificado tamanho={16} />
                           </button>
 
                           <button
@@ -1165,7 +1173,7 @@ export default function PaginaListas() {
                             title="Cancelar"
                             className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
                           >
-                            ✕
+                            ×
                           </button>
                         </div>
                       ) : (
@@ -1173,7 +1181,7 @@ export default function PaginaListas() {
                           {lista.nome}
                           {campanhasPorLista[lista.id] === "enviada" && (
                             <span className="text-[10px] rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1 font-semibold">
-                              ✅ Campanha concluída
+                              Campanha concluída
                             </span>
                           )}
 
@@ -1185,7 +1193,7 @@ export default function PaginaListas() {
                             title="Renomear lista"
                             className="text-xs opacity-40 hover:opacity-100 transition"
                           >
-                            ✏️
+                            <IconeEscrever tamanho={16} />
                           </button>
                         </h2>
                       )}
@@ -1224,7 +1232,7 @@ export default function PaginaListas() {
                           title="Adicionar as empresas desta lista ao CRM"
                           className="border border-pipe-blue/40 text-pipe-blue text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-blue/10 transition whitespace-nowrap"
                         >
-                          📥 CRM
+                          Adicionar ao CRM
                         </button>
                       )}
                       <button
@@ -1232,7 +1240,7 @@ export default function PaginaListas() {
                         title="Apagar esta lista"
                         className="border border-red-500/30 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                       >
-                        🗑️
+                        Apagar
                       </button>
 
                       {empresas.length > 0 && (
@@ -1240,7 +1248,7 @@ export default function PaginaListas() {
                           onClick={() => void exportarLista(lista)}
                           className="border border-pipe-border text-gray-300 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                         >
-                          ⬇️ CSV
+                          Exportar CSV
                         </button>
                       )}
 
@@ -1275,11 +1283,11 @@ export default function PaginaListas() {
                                     ["todos", `Todos (${empresas.length})`],
                                     [
                                       "com",
-                                      `✅ Com contato (${nComContato})`,
+                                      `Com contato (${nComContato})`,
                                     ],
                                     [
                                       "sem",
-                                      `⚪ Sem contato (${
+                                      `Sem contato (${
                                         empresas.length - nComContato
                                       })`,
                                     ],
@@ -1344,7 +1352,7 @@ export default function PaginaListas() {
                                   "Sem nome"}
                                 {empresa.confirmado ? (
                                   <span className="ml-2 text-[10px] font-bold text-pipe-lime">
-                                    ✔️ Confirmado
+                                    Confirmado
                                   </span>
                                 ) : null}
                                 {temContato(empresa) ? (
@@ -1352,7 +1360,7 @@ export default function PaginaListas() {
                                     className="ml-2 text-[10px] font-bold text-pipe-lime"
                                     title="Este lead já tem e-mail, telefone ou LinkedIn registrado"
                                   >
-                                    ✅ Contato
+                                    Contato
                                   </span>
                                 ) : null}
                               </button>
@@ -1365,10 +1373,10 @@ export default function PaginaListas() {
                                   .filter(Boolean)
                                   .join(", ") || "Brasil"}
                                 {empresa.decisor_nome
-                                  ? ` · 👤 ${empresa.decisor_nome}`
+                                  ? ` · ${empresa.decisor_nome}`
                                   : ""}
                                 {empresa.campeao_cargo
-                                  ? ` · 🎯 ${empresa.campeao_cargo}`
+                                  ? ` · ${empresa.campeao_cargo}`
                                   : ""}
                               </p>
                             </div>
@@ -1421,14 +1429,14 @@ export default function PaginaListas() {
 
                   {empresaDetalhe.confirmado ? (
                     <span className="text-[11px] font-bold text-pipe-lime">
-                      ✔️ Confirmado
+                      Confirmado
                     </span>
                   ) : null}
 
                   <span className="text-[11px] text-pipe-muted">
                     {empresaDetalhe.origem === "manual"
-                      ? "📌 Lead manual"
-                      : "🔎 Busca automática"}
+                      ? "Lead manual"
+                      : "Busca automática"}
                   </span>
                 </div>
               </div>
@@ -1438,7 +1446,7 @@ export default function PaginaListas() {
                 className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
                 title="Fechar (Esc)"
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -1545,7 +1553,7 @@ export default function PaginaListas() {
                       href={`tel:${empresaDetalhe.telefone.replace(/\D/g, "")}`}
                       className="text-pipe-blue hover:underline"
                     >
-                      📞 {empresaDetalhe.telefone}
+                      <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.telefone}
                     </a>
                   ) : (
                     <span className="text-pipe-muted text-xs">
@@ -1558,7 +1566,7 @@ export default function PaginaListas() {
                       href={`mailto:${empresaDetalhe.email}`}
                       className="text-pipe-blue hover:underline break-all"
                     >
-                      ✉ {empresaDetalhe.email}
+                      <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.email}
                     </a>
                   ) : null}
 
@@ -1569,7 +1577,7 @@ export default function PaginaListas() {
                       rel="noopener noreferrer"
                       className="text-pipe-blue hover:underline break-all"
                     >
-                      🔗 LinkedIn da empresa →
+                      LinkedIn da empresa →
                     </a>
                   ) : (
                     <div>
@@ -1583,8 +1591,8 @@ export default function PaginaListas() {
                         title="Busca o LinkedIn da empresa no Google e salva automaticamente (1 crédito)"
                       >
                         {buscandoLinkedin
-                          ? "🔎 Buscando LinkedIn..."
-                          : "🔍 Achar LinkedIn da empresa (1 crédito)"}
+                          ? "Buscando LinkedIn..."
+                          : "Achar LinkedIn da empresa (1 crédito)"}
                       </button>
 
                       {avisoLinkedin && (
@@ -1604,7 +1612,7 @@ export default function PaginaListas() {
                 empresaDetalhe.aprovador_email) && (
                 <section className="border-t border-pipe-border pt-4">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                    👤 Aprovador
+                    Aprovador
                   </p>
 
                   <div className="flex flex-col gap-1.5 text-sm">
@@ -1622,7 +1630,7 @@ export default function PaginaListas() {
                         rel="noopener noreferrer"
                         className="text-pipe-blue hover:underline"
                       >
-                        🔗 Perfil no LinkedIn →
+                        Perfil no LinkedIn →
                       </a>
                     ) : (
                       <a
@@ -1637,7 +1645,7 @@ export default function PaginaListas() {
                         rel="noopener noreferrer"
                         className="text-pipe-blue hover:underline"
                       >
-                        🔎 Buscar no LinkedIn →
+                        Buscar no LinkedIn →
                       </a>
                     )}
 
@@ -1646,7 +1654,7 @@ export default function PaginaListas() {
                         href={`tel:${empresaDetalhe.aprovador_telefone.replace(/\D/g, "")}`}
                         className="text-pipe-blue hover:underline"
                       >
-                        📞 {empresaDetalhe.aprovador_telefone}
+                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.aprovador_telefone}
                       </a>
                     ) : null}
 
@@ -1655,7 +1663,7 @@ export default function PaginaListas() {
                         href={`mailto:${empresaDetalhe.aprovador_email}`}
                         className="text-pipe-blue hover:underline break-all"
                       >
-                        ✉ {empresaDetalhe.aprovador_email}
+                        <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.aprovador_email}
                       </a>
                     ) : null}
                   </div>
@@ -1669,7 +1677,7 @@ export default function PaginaListas() {
                 empresaDetalhe.campeao_email) && (
                 <section className="border-t border-pipe-border pt-4">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                    🎯 Influenciador (quem recebe sua proposta)
+                    Influenciador (quem recebe sua proposta)
                   </p>
 
                   <div className="flex flex-col gap-1.5 text-sm">
@@ -1686,7 +1694,7 @@ export default function PaginaListas() {
                         rel="noopener noreferrer"
                         className="text-pipe-blue hover:underline"
                       >
-                        🔗 Perfil no LinkedIn →
+                        Perfil no LinkedIn →
                       </a>
                     ) : null}
 
@@ -1695,7 +1703,7 @@ export default function PaginaListas() {
                         href={`tel:${empresaDetalhe.campeao_telefone.replace(/\D/g, "")}`}
                         className="text-pipe-blue hover:underline"
                       >
-                        📞 {empresaDetalhe.campeao_telefone}
+                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.campeao_telefone}
                       </a>
                     ) : null}
 
@@ -1704,7 +1712,7 @@ export default function PaginaListas() {
                         href={`mailto:${empresaDetalhe.campeao_email}`}
                         className="text-pipe-blue hover:underline break-all"
                       >
-                        ✉ {empresaDetalhe.campeao_email}
+                        <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {empresaDetalhe.campeao_email}
                       </a>
                     ) : null}
                   </div>
@@ -1713,13 +1721,13 @@ export default function PaginaListas() {
 
               <section className="border-t border-pipe-border pt-4">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue mb-2">
-                  🤖 Abordagem com IA
+                  Abordagem
                 </p>
 
                 {!listaIcpResumo && (
                   <div className="mb-3 bg-amber-500/5 border border-amber-500/30 rounded-lg p-3">
                     <p className="text-xs text-amber-300 font-semibold mb-1.5">
-                      ⚠️ Esta lista foi criada antes de guardarmos o que sua
+                      Esta lista foi criada antes de guardarmos o que sua
                       empresa vende — complete abaixo para abordagens mais
                       precisas.
                     </p>
@@ -1739,7 +1747,7 @@ export default function PaginaListas() {
                     >
                       {salvandoPerfil
                         ? "Salvando..."
-                        : "💾 Salvar nesta lista"}
+                        : "Salvar nesta lista"}
                     </button>
                   </div>
                 )}
@@ -1748,7 +1756,7 @@ export default function PaginaListas() {
                   onClick={() => setModalAbordagemAberto(true)}
                   className="w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
                 >
-                  🤖 Gerar abordagem com IA
+                  Gerar abordagem
                 </button>
 
                 <p className="mt-2 text-[11px] text-pipe-muted">
@@ -1760,7 +1768,7 @@ export default function PaginaListas() {
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
-                    🏢 Contato institucional da empresa
+                    Contato institucional da empresa
                   </p>
 
                   <div className="flex items-center gap-2">
@@ -1771,7 +1779,7 @@ export default function PaginaListas() {
                     >
                       {buscandoReceita
                         ? "Buscando..."
-                        : "🔍 Receita Federal"}
+                        : "Receita Federal"}
                     </button>
 
                     <button
@@ -1779,7 +1787,7 @@ export default function PaginaListas() {
                       disabled={buscandoMaps}
                       className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
                     >
-                      {buscandoMaps ? "Buscando..." : "🗺️ Google Maps"}
+                      {buscandoMaps ? "Buscando..." : "Google Maps"}
                     </button>
                   </div>
                 </div>
@@ -1799,11 +1807,11 @@ export default function PaginaListas() {
                         href={`mailto:${mail}`}
                         className="block text-pipe-lime hover:underline break-all"
                       >
-                        ✉️ {mail}
+                        <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {mail}
                       </a>
                     ))
                   ) : (
-                    <p className="text-pipe-muted">✉️ —</p>
+                    <p className="text-pipe-muted">—</p>
                   )}
 
                   {empresaContato.telefones.length > 0 ? (
@@ -1813,11 +1821,11 @@ export default function PaginaListas() {
                         href={`tel:${tel.replace(/[^\d+]/g, "")}`}
                         className="block text-white hover:text-pipe-lime"
                       >
-                        📞 {tel}
+                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
                       </a>
                     ))
                   ) : (
-                    <p className="text-pipe-muted">📞 —</p>
+                    <p className="text-pipe-muted">—</p>
                   )}
                 </div>
               </section>
@@ -1825,7 +1833,7 @@ export default function PaginaListas() {
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
-                    🏢 Dados da empresa (editáveis)
+                    Dados da empresa (editáveis)
                   </p>
 
                   <button
@@ -1837,7 +1845,7 @@ export default function PaginaListas() {
                     }
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
                   >
-                    {edicaoEmpresa.aberto ? "✕ Fechar" : "✏️ Editar"}
+                    {edicaoEmpresa.aberto ? "Fechar" : "Editar"}
                   </button>
                 </div>
 
@@ -1939,8 +1947,8 @@ export default function PaginaListas() {
                         title="Busca o LinkedIn da empresa no Google e salva automaticamente"
                       >
                         {buscandoLinkedin
-                          ? "🔎 Buscando..."
-                          : "🔍 Achar LinkedIn no Google (1 crédito)"}
+                          ? "Buscando..."
+                          : "Achar LinkedIn no Google (1 crédito)"}
                       </button>
 
                       <button
@@ -1951,8 +1959,8 @@ export default function PaginaListas() {
                         {salvandoEmpresa
                           ? "Salvando..."
                           : empresaSalva
-                            ? "✅ Salvo!"
-                            : "💾 Salvar dados da empresa"}
+                            ? "Salvo."
+                            : "Salvar dados da empresa"}
                       </button>
                     </div>
 
@@ -1968,7 +1976,7 @@ export default function PaginaListas() {
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
-                    👤 Contato do lead (editável)
+                    Contato do lead (editável)
                   </p>
 
                   <button
@@ -1979,8 +1987,8 @@ export default function PaginaListas() {
                     {salvandoLead
                       ? "Salvando..."
                       : leadSalvo
-                        ? "✅ Salvo!"
-                        : "💾 Salvar dados do lead"}
+                        ? "Salvo."
+                        : "Salvar dados do lead"}
                   </button>
                 </div>
 
@@ -2045,7 +2053,7 @@ export default function PaginaListas() {
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
-                    👥 Contatos deste lead ({contatosLead.length})
+                    <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contatos deste lead ({contatosLead.length})
                   </p>
 
                   <button
@@ -2054,7 +2062,7 @@ export default function PaginaListas() {
                     }
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
                   >
-                    {formContato.aberto ? "✕ Cancelar" : "＋ Adicionar contato"}
+                    {formContato.aberto ? "Cancelar" : "Adicionar contato"}
                   </button>
                 </div>
 
@@ -2131,7 +2139,7 @@ export default function PaginaListas() {
                     >
                       {salvandoContato
                         ? "Salvando..."
-                        : "💾 Salvar contato"}
+                        : "Salvar contato"}
                     </button>
                   </div>
                 )}
@@ -2185,7 +2193,7 @@ export default function PaginaListas() {
 
                             {(c.telefones?.length ?? 0) > 0 && (
                               <p className="mt-0.5 text-xs text-pipe-muted">
-                                📞{" "}
+                                <IconeTelefone tamanho={13} className="inline mr-1 -mt-0.5" />{" "}
                                 {c.telefones?.map((t, i) => (
                                   <span key={`${c.id}-t-${i}`}>
                                     {i > 0 && " · "}
@@ -2217,7 +2225,7 @@ export default function PaginaListas() {
                             title="Remover contato"
                             className="shrink-0 w-7 h-7 rounded-lg text-pipe-muted hover:text-red-400 hover:bg-red-500/10 transition"
                           >
-                            🗑
+                            ×
                           </button>
                         </div>
                       </li>
@@ -2234,7 +2242,7 @@ export default function PaginaListas() {
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <h3 className="font-bold text-lg text-white">
-              ⚠️ {conflitoContato.campo} já atribuído a outro lead
+              {conflitoContato.campo} já atribuído a outro lead
             </h3>
 
             <p className="text-sm text-pipe-muted leading-relaxed">
@@ -2261,7 +2269,7 @@ export default function PaginaListas() {
                 onClick={() => void duplicarContatoConflito()}
                 className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-200 hover:bg-pipe-dark transition"
               >
-                📄 Duplicar aqui
+                Duplicar aqui
               </button>
 
               <button

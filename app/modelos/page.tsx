@@ -6,18 +6,28 @@ import Link from "next/link";
 
 import { criarClienteSupabase } from "../../lib/supabase/client";
 import Sidebar from "../../components/Sidebar";
+import {
+  IconeCopiar,
+  IconeEmail,
+  IconeEnviar,
+  IconeEscrever,
+  IconeEstrela,
+  IconeLista,
+  IconeTelefone,
+  IconeVerificado,
+} from "../../components/Icones";
 import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 
 const TIPOS_ATIVIDADE: Record<string, string> = {
-  email: "✉️ E-mail",
-  telefone: "📞 Telefone",
-  whatsapp: "💬 WhatsApp",
-  linkedin: "💼 LinkedIn",
-  reuniao: "🤝 Reunião",
-  tarefa: "📌 Tarefa",
-  observacao: "📝 Observação",
+  email: "E-mail",
+  telefone: "Telefone",
+  whatsapp: "WhatsApp",
+  linkedin: "LinkedIn",
+  reuniao: "Reunião",
+  tarefa: "Tarefa",
+  observacao: "Observação",
 };
 
 type ModeloSalvo = {
@@ -33,11 +43,20 @@ type ModeloSalvo = {
 };
 
 const ICONE_CANAL: Record<string, string> = {
-  email: "✉️ E-mail",
-  linkedin: "💼 LinkedIn",
-  whatsapp: "💬 WhatsApp",
-  ligacao: "📞 Ligação",
+  email: "E-mail",
+  linkedin: "LinkedIn",
+  whatsapp: "WhatsApp",
+  ligacao: "Ligação",
 };
+
+function CanalComIcone({ canal }: { canal: string }) {
+  const cls = "w-3.5 h-3.5";
+  if (canal === "email") return <IconeEmail className={cls} />;
+  if (canal === "whatsapp") return <IconeEnviar className={cls} />;
+  if (canal === "ligacao" || canal === "telefone")
+    return <IconeTelefone className={cls} />;
+  return null;
+}
 
 type EtapaCadencia = {
   tipo_atividade: string;
@@ -169,7 +188,11 @@ export default function PaginaModelos() {
   };
 
   useEffect(() => {
-    if (aba === "cadencias") void carregarCadencias();
+    if (aba !== "cadencias") return;
+    const temporizador = setTimeout(() => {
+      void carregarCadencias();
+    }, 0);
+    return () => clearTimeout(temporizador);
   }, [aba]);
 
   const abrirNovaCadencia = () => {
@@ -292,7 +315,7 @@ export default function PaginaModelos() {
             </Link>
           </div>
 
-          <h1 className="font-display text-5xl text-white mt-10">Modelos/Cadências</h1>
+          <h1 className="font-display text-5xl text-white mt-10">Modelos e cadências</h1>
 
           <div className="mt-6 flex items-center gap-2 border border-pipe-border rounded-xl p-1 bg-pipe-card w-fit">
             <button
@@ -303,7 +326,10 @@ export default function PaginaModelos() {
                   : "text-gray-300 hover:bg-pipe-dark"
               }`}
             >
-              ⭐ Modelos de mensagem
+              <span className="inline-flex items-center gap-2">
+                <IconeEstrela className="w-4 h-4" />
+                Modelos de mensagem
+              </span>
             </button>
             <button
               onClick={() => setAba("cadencias")}
@@ -313,7 +339,10 @@ export default function PaginaModelos() {
                   : "text-gray-300 hover:bg-pipe-dark"
               }`}
             >
-              🔁 Cadências
+              <span className="inline-flex items-center gap-2">
+                <IconeLista className="w-4 h-4" />
+                Cadências
+              </span>
             </button>
           </div>
 
@@ -321,13 +350,13 @@ export default function PaginaModelos() {
             <>
           <p className="text-pipe-muted mt-8 max-w-2xl">
             Suas abordagens salvas como modelo. Consulte, copie e reutilize o
-            que funciona — a qualquer momento. ⭐
+            que funciona quando precisar.
           </p>
 
           {!carregando && modelos.length === 0 && (
             <p className="text-center text-pipe-muted mt-16">
               Nenhum modelo ainda. Gere uma abordagem e clique em{" "}
-              <span className="text-amber-400">⭐ Salvar como modelo</span> pra
+              <span className="text-amber-400">Salvar como modelo</span> para
               guardá-la aqui.
             </p>
           )}
@@ -341,10 +370,14 @@ export default function PaginaModelos() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
                     <p className="font-bold text-white truncate">
-                      ⭐ {modelo.nome}
+                      <IconeEstrela className="w-4 h-4 text-pipe-lime inline-block mr-1.5 align-[-2px]" />
+                      {modelo.nome}
                     </p>
                     <p className="text-xs text-pipe-muted mt-1">
-                      {ICONE_CANAL[modelo.canal] ?? modelo.canal}
+                      <span className="inline-flex items-center gap-1.5">
+                        <CanalComIcone canal={modelo.canal} />
+                        {ICONE_CANAL[modelo.canal] ?? modelo.canal}
+                      </span>
                       {" · "}
                       {new Date(modelo.criado_em).toLocaleDateString("pt-BR")}
                     </p>
@@ -355,7 +388,17 @@ export default function PaginaModelos() {
                       onClick={() => copiarModelo(modelo)}
                       className="text-xs font-semibold bg-pipe-lime text-black px-3 py-2 rounded-lg hover:opacity-90 transition"
                     >
-                      {copiadoId === modelo.id ? "✅ Copiado!" : "📋 Copiar"}
+                      <span className="inline-flex items-center gap-1.5">
+                      {copiadoId === modelo.id ? (
+                        <>
+                          <IconeVerificado className="w-4 h-4" /> Copiado
+                        </>
+                      ) : (
+                        <>
+                          <IconeCopiar className="w-4 h-4" /> Copiar
+                        </>
+                      )}
+                    </span>
                     </button>
 
                     <button
@@ -372,7 +415,7 @@ export default function PaginaModelos() {
                       title="Excluir modelo"
                       className="text-xs font-semibold border border-red-500/30 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                     >
-                      🗑
+                      Excluir
                     </button>
                   </div>
                 </div>
@@ -442,7 +485,8 @@ export default function PaginaModelos() {
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="min-w-0">
                           <p className="font-bold text-white truncate">
-                            🔁 {c.nome}
+                            <IconeLista className="w-4 h-4 text-pipe-lime inline-block mr-1.5 align-[-2px]" />
+                            {c.nome}
                           </p>
                           <p className="text-xs text-pipe-muted mt-1">
                             {c.etapas.length}{" "}
@@ -461,14 +505,16 @@ export default function PaginaModelos() {
                             onClick={() => abrirEdicaoCadencia(c)}
                             className="text-xs font-semibold border border-pipe-border text-gray-300 px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                           >
-                            ✏️ Editar
+                            <span className="inline-flex items-center gap-1.5">
+                            <IconeEscrever className="w-4 h-4" /> Editar
+                          </span>
                           </button>
                           <button
                             onClick={() => excluirCadencia(c)}
                             title="Excluir cadência"
                             className="text-xs font-semibold border border-red-500/30 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                           >
-                            🗑
+                            Excluir
                           </button>
                         </div>
                       </div>
@@ -518,7 +564,7 @@ export default function PaginaModelos() {
                 onClick={() => setModalCadencia(false)}
                 className="text-gray-400 hover:text-white text-xl"
               >
-                ✕
+                ×
               </button>
             </div>
 

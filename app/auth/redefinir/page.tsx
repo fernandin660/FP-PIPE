@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { criarClienteSupabase } from "../../../lib/supabase/client";
 import { validarSenhaForca } from "../../../lib/senhas";
+import { IconeCadeado, IconeVerificado } from "../../../components/Icones";
 
 export default function PaginaRedefinir() {
   const router = useRouter();
@@ -77,7 +78,9 @@ export default function PaginaRedefinir() {
           </p>
         ) : linkInvalido ? (
           <div className="text-center space-y-4">
-            <p className="text-4xl">⚠️</p>
+            <p className="flex justify-center">
+              <IconeCadeado tamanho={40} className="text-amber-400" />
+            </p>
             <h1 className="font-display text-2xl text-white">
               Link inválido ou expirado
             </h1>
@@ -93,9 +96,11 @@ export default function PaginaRedefinir() {
           </div>
         ) : concluido ? (
           <div className="text-center space-y-4">
-            <p className="text-4xl">✅</p>
+            <p className="flex justify-center">
+              <IconeVerificado tamanho={44} className="text-pipe-lime" />
+            </p>
             <h1 className="font-display text-2xl text-white">
-              Senha alterada!
+              Senha alterada.
             </h1>
             <p className="text-pipe-muted text-sm">
               Sua nova senha já está ativa.
@@ -104,7 +109,7 @@ export default function PaginaRedefinir() {
               onClick={() => router.push("/prospeccao")}
               className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 transition"
             >
-              Ir para o sistema →
+              Ir para o sistema
             </button>
           </div>
         ) : (
@@ -144,7 +149,7 @@ export default function PaginaRedefinir() {
                 disabled={carregando}
                 className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
               >
-                {carregando ? "Salvando..." : "Salvar nova senha →"}
+                {carregando ? "Salvando..." : "Salvar"}
               </button>
             </form>
           </>

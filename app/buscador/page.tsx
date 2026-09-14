@@ -12,6 +12,17 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 
+import {
+  IconeAlvo,
+  IconeCadeado,
+  IconeCopiar,
+  IconeEmail,
+  IconeEmpresa,
+  IconeEquipe,
+  IconeSetaExterna,
+  IconeTelefone,
+} from "../../components/Icones";
+
 type ContatoEncontrado = {
   id?: string;
   company_id?: string | null;
@@ -103,7 +114,7 @@ function AtribuirLead({
             : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
         }`}
       >
-        {concluido ? `📎 ${concluido}` : "📎 Adicionar a lead existente"}
+        {concluido ? concluido : "Adicionar a lead existente"}
       </button>
 
       {aberto && (
@@ -130,7 +141,7 @@ function AtribuirLead({
                     "Lead sem nome"}
                   {empresa.decisor_nome && (
                     <span className="block text-pipe-muted">
-                      👤 {empresa.decisor_nome}
+                      <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.decisor_nome}
                       {empresa.decisor_cargo
                         ? ` · ${empresa.decisor_cargo}`
                         : ""}
@@ -251,7 +262,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime inline-block"
           title="Lead criado — abrir Minhas listas"
         >
-          🏢 {feito} ↗
+          {feito} ↗
         </a>
       </div>
     );
@@ -264,7 +275,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
         title="Criar um lead novo no banco com esta empresa e este contato"
         className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
       >
-        🏢 Cadastrar como lead
+        Cadastrar como lead
       </button>
 
       {aberto && (
@@ -338,7 +349,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
           >
             {enviando
               ? "Buscando CNPJ e criando lead..."
-              : "✅ Confirmar cadastro"}
+              : "Confirmar cadastro"}
           </button>
         </div>
       )}
@@ -1131,14 +1142,14 @@ function BuscadorContent() {
 
             {saldoContatos !== null && (
               <p className="text-pipe-muted text-sm">
-                🔎 E-mails:{" "}
+                E-mails:{" "}
                 <span className="text-pipe-lime font-bold">{saldoContatos}</span>
               </p>
             )}
 
             {saldoTelefones !== null && saldoTelefones > 0 && (
               <p className="text-pipe-muted text-sm">
-                📞 Telefones:{" "}
+                Telefones:{" "}
                 <span className="text-pipe-lime font-bold">{saldoTelefones}</span>
                 <span className="text-[10px] text-pipe-muted ml-1">
                   ({saldoTelefones} disponíveis)
@@ -1175,7 +1186,7 @@ function BuscadorContent() {
                   disabled={buscandoEmpresaFicha || termoBusca.length < 2}
                   className="bg-pipe-lime text-black font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
                 >
-                  {buscandoEmpresaFicha ? "🔍 Buscando..." : "🔎 Buscar empresa"}
+                  {buscandoEmpresaFicha ? "Buscando..." : "Buscar empresa"}
                 </button>
               </div>
             </div>
@@ -1189,7 +1200,7 @@ function BuscadorContent() {
             <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">CNPJ (opcional)</label>
             <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" inputMode="numeric" value={cnpjPessoa} onChange={(e) => setCnpjPessoa(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); } }} placeholder="CNPJ (ex: 03.001.329/0001-65)" className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue" disabled={buscandoEmpresaFicha} />
-            <button onClick={() => { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); }} disabled={buscandoEmpresaFicha || cnpjPessoa.trim().length < 13} className="bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap">🔍 Buscar por CNPJ</button>
+            <button onClick={() => { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); }} disabled={buscandoEmpresaFicha || cnpjPessoa.trim().length < 13} className="bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap">Buscar por CNPJ</button>
             </div>
             </div>
           </div>
@@ -1199,10 +1210,10 @@ function BuscadorContent() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">🏢</span>
+                    <IconeEmpresa tamanho={28} className="inline" />
                     <h2 className="font-display text-xl text-white">{fichaEmpresa.nome}</h2>
                     <span className="text-[10px] text-pipe-muted bg-pipe-dark px-2 py-0.5 rounded-full">
-                      {fichaEmpresa.origem === "banco" ? "📋 Seus dados" : "🌐 Web"}
+                      {fichaEmpresa.origem === "banco" ? "Seus dados" : "Web"}
                     </span>
                   </div>
                   {fichaEmpresa.razao_social && fichaEmpresa.razao_social !== fichaEmpresa.nome && (
@@ -1220,13 +1231,13 @@ function BuscadorContent() {
                 )}
                 {fichaEmpresa.endereco && (
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-pipe-muted">📍</span>
+                    <span className="text-pipe-muted"><IconeAlvo tamanho={16} className="inline" /></span>
                     <span className="text-white">{fichaEmpresa.endereco}</span>
                   </div>
                 )}
                 {fichaEmpresa.website && (
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-pipe-muted">🌐</span>
+                    <span className="text-pipe-muted"><IconeSetaExterna tamanho={16} className="inline" /></span>
                     <a href={fichaEmpresa.website} target="_blank" rel="noopener noreferrer" className="text-pipe-lime hover:underline">
                       {fichaEmpresa.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                     </a>
@@ -1234,7 +1245,7 @@ function BuscadorContent() {
                 )}
                 {fichaEmpresa.linkedin_url && (
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-pipe-muted">💼</span>
+                    <span className="text-pipe-muted"><IconeEmpresa tamanho={16} className="inline" /></span>
                     <a href={fichaEmpresa.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                       LinkedIn da empresa
                     </a>
@@ -1248,9 +1259,9 @@ function BuscadorContent() {
                   <div className="space-y-1">
                     {[...(fichaEmpresa.telefones_empresa ?? []), ...(fichaEmpresa.telefone_empresa && !(fichaEmpresa.telefones_empresa ?? []).includes(fichaEmpresa.telefone_empresa) ? [fichaEmpresa.telefone_empresa] : [])].map((telefone) => (
                       <div key={telefone} className="flex items-center gap-2">
-                        <a href={`tel:${telefone}`} className="text-pipe-lime font-semibold hover:underline text-sm">📞 {telefone}</a>
+                        <a href={`tel:${telefone}`} className="text-pipe-lime font-semibold hover:underline text-sm"><IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {telefone}</a>
                         <span className="text-[10px] text-pipe-muted">Grátis</span>
-                        <button onClick={async () => { await navigator.clipboard.writeText(telefone); }} className="text-xs text-pipe-muted hover:text-white transition" title="Copiar">📋</button>
+                        <button onClick={async () => { await navigator.clipboard.writeText(telefone); }} className="text-xs text-pipe-muted hover:text-white transition" title="Copiar"><IconeCopiar tamanho={16} /></button>
                       </div>
                     ))}
                   </div>
@@ -1271,12 +1282,12 @@ function BuscadorContent() {
                           className="text-xs text-pipe-muted hover:text-white transition"
                           title="Copiar"
                         >
-                          📋
+                          <IconeCopiar tamanho={16} />
                         </button>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ E-mails genéricos — confira antes de usar</p>
+                  <p className="text-[10px] text-pipe-muted mt-1 italic">E-mails genéricos, confira antes de usar.</p>
                 </div>
               )}
 
@@ -1288,7 +1299,7 @@ function BuscadorContent() {
 
               <div className="border-t border-pipe-border pt-4">
                 <p className="text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-3">
-                  👤 Buscar contato pessoa
+                  <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Buscar contato pessoa
                 </p>
 <p className="text-[11px] text-pipe-muted mb-3">
                   Informe o nome da pessoa. O LinkedIn é opcional (melhora a precisão)
@@ -1324,7 +1335,7 @@ function BuscadorContent() {
                   disabled={buscandoPessoa}
                   className="mt-3 bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
                 >
-                   {buscandoPessoa ? "🔍 Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "📞 Buscar pessoa (1 créd)" : "📞 Buscar pessoa (grátis se não achar tel.)"}
+                   {buscandoPessoa ? "Buscando..." : saldoTelefones !== null && saldoTelefones > 0 ? "Buscar pessoa (1 crédito)" : "Buscar pessoa (grátis se não achar telefone)"}
                 </button>
 
                 {erroPessoa && (
@@ -1356,25 +1367,25 @@ function BuscadorContent() {
                           <div className="flex items-center gap-3 mt-2 flex-wrap">
                             {resultadoPessoa.matchScore !== null && resultadoPessoa.matchScore !== undefined && (
                               <span className={`text-xs font-semibold rounded px-1.5 py-0.5 ${resultadoPessoa.matchScore >= 70 ? "text-green-300 bg-green-500/15" : resultadoPessoa.matchScore >= 50 ? "text-yellow-300 bg-yellow-500/15" : "text-gray-300 bg-gray-500/15"}`}>
-                                🎯 ICP {resultadoPessoa.matchScore}%
+                                ICP {resultadoPessoa.matchScore}%
                               </span>
                             )}
                             {fichaEmpresa?.telefone_empresa && (
-                              <span className="text-xs text-pipe-muted">📞 empresa</span>
+                              <span className="text-xs text-pipe-muted">empresa</span>
                             )}
                             {resultadoPessoa.telefones.length > 0 && (
                               <span className="text-xs text-pipe-lime font-semibold">
-                                📞 pessoal ({resultadoPessoa.telefones.length})
+                                pessoal ({resultadoPessoa.telefones.length})
                               </span>
                             )}
                             {!!(resultadoPessoa.emails.length > 0 || fichaEmpresa?.emails_genericos?.length) && (
                               <span className="text-xs text-pipe-lime font-semibold">
-                                ✉️ {resultadoPessoa.emails.length + (fichaEmpresa?.emails_genericos?.length ?? 0)} e-mail(s)
+                                <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {resultadoPessoa.emails.length + (fichaEmpresa?.emails_genericos?.length ?? 0)} e-mail(s)
                               </span>
                             )}
                             {resultadoPessoa.id && (
                               <span className="text-[10px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded px-1.5 py-0.5">
-                                ✅ Salvo
+                                Salvo
                               </span>
                             )}
                           </div>
@@ -1420,7 +1431,7 @@ function BuscadorContent() {
                               onClick={() => setDrawerPessoa(false)}
                               className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
                             >
-                              ✕
+                              ×
                             </button>
                           </div>
 
@@ -1428,7 +1439,7 @@ function BuscadorContent() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {resultadoPessoa.id && (
                                 <span className="text-[11px] text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-lg px-2.5 py-1 font-semibold">
-                                  ✅ Salvo nos contatos
+                                  Salvo nos contatos
                                 </span>
                               )}
                               {resultadoPessoa.id ? (
@@ -1462,13 +1473,13 @@ function BuscadorContent() {
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline"
                               >
-                                💼 Abrir LinkedIn
+                                Abrir LinkedIn
                               </a>
                             )}
 
                             <section>
                               <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                                🏢 Empresa
+                                Empresa
                               </p>
                               <dl className="space-y-1.5 text-sm">
                                 {resultadoPessoa.empresaDetalhes?.cnpj && (
@@ -1515,32 +1526,32 @@ function BuscadorContent() {
                             {!!(resultadoPessoa.empresaDetalhes?.telefone_empresa || resultadoPessoa.empresaDetalhes?.emails_genericos?.length) && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                                  📞 Contato da empresa (grátis)
+                                  Contato da empresa (grátis)
                                 </p>
                                 <div className="space-y-1.5 text-sm">
                                   {resultadoPessoa.empresaDetalhes?.telefone_empresa && (
                                     <div className="flex items-center gap-2">
                                       <a href={`tel:${resultadoPessoa.empresaDetalhes.telefone_empresa}`} className="text-pipe-lime font-semibold hover:underline">
-                                        📞 {resultadoPessoa.empresaDetalhes.telefone_empresa}
+                                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {resultadoPessoa.empresaDetalhes.telefone_empresa}
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(resultadoPessoa.empresaDetalhes!.telefone_empresa!); }}
                                         className="text-xs text-pipe-muted hover:text-white transition"
                                       >
-                                        📋
+                                        <IconeCopiar tamanho={16} />
                                       </button>
                                     </div>
                                   )}
                                   {resultadoPessoa.empresaDetalhes?.emails_genericos?.map((email) => (
                                     <div key={email} className="flex items-center gap-2">
                                       <a href={`mailto:${email}`} className="text-pipe-lime hover:underline break-all">
-                                        ✉️ {email}
+                                        <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {email}
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(email); }}
                                         className="text-xs text-pipe-muted hover:text-white transition shrink-0"
                                       >
-                                        📋
+                                        <IconeCopiar tamanho={16} />
                                       </button>
                                     </div>
                                   ))}
@@ -1551,13 +1562,13 @@ function BuscadorContent() {
                             {(resultadoPessoa.telefones.length > 0 || resultadoPessoa.emails.length > 0) && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                                  👤 Contato pessoal
+                                  <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contato pessoal
                                 </p>
                                 <div className="space-y-1.5 text-sm">
                                   {resultadoPessoa.telefones.map((tel) => (
                                     <div key={tel} className="flex items-center gap-2">
                                       <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
-                                        📞 {tel}
+                                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
                                       </a>
                                       <span className="text-[10px] text-pipe-muted">
                                         {resultadoPessoa.fontesTelefone.includes("millionphones") ? "MillionPhones" : "Web"}
@@ -1566,26 +1577,26 @@ function BuscadorContent() {
                                         onClick={async () => { await navigator.clipboard.writeText(tel); }}
                                         className="text-xs text-pipe-muted hover:text-white transition"
                                       >
-                                        📋
+                                        <IconeCopiar tamanho={16} />
                                       </button>
                                     </div>
                                   ))}
                                   {resultadoPessoa.emails.map((email) => (
                                     <div key={email} className="flex items-center gap-2">
                                       <a href={`mailto:${email}`} className="text-pipe-lime hover:underline break-all">
-                                        ✉️ {email}
+                                        <IconeEmail tamanho={14} className="inline mr-1 -mt-0.5" /> {email}
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(email); }}
                                         className="text-xs text-pipe-muted hover:text-white transition shrink-0"
                                       >
-                                        📋
+                                        <IconeCopiar tamanho={16} />
                                       </button>
                                     </div>
                                   ))}
                                 </div>
                                 {resultadoPessoa.emails.length > 0 && (
-                                  <p className="text-[10px] text-pipe-muted mt-1 italic">⚠️ E-mails sugeridos — confira antes de usar</p>
+                                  <p className="text-[10px] text-pipe-muted mt-1 italic">E-mails sugeridos, confira antes de usar.</p>
                                 )}
                               </section>
                             )}
@@ -1597,7 +1608,7 @@ function BuscadorContent() {
                             )}
 
                             <section className="border-t border-pipe-border pt-4">
-                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">✍️ Gerar abordagem por e-mail</p>
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">Gerar abordagem por e-mail</p>
                               <select value={objetivoContato} onChange={(e) => setObjetivoContato(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white">
                                 <option value="">Escolha a finalidade...</option>
                                 <option value="gerar_interesse">Gerar interesse</option>
@@ -1647,7 +1658,7 @@ function BuscadorContent() {
                       disabled={contatosSelecionados.size === 0}
                       className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
                     >
-                      📥 Adicionar ao CRM
+                      Adicionar ao CRM
                       {contatosSelecionados.size > 0
                         ? ` (${contatosSelecionados.size})`
                         : ""}
@@ -1697,7 +1708,7 @@ function BuscadorContent() {
                           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-lime/40 text-pipe-lime"
                           title="Este contato já está salvo em um dos seus leads"
                         >
-                          ✅ Vinculado
+                          Vinculado
                         </span>
                       ) : (
                         contato.id && (
@@ -1716,7 +1727,7 @@ function BuscadorContent() {
                         title="Copiar e-mail"
                         className="shrink-0 border border-pipe-border text-gray-300 text-xs px-2.5 py-1.5 rounded-lg hover:bg-pipe-dark transition"
                       >
-                        📋
+                        <IconeCopiar tamanho={16} />
                       </button>
                     </div>
                   </div>
@@ -1727,7 +1738,7 @@ function BuscadorContent() {
 
           {!carregando && historico.length === 0 && !resultado && (
             <p className="text-center text-pipe-muted mt-16">
-              Suas buscas de contatos vão aparecer aqui. 🔎
+              Nenhuma busca ainda. Suas buscas de contatos aparecem aqui.
             </p>
           )}
         </div>
@@ -1737,7 +1748,7 @@ function BuscadorContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="text-center">
-              <span className="text-4xl">🔒</span>
+              <IconeCadeado tamanho={40} className="mx-auto" />
               <h3 className="font-display text-xl text-white mt-4">Serviço temporariamente indisponível</h3>
               <p className="text-sm text-pipe-muted mt-3">
                 A busca de telefone pessoal via MillionPhones ainda não está ativada nesta conta.

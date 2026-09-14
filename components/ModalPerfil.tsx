@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { criarClienteSupabase } from "../lib/supabase/client";
+import { IconeEmpresa, IconeAlvo } from "./Icones";
 
 export type AnexoPerfil = {
   nome: string;
@@ -379,8 +380,8 @@ export default function ModalPerfil({
 
         <p className="text-pipe-muted text-sm mt-2">
           {obrigatorio
-            ? "Falta só este passo: conte o que sua empresa vende. Nossa inteligência usa isso para pontuar empresas e escrever e-mails personalizados."
-            : "Nossa inteligência usa estes dados para pontuar empresas e escrever e-mails personalizados."}
+            ? "Falta só este passo: conte o que sua empresa vende. Usamos isso para pontuar empresas e escrever as abordagens."
+            : "Usamos estes dados para pontuar empresas e escrever as abordagens."}
         </p>
 
         <button
@@ -403,7 +404,7 @@ export default function ModalPerfil({
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-pipe-dark border border-pipe-border flex items-center justify-center text-2xl text-pipe-muted">
-                🏢
+                <IconeEmpresa tamanho={28} />
               </div>
             )}
 
@@ -412,7 +413,7 @@ export default function ModalPerfil({
                 ? "Enviando..."
                 : fotoUrl
                   ? "Trocar foto/logo"
-                  : "📷 Anexar foto ou logo"}
+                  : "Anexar foto ou logo"}
               <input
                 type="file"
                 accept="image/*"
@@ -476,7 +477,7 @@ export default function ModalPerfil({
             </select>
 
             <p className="text-pipe-muted/70 text-[11px] mt-1">
-              💡 Ex.: um CRM é usado pelo Comercial — os alvos viram gerentes
+              Ex.: um CRM é usado pelo Comercial — os alvos viram gerentes
               comerciais, SDRs e vendedores, não a TI. Isso deixa o ICP muito
               mais preciso.
             </p>
@@ -503,14 +504,15 @@ export default function ModalPerfil({
           />
 
           <p className="text-pipe-muted text-xs">
-            💡 Quanto mais concreto, melhores os e-mails: cite serviços,
+            Quanto mais concreto, melhores as abordagens: cite serviços,
             tipo de cliente e o problema que você resolve.
           </p>
 
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-sm font-semibold text-white">
-                🎯 Especialidades e nichos
+                <IconeAlvo tamanho={16} className="inline -mt-0.5 mr-1.5 text-pipe-lime" />
+                Especialidades e nichos
               </p>
 
               <button
@@ -523,10 +525,10 @@ export default function ModalPerfil({
                 className="text-xs font-bold px-3 py-1.5 rounded-lg bg-pipe-blue/15 border border-pipe-blue/40 text-pipe-blue hover:bg-pipe-blue/25 disabled:opacity-40 disabled:cursor-not-allowed transition whitespace-nowrap"
               >
                 {buscandoNichos
-                  ? "✨ Analisando..."
+                  ? "Analisando..."
                   : sugestoesNichos.length > 0
-                    ? "✨ Atualizar sugestões"
-                    : "✨ Sugerir com IA"}
+                    ? "Atualizar sugestões"
+                    : "Sugerir"}
               </button>
             </div>
 
@@ -534,13 +536,13 @@ export default function ModalPerfil({
               {buscandoNichos
                 ? "Analisando o que sua empresa vende..."
                 : sugestoesNichos.length > 0
-                  ? "Confirmamos os itens que você vende? Clique para marcar — nossa IA usa isso nos leads."
+                  ? "Confirmamos os itens que você vende? Clique para marcar — essas especialidades entram nos ICPs e nas abordagens."
                   : "Preencha a área e o que você vende: as sugestões aparecem sozinhas aqui."}
             </p>
 
             {erroNichos && (
               <p className="text-yellow-400/90 text-xs mb-2">
-                ⚠️ {erroNichos}
+                {erroNichos}
               </p>
             )}
 
@@ -562,7 +564,7 @@ export default function ModalPerfil({
                           : "bg-pipe-card text-gray-300 border-pipe-border hover:border-pipe-blue hover:text-white"
                       }`}
                     >
-                      {escolhido ? "✓ " : "+ "}
+                      {escolhido ? "" : "+ "}
                       {nicho}
                     </button>
                   );
@@ -599,7 +601,7 @@ export default function ModalPerfil({
 
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
             <p className="text-sm font-semibold text-white mb-1">
-              📎 Portfólio (opcional)
+              Portfólio (opcional)
             </p>
 
             <p className="text-pipe-muted text-xs mb-2">
@@ -615,10 +617,10 @@ export default function ModalPerfil({
                     className="flex items-center justify-between gap-2 text-xs bg-pipe-card border border-pipe-border rounded-lg px-2.5 py-1.5"
                   >
                     <span className="truncate text-gray-300">
-                      {anexo.tipo === "pdf" ? "📄" : "🖼️"} {anexo.nome}
+                      {anexo.nome}
                       <span className="text-pipe-muted">
                         {" "}
-                        · lido ✓
+                        · lido
                       </span>
                     </span>
 
@@ -628,7 +630,7 @@ export default function ModalPerfil({
                       className="shrink-0 text-red-400 hover:text-red-300"
                       title="Remover anexo"
                     >
-                      ✕
+                      ×
                     </button>
                   </li>
                 ))}
@@ -638,7 +640,7 @@ export default function ModalPerfil({
             <label className="cursor-pointer inline-block text-xs font-semibold text-pipe-blue hover:underline">
               {enviandoAnexo
                 ? "Lendo anexo..."
-                : "＋ Anexar PDF ou imagem"}
+                : "+ Anexar PDF ou imagem"}
               <input
                 type="file"
                 accept="application/pdf,image/*"
@@ -664,7 +666,7 @@ export default function ModalPerfil({
               ? "Salvando..."
               : obrigatorio
                 ? "Salvar e começar →"
-                : "💾 Salvar alterações"}
+                : "Salvar alterações"}
           </button>
         </form>
       </div>

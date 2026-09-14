@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           erro:
-            "A busca internacional faz parte dos planos 🌎 Internacionais. Faça upgrade em /planos.",
+            "Busca internacional faz parte dos planos Internacionais. Faça upgrade em /planos.",
           motivo: "plano_nacional",
         },
         { status: 403 }

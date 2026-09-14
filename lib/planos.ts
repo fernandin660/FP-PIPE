@@ -134,10 +134,10 @@ export function podeConvidar(def: DefinicaoPlano): boolean {
   return def.usuariosInclusos > 1;
 }
 
-// Envio em massa de campanhas: Silver+, Gold e Platinum (e variantes
-// internacionais) podem disparar. Teste pode GERAR abordagens IA e testar,
-// mas o disparo real parte do Silver (100 e-mails/dia; Platinum 300).
-const PLANOS_COM_ENVIO: PlanoChave[] = ["silver", "gold", "platinum", "silver_intl", "gold_intl", "platinum_intl"];
+// Envio em massa de campanhas: apenas Gold e Platinum (e variantes
+// internacionais) podem disparar. Teste e Silver geram abordagens, mas o
+// envio real parte do Gold (100 e-mails/dia; Platinum 300).
+const PLANOS_COM_ENVIO: PlanoChave[] = ["gold", "platinum", "gold_intl", "platinum_intl"];
 
 export function podeEnviarCampanha(plano: PlanoChave): boolean {
   return PLANOS_COM_ENVIO.includes(plano);

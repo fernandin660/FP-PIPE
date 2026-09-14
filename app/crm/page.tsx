@@ -15,6 +15,7 @@ import Sidebar from "../../components/Sidebar";
 import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
+import { IconePasta, IconeTelefone, IconeEmail } from "../../components/Icones";
 
 type Estagio = {
   id: string;
@@ -1168,7 +1169,7 @@ export default function PaginaCrm() {
         {(nomePessoa(lead) !== "Sem responsável na empresa" ||
           cargoPessoa(lead)) && (
           <p className="mt-1.5 text-xs text-pipe-muted line-clamp-1">
-            👤 {nomePessoa(lead)}
+            {nomePessoa(lead)}
             {cargoPessoa(lead) ? ` · ${cargoPessoa(lead)}` : ""}
           </p>
         )}
@@ -1179,7 +1180,7 @@ export default function PaginaCrm() {
           </span>
           {responsavel ? (
             <span className="text-[11px] text-pipe-blue truncate">
-              👤 {responsavel}
+              {responsavel}
             </span>
           ) : (
             <span className="text-[11px] text-pipe-muted">Sem responsável</span>
@@ -1199,7 +1200,6 @@ export default function PaginaCrm() {
         {lead.proxima_atividade && (
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <p className="text-[10px] text-pipe-muted flex items-center gap-1 min-w-0">
-              <span className="shrink-0">⏰</span>
               <span className="truncate">{lead.proxima_atividade.titulo}</span>
               <span className="shrink-0">
                 · {formatarData(lead.proxima_atividade.data_hora_atividade)}
@@ -1213,7 +1213,7 @@ export default function PaginaCrm() {
               title="Concluir atividade"
               className="shrink-0 text-[10px] font-bold bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-1.5 py-0.5 rounded-md hover:bg-pipe-lime/25 transition"
             >
-              ✓ Concluir
+              Concluir
             </button>
           </div>
         )}
@@ -1256,7 +1256,8 @@ export default function PaginaCrm() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="font-display text-2xl text-white flex items-center gap-2">
-                🗂️ CRM de Prospecção
+                <IconePasta className="text-pipe-lime shrink-0" />
+                CRM de Prospecção
               </h1>
               <p className="text-sm text-pipe-muted mt-0.5">
                 Pipeline comercial B2B · {totalFiltrado} lead
@@ -1651,7 +1652,7 @@ export default function PaginaCrm() {
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs font-semibold text-pipe-muted mb-1">
-                          ✓ Pontos fortes
+                          Pontos fortes
                         </p>
                         {leadDetalhe.prioridade?.fatoresPositivos?.length ? (
                           <ul className="space-y-0.5">
@@ -1675,7 +1676,7 @@ export default function PaginaCrm() {
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-pipe-muted mb-1">
-                          ✕ Pontos fracos
+                          Pontos fracos
                         </p>
                         {leadDetalhe.prioridade?.fatoresNegativos?.length ? (
                           <ul className="space-y-0.5">
@@ -1697,7 +1698,7 @@ export default function PaginaCrm() {
                       </div>
                     </div>
                     <p className="text-xs font-semibold text-pipe-muted mb-1 mt-3">
-                      ❓ Por que prospectar?
+                      Por que prospectar?
                     </p>
                     {leadDetalhe.prioridade?.dadosInsuficientes ? (
                       <p className="text-xs text-pipe-muted">
@@ -1783,17 +1784,19 @@ export default function PaginaCrm() {
                     {leadDetalhe.company.telefone ? (
                       <a
                         href={`tel:${leadDetalhe.company.telefone.replace(/\D/g, "")}`}
-                        className="text-pipe-blue hover:underline"
+                        className="text-pipe-blue hover:underline inline-flex items-center gap-1.5"
                       >
-                        📞 {leadDetalhe.company.telefone}
+                        <IconeTelefone tamanho={14} className="shrink-0" />
+                        {leadDetalhe.company.telefone}
                       </a>
                     ) : null}
                     {leadDetalhe.company.email ? (
                       <a
                         href={`mailto:${leadDetalhe.company.email}`}
-                        className="text-pipe-blue hover:underline break-all"
+                        className="text-pipe-blue hover:underline break-all inline-flex items-center gap-1.5"
                       >
-                        ✉ {leadDetalhe.company.email}
+                        <IconeEmail tamanho={14} className="shrink-0" />
+                        {leadDetalhe.company.email}
                       </a>
                     ) : null}
                     {leadDetalhe.company.linkedin ? (
@@ -1803,7 +1806,7 @@ export default function PaginaCrm() {
                         rel="noopener noreferrer"
                         className="text-pipe-blue hover:underline break-all"
                       >
-                        🔗 LinkedIn da empresa →
+                        LinkedIn da empresa →
                       </a>
                     ) : leadDetalhe.company.razao_social ? (
                       <a
@@ -1815,7 +1818,7 @@ export default function PaginaCrm() {
                         rel="noopener noreferrer"
                         className="text-pipe-blue hover:underline"
                       >
-                        🔎 Buscar empresa no LinkedIn →
+                        Buscar empresa no LinkedIn →
                       </a>
                     ) : null}
                   </div>
@@ -1825,7 +1828,7 @@ export default function PaginaCrm() {
               {/* Company Intelligence */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
-                  🧠 Inteligência da empresa
+                  Inteligência da empresa
                 </p>
 
                 {carregandoInteligencia ? (
@@ -1844,7 +1847,7 @@ export default function PaginaCrm() {
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <p className="text-xs font-semibold text-pipe-muted">
-                          📊 Interpretação comercial
+                          Interpretação comercial
                         </p>
                         <button
                           onClick={() => void gerarInterpretacao()}
@@ -1855,7 +1858,7 @@ export default function PaginaCrm() {
                             ? "Gerando…"
                             : inteligencia.interpretacao_ia
                               ? "Regenerar"
-                              : "Gerar com IA"}
+                              : "Gerar"}
                         </button>
                       </div>
                       {inteligencia.interpretacao_ia ? (
@@ -1866,7 +1869,7 @@ export default function PaginaCrm() {
                         <p className="text-xs text-pipe-muted">
                           Sem interpretação gerada ainda.{" "}
                           <span className="text-gray-400">
-                            A IA usa apenas os dados reais da empresa.
+                            A análise usa apenas os dados reais da empresa.
                           </span>
                         </p>
                       )}
@@ -1875,7 +1878,7 @@ export default function PaginaCrm() {
                     {/* Mapa de decisores */}
                     <div>
                       <p className="text-xs font-semibold text-pipe-muted mb-2">
-                        👥 Decisores ({inteligencia.decisores.length})
+                        Decisores ({inteligencia.decisores.length})
                       </p>
                       {inteligencia.decisores.length === 0 ? (
                         <p className="text-xs text-pipe-muted">
@@ -1960,7 +1963,7 @@ export default function PaginaCrm() {
                     {inteligencia.fatos_cadastrais.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-pipe-muted mb-1.5">
-                          📌 Fatos cadastrais
+                          Fatos cadastrais
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {inteligencia.fatos_cadastrais.map((f, i) => (
@@ -1978,7 +1981,7 @@ export default function PaginaCrm() {
                     {/* Sinais comerciais */}
                     <div>
                       <p className="text-xs font-semibold text-pipe-muted mb-2">
-                        📈 Sinais comerciais ({inteligencia.sinais.length})
+                        Sinais comerciais ({inteligencia.sinais.length})
                       </p>
                       {inteligencia.sinais.length === 0 ? (
                         <p className="text-xs text-pipe-muted mb-2">
@@ -2013,7 +2016,7 @@ export default function PaginaCrm() {
                                 title="Remover sinal"
                                 className="text-[11px] text-red-400 hover:text-red-300 shrink-0"
                               >
-                                ✕
+                                ×
                               </button>
                             </div>
                           ))}
@@ -2088,7 +2091,7 @@ export default function PaginaCrm() {
               {/* Contato prioritário */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                  👤 Contato prioritário
+                  Contato prioritário
                 </p>
                 <p className="text-gray-200 font-semibold">{nomePessoa(leadDetalhe)}</p>
                 {cargoPessoa(leadDetalhe) && (
@@ -2105,7 +2108,7 @@ export default function PaginaCrm() {
                     rel="noopener noreferrer"
                     className="text-pipe-blue hover:underline text-sm mt-1 inline-block"
                   >
-                    🔎 Buscar no LinkedIn →
+                    Buscar no LinkedIn →
                   </a>
                 )}
               </section>

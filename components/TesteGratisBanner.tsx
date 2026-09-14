@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { DEFINICAO_PLANOS } from "@/lib/planos";
+import { IconeAlvo, IconeEscrever, IconeLista } from "./Icones";
 
 interface Props {
   saldoListas: number;
@@ -18,7 +20,7 @@ function porc(restante: number, limite: number): number {
 
 function barra(
   rotulo: string,
-  emoji: string,
+  icone: ReactNode,
   restante: number,
   limite: number,
   corCheia: string
@@ -31,8 +33,9 @@ function barra(
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-gray-300 font-medium">
-          {emoji} {rotulo}
+        <span className="text-gray-300 font-medium inline-flex items-center gap-1">
+          {icone}
+          {rotulo}
         </span>
         <span
           className={`font-semibold ${
@@ -52,7 +55,7 @@ function barra(
       </div>
       {esgotou && (
         <p className="text-[10px] text-red-400 mt-0.5">
-          Você usou tudo aqui. Assine para continuar →{" "}
+          Você usou tudo aqui. Assine um plano para continuar.
         </p>
       )}
       {quase && !esgotou && (
@@ -89,7 +92,7 @@ export default function TesteGratisBanner({
       nome: gold.nome,
       preco: `R$ ${gold.precoAnualPorMes}`,
       destaque: true,
-      linha: `${gold.empresasMes} empresas · disparo ${gold.buscasMes} e-mails/dia`,
+      linha: `${gold.empresasMes} empresas · ${gold.buscasMes} e-mails/dia`,
     },
     {
       nome: plat.nome,
@@ -113,14 +116,14 @@ export default function TesteGratisBanner({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white">
-                  🧪 Seu teste grátis
+                  Seu teste grátis
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wide bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
                   plano atual
                 </span>
               </div>
               <p className="text-xs text-pipe-muted mt-1">
-                {t.listasMes} lista · {t.empresasMes} leads · {t.creditosAbordagem}{" "}
+                {t.listasMes} lista · {t.empresasMes} empresas · {t.creditosAbordagem}{" "}
                 abordagens de IA. Quando acabar, escolha um plano — sem perda do que
                 você já criou.
               </p>
@@ -131,16 +134,28 @@ export default function TesteGratisBanner({
               className="text-xs text-pipe-muted hover:text-white transition"
               title="Ocultar"
             >
-              ✕
+              ×
             </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 mb-5">
-            {barra("Listas", "📋", saldoListas, t.listasMes, "bg-pipe-blue")}
-            {barra("Leads", "🎫", saldoLeads, t.empresasMes, "bg-pipe-blue")}
             {barra(
-              "Abordagens IA",
-              "✍️",
+              "Listas",
+              <IconeLista className="w-4 h-4 shrink-0" />,
+              saldoListas,
+              t.listasMes,
+              "bg-pipe-blue"
+            )}
+            {barra(
+              "Empresas",
+              <IconeAlvo className="w-4 h-4 shrink-0" />,
+              saldoLeads,
+              t.empresasMes,
+              "bg-pipe-blue"
+            )}
+            {barra(
+              "Abordagens",
+              <IconeEscrever className="w-4 h-4 shrink-0" />,
               saldoAbordagens,
               t.creditosAbordagem,
               "bg-pipe-blue"
@@ -151,18 +166,18 @@ export default function TesteGratisBanner({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-5 bg-pipe-dark/60 border border-amber-500/30 rounded-xl p-4">
               <div className="flex-1">
                 <p className="text-sm font-bold text-white">
-                  Cê chegou no limite do teste. Bora destravar o resto? 🚀
+                  Você chegou no limite do teste. Escolha um plano para continuar.
                 </p>
                 <p className="text-xs text-pipe-muted mt-0.5">
-                  No Gold você continua de onde parou: mais listas, leads,
-                  buscador, telefones e disparo de campanhas.
+                  No Gold você continua de onde parou: mais listas, empresas,
+                  buscador de contatos, telefones e disparo em massa.
                 </p>
               </div>
               <Link
                 href="/planos"
                 className="shrink-0 bg-pipe-lime text-pipe-bg font-bold py-2.5 px-5 rounded-xl text-sm text-center hover:brightness-110 transition animate-pulse"
               >
-                ⭐ Assinar Gold → R$ {gold.precoAnualPorMes}/mês
+                Assinar Gold · R$ {gold.precoAnualPorMes}/mês
               </Link>
             </div>
           )}
@@ -176,7 +191,7 @@ export default function TesteGratisBanner({
                 href="/planos"
                 className="text-xs text-pipe-blue hover:text-blue-300 transition font-semibold"
               >
-                Ver todos →
+                Ver todos
               </Link>
             </div>
 

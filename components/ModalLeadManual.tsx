@@ -68,16 +68,16 @@ export default function ModalLeadManual({
           className="absolute top-4 right-4 text-pipe-muted hover:text-white text-xl transition"
           aria-label="Fechar"
         >
-          ✕
+          ×
         </button>
 
         <h2 className="font-display text-3xl text-white">
-          Inserir <span className="text-pipe-lime">lead manualmente</span>
+          Inserir <span className="text-pipe-lime">empresa manualmente</span>
         </h2>
 
         <p className="text-pipe-muted text-sm mt-2">
-          Já tem um lead enriquecido (ex.: pelo Apollo)? Cole os dados aqui.
-          Ele entra na lista pronto — gaste 1 crédito para visualizar os
+          Já tem uma empresa enriquecida (ex.: pelo Apollo)? Cole os dados
+          aqui. Ela entra na lista pronta — use 1 crédito para abrir os
           contatos.
         </p>
 

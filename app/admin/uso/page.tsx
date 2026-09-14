@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { IconeEscrever } from "../../../components/Icones";
+
 type ApiUso = {
   api: string;
   chamadas: number;
@@ -43,15 +45,15 @@ type PainelMillionPhones = {
 };
 
 const NOMES_APIS: Record<string, string> = {
-  maps: "🗺️ Google Maps",
-  openai: "🤖 OpenAI",
-  gemini: "✨ Google Gemini (reserva)",
-  serper: "🔎 Serper (busca Google)",
-  casadosdados: "🏢 Casas dos Dados",
-  minhareceita: "🏛️ Minha Receita (CNPJ)",
-  nominatim: "🌍 OpenStreetMap — geocoding",
-  overpass: "🗺️ Overpass — empresas OSM",
-  resend: "✉️ Resend (e-mails)",
+  maps: "Google Maps",
+  openai: "OpenAI",
+  gemini: "Google Gemini (reserva)",
+  serper: "Serper (busca Google)",
+  casadosdados: "Casas dos Dados",
+  minhareceita: "Minha Receita (CNPJ)",
+  nominatim: "OpenStreetMap — geocoding",
+  overpass: "Overpass — empresas OSM",
+  resend: "Resend (e-mails)",
 };
 
 export default function PaginaAdminUso() {
@@ -163,7 +165,7 @@ export default function PaginaAdminUso() {
         </div>
 
         <h1 className="font-display text-3xl text-white mt-6">
-          Painel de uso 💰
+          Painel de uso
         </h1>
         <p className="text-pipe-muted text-sm mt-1">
           Consumo das APIs pagas e saldos das moedas internas ·{" "}
@@ -181,8 +183,8 @@ export default function PaginaAdminUso() {
               APIs pagas este mês
             </h2>
             <p className="text-xs text-pipe-muted mb-4">
-              Limites refletem nossas contas nos provedores. Clique no ✏️
-              para ajustar quando trocarmos de plano.
+              Limites refletem nossas contas nos provedores. Use o botão de
+              edição para ajustar quando trocarmos de plano.
             </p>
 
             <div className="space-y-3">
@@ -243,13 +245,13 @@ export default function PaginaAdminUso() {
                               disabled={salvandoLimite}
                               className="text-xs font-bold bg-pipe-lime text-black rounded-md px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition"
                             >
-                              ✓ Salvar
+                              Salvar
                             </button>
                             <button
                               onClick={() => setEditandoApi(null)}
                               className="text-xs text-pipe-muted hover:text-white transition"
                             >
-                              ✕
+                              ×
                             </button>
                           </>
                         ) : (
@@ -291,7 +293,7 @@ export default function PaginaAdminUso() {
                               title="Ajustar limite (ex.: quando trocarmos o plano da conta)"
                               className="text-xs text-pipe-muted hover:text-white border border-pipe-border rounded-md px-2 py-1 transition"
                             >
-                              ✏️
+                              <IconeEscrever tamanho={16} className="block" />
                             </button>
                           </>
                         )}
@@ -329,7 +331,7 @@ export default function PaginaAdminUso() {
         {!carregando && millionphones && (
           <section className="mt-12">
             <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-1">
-              📞 MillionPhones — consumo da nossa conta
+              MillionPhones — consumo da nossa conta
             </h2>
             <p className="text-xs text-pipe-muted mb-4">
               Estimativa: cada número achado custa{" "}
@@ -347,8 +349,8 @@ export default function PaginaAdminUso() {
                 }`}
               >
                 {millionphones.percentualConsumo >= 100
-                  ? `⚠️ Cota MillionPhones esgotada (100% de ${millionphones.cotaMp.toLocaleString("pt-BR")}). Novos desbloqueios vão falhar — compre mais créditos na conta MP.`
-                  : `⚠️ Atenção: já consumimos ${millionphones.percentualConsumo}% da cota MillionPhones (${millionphones.cotaMp.toLocaleString("pt-BR")}).`}
+                  ? `Cota MillionPhones esgotada (100% de ${millionphones.cotaMp.toLocaleString("pt-BR")}). Novos desbloqueios vão falhar — compre mais créditos na conta MP.`
+                  : `Atenção: já consumimos ${millionphones.percentualConsumo}% da cota MillionPhones (${millionphones.cotaMp.toLocaleString("pt-BR")}).`}
               </div>
             )}
 

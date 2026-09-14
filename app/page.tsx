@@ -1,103 +1,136 @@
 ﻿import Link from "next/link";
 import AvatarConsultor from "../components/AvatarConsultor";
 import LinkUsuario from "../components/LinkUsuario";
+import {
+  IconeAlvo,
+  IconeBusca,
+  IconeCadeado,
+  IconeCartao,
+  IconeEmail,
+  IconeEmpresa,
+  IconeEquipe,
+  IconeEscrever,
+  IconePasta,
+  IconeSetaExterna,
+  IconeTelefone,
+  IconeVerificado,
+} from "../components/Icones";
 
 const passos = [
   {
     numero: "1",
-    titulo: "Conte o que você vende",
+    titulo: "Descreva o que você vende",
     descricao:
-      "Preencha seu perfil de empresa e anexe seu portfólio (PDF ou imagem). Nossa equipe lê o conteúdo e entende sua oferta.",
+      "Conte sua oferta no perfil e anexe o portfólio. A partir daí, o sistema monta o perfil de cliente ideal (ICP): segmentos-alvo, dores e os cargos envolvidos na compra.",
   },
   {
     numero: "2",
-    titulo: "A IA desenha seu cliente ideal",
+    titulo: "Veja as empresas por aderência",
     descricao:
-      "Em menos de 1 minuto você recebe o ICP completo: segmentos-alvo, quem decide a compra e as principais dores.",
+      "Cada empresa recebe um score de 0 a 100, com a justificativa ao lado. A lista já vem na ordem de quem você deve abordar primeiro — no Brasil e nas Américas.",
   },
   {
     numero: "3",
-    titulo: "Ache o decisor e ataque",
+    titulo: "Pegue a primeira abordagem",
     descricao:
-      "A lista vem priorizada por score — e cada lead recebe e-mails sugeridos pela IA (grátis) e o telefone pessoal verificado do decisor direto do LinkedIn.",
+      "Decisor e influenciador identificados, e-mail inicial escrito e telefone verificado quando disponível. Você edita, aprova e parte para a conversa.",
   },
 ];
 
 const diferenciais = [
   {
-    icone: "✍️",
-    titulo: "Venda com a abordagem certa",
+    icone: <IconeAlvo />,
+    titulo: "Score por empresa, com justificativa",
     texto:
-      "Escolha o produto, objetivo e canal. A plataforma analisa o lead e ajuda você a criar uma abordagem personalizada para abrir conversas e gerar reuniões.",
-    destaque: true,
+      "Cada empresa recebe uma nota de 0 a 100 e o motivo no mesmo lugar. O time sabe por onde começar, sem lista aleatória.",
   },
   {
-    icone: "🏢",
-    titulo: "Encontre mais informações sobre cada lead",
+    icone: <IconeEquipe />,
+    titulo: "Quem decide, por nome e cargo",
     texto:
-      "Reunimos dados de diferentes fontes em um só lugar. Quanto mais informações sobre a empresa, mais preparado você fica para fazer uma abordagem relevante.",
-    destaque: true,
+      "Aprovador e influenciador da compra identificados. Acabou o e-mail genérico para “empresa”.",
   },
   {
-    icone: "🧠",
-    titulo: "Descubra quem realmente vale a pena abordar",
+    icone: <IconeEscrever />,
+    titulo: "Primeira abordagem já escrita",
     texto:
-      "Responda algumas perguntas sobre o que você vende e encontre empresas que realmente fazem sentido para o seu negócio — incluindo decisores, influenciadores e possíveis dores.",
+      "Cada empresa recebe um texto de abertura. Você ajusta, copia e envia — nada sai sem revisão.",
   },
   {
-    icone: "🏆",
-    titulo: "Priorize os leads com maior potencial",
+    icone: <IconeBusca />,
+    titulo: "Contato comercial com verificação",
     texto:
-      "Cada empresa recebe uma nota de 0 a 100 com uma justificativa clara. Assim, seu time sabe por onde começar e evita perder tempo com leads sem perfil.",
+      "Buscador de contatos, verificação de telefone e os dados consolidados de várias fontes em um só lugar.",
   },
   {
-    icone: "👥",
-    titulo: "Encontre as pessoas certas para abrir portas",
+    icone: <IconePasta />,
+    titulo: "Playbook que fica de herança",
     texto:
-      "Vá além do nome da empresa. Encontre diferentes contatos envolvidos na decisão e tenha mais de um caminho para iniciar uma conversa.",
+      "Uma abordagem que gerou reunião vira modelo. Você reutiliza e melhora a cada rodada.",
   },
   {
-    icone: "⭐",
-    titulo: "Transforme o que funciona em processo",
+    icone: <IconeCartao />,
+    titulo: "Teste antes de pagar",
     texto:
-      "Uma abordagem que gerou reunião não precisa ficar perdida. Salve, reutilize e crie um playbook comercial que evolui junto com o seu time.",
-  },
-  {
-    icone: "🔒",
-    titulo: "Teste antes. Pague quando enxergar valor.",
-    texto:
-      "Crie sua conta e experimente a plataforma na prática: encontre empresas, analise leads e gere abordagens. Sem cartão de crédito para começar.",
+      "Conta gratuita, sem cartão, com 1 lista de até 25 empresas. Só decide comprar quando a lista fizer sentido.",
   },
 ];
 
 const segmentosTicker = [
-  "🏭 Indústrias",
-  "🚛 Transportadoras",
-  "🥩 Frigoríficos",
-  "🏥 Clínicas",
-  "💻 Software houses",
-  "🏗️ Construtoras",
-  "🔧 Metalúrgicas",
-  "📦 Distribuidoras",
-  "⚖️ Escritórios jurídicos",
-  "🌾 Agronegócio",
-  "🏨 Hotelaria",
-  "🔌 Elétricas",
+  "Indústrias",
+  "Transportadoras",
+  "Frigoríficos",
+  "Clínicas",
+  "Software houses",
+  "Construtoras",
+  "Metalúrgicas",
+  "Distribuidoras",
+  "Escritórios jurídicos",
+  "Agronegócio",
+  "Hotelaria",
+  "Elétricas",
+];
+
+const fatos = [
+  ["0–100", "score por empresa, com justificativa"],
+  ["70M+", "de empresas na base pública de CNPJs"],
+  ["Brasil + Américas", "no escopo das buscas"],
+  ["R$ 0", "para testar: 1 lista com até 25 empresas"],
+];
+
+const perguntas = [
+  {
+    pergunta: "Preciso de cartão para testar?",
+    resposta:
+      "Não. A conta de teste inclui 1 lista com até 25 empresas. Cartão só é pedido quando você assina.",
+  },
+  {
+    pergunta: "O que é o score?",
+    resposta:
+      "Uma nota de 0 a 100 que mede a aderência da empresa ao seu ICP, com a justificativa ao lado de cada nota.",
+  },
+  {
+    pergunta: "Os textos saem prontos para enviar?",
+    resposta:
+      "Cada empresa recebe uma abordagem inicial escrita. Você revisa e edita antes de qualquer envio.",
+  },
+  {
+    pergunta: "Funciona fora do Brasil?",
+    resposta:
+      "Sim. O teste já consulta empresas do Brasil e das Américas; nos planos internacionais você define o escopo de países.",
+  },
 ];
 
 export default function Inicio() {
   return (
     <main className="min-h-screen bg-pipe-bg text-gray-200 overflow-x-hidden">
-      {/* BARRA DE URGÊNCIA */}
+      {/* ANÚNCIO DE LANÇAMENTO */}
 
-      <div className="bg-pipe-lime text-black text-center text-sm font-bold py-2.5 px-4">
-        🔥{" "}
-        <span className="uppercase tracking-wide">
-          Dispare e-mails com IA no Gold — a partir de R$ 227/mês no anual
-        </span>{" "}
-        · preço promocional de lançamento{" "}
-        <Link href="/planos" className="underline underline-offset-2 ml-1">
-          garantir condição →
+      <div className="bg-pipe-lime text-black text-center text-sm py-2.5 px-4">
+        Lançamento: plano Gold por R$ 227/mês no anual, preço travado por 12
+        meses.{" "}
+        <Link href="/planos" className="underline underline-offset-2 font-semibold">
+          Ver condições
         </Link>
       </div>
 
@@ -105,9 +138,9 @@ export default function Inicio() {
 
       <header className="sticky top-0 z-40 backdrop-blur bg-pipe-bg/85 border-b border-pipe-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <p className="font-display text-2xl text-white">
-            FP <span className="text-pipe-lime">PIPE</span>
-          </p>
+          <Link href="/" className="font-display text-2xl text-white">
+            FP <span className="text-pipe-lime">Pipe</span>
+          </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm text-pipe-muted">
             <a href="#como-funciona" className="hover:text-white transition">
@@ -116,9 +149,12 @@ export default function Inicio() {
             <a href="#diferenciais" className="hover:text-white transition">
               Diferenciais
             </a>
-            <Link href="/planos" className="hover:text-white transition">
+            <a href="#planos" className="hover:text-white transition">
               Planos
-            </Link>
+            </a>
+            <a href="#perguntas" className="hover:text-white transition">
+              Perguntas
+            </a>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -143,29 +179,28 @@ export default function Inicio() {
 
       <section className="relative max-w-6xl mx-auto px-6 pt-16 pb-14 text-center">
         <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-pipe-blue border border-pipe-blue/30 bg-pipe-blue/10 rounded-full px-4 py-1.5">
-          <span className="w-2 h-2 rounded-full bg-pipe-blue animate-pulse" />
-          Inteligência comercial B2B com IA
+          <span className="w-2 h-2 rounded-full bg-pipe-blue" />
+          Prospecção B2B
         </span>
 
         <h1 className="font-display text-5xl md:text-6xl leading-tight text-white mt-7 max-w-4xl mx-auto">
-          Listas certas, e-mail escrito,{" "}
-          <span className="text-pipe-lime">decisor encontrado</span> — tudo
-          antes do seu café.
+          Encontre as{" "}
+          <span className="text-pipe-lime">empresas certas</span> para
+          prospectar.
         </h1>
 
         <p className="text-pipe-muted text-lg mt-6 max-w-2xl mx-auto">
-          Empresas priorizadas por score, o primeiro e-mail já escrito,{" "}
-          <span className="text-white font-semibold">telefone verificado do decisor</span> e{" "}
-          <span className="text-white font-semibold">disparo da campanha inteira com IA</span>.
-          Prospecção B2B sem trabalho manual.
+          A FP Pipe monta sua lista de empresas B2B, mostra quem decide a
+          compra em cada uma e deixa a primeira abordagem escrita para você
+          revisar. No Brasil e nas Américas.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
           <Link
             href="/prospeccao"
-            className="relative overflow-hidden anim-shine anim-cta-pulse bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
+            className="bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
           >
-            Criar minha conta grátis →
+            Criar conta grátis
           </Link>
           <Link
             href="/planos"
@@ -176,26 +211,21 @@ export default function Inicio() {
         </div>
 
         <p className="text-sm text-pipe-muted mt-5">
-          Já tem conta?{" "}
+          Teste grátis sem cartão · 1 lista com até 25 empresas.
+          <br />
           <Link href="/login" className="text-white font-semibold underline underline-offset-4 hover:text-pipe-lime transition">
-            Entrar
+            Já tem conta? Entrar
           </Link>
         </p>
 
-        <p className="text-pipe-muted/60 text-xs mt-2">
-          Sem cartão · sem fidelidade · resultado na primeira sessão
-        </p>
-
-        {/* DEMO FLUTUANTE */}
+        {/* EXEMPLO DO PRODUTO */}
 
         <div className="relative max-w-3xl mx-auto mt-14 h-72 hidden md:block">
           <span className="absolute -top-6 right-0 text-[10px] font-semibold uppercase tracking-wider text-pipe-muted/60 border border-pipe-border rounded-full px-2.5 py-0.5">
-            ✨ exemplo ilustrativo
+            Exemplo do produto
           </span>
-          <div
-            className="anim-float absolute left-0 top-0 w-80 bg-pipe-card border border-pipe-border rounded-xl p-5 shadow-2xl text-left"
-            style={{ ["--rot" as string]: "-2deg" }}
-          >
+
+          <div className="absolute left-0 top-0 w-80 bg-pipe-card border border-pipe-border rounded-xl p-5 shadow-2xl text-left">
             <div className="flex items-center justify-between">
               <p className="text-white font-semibold text-sm">
                 Frigorífico Boi Forte LTDA
@@ -205,66 +235,71 @@ export default function Inicio() {
               </span>
             </div>
             <p className="text-pipe-muted text-xs mt-1">
-              Cuiabá/MT · Grande · Score justificado ✓
+              Cuiabá/MT · Grande · Score justificado
             </p>
             <div className="mt-3 space-y-1.5 text-xs text-gray-300">
-              <p>👤 Aprovador: Diretor de Produção</p>
-              <p>🎯 Influenciador: Gerente de Qualidade</p>
+              <p className="flex items-center gap-2">
+                <IconeEmpresa className="w-3.5 h-3.5 text-pipe-blue shrink-0" />
+                Aprovador: Diretor de Produção
+              </p>
+              <p className="flex items-center gap-2">
+                <IconeEquipe className="w-3.5 h-3.5 text-pipe-blue shrink-0" />
+                Influenciador: Gerente de Qualidade
+              </p>
             </div>
-            <span className="inline-block mt-3 text-xs font-semibold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-3 py-1">
-              📧 E-mail sugerido
+            <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-3 py-1">
+              <IconeEmail className="w-3.5 h-3.5" />
+              Abordagem inicial
             </span>
           </div>
 
-          <div
-            className="anim-float absolute right-6 top-24 w-96 bg-pipe-dark border border-pipe-lime/40 rounded-xl p-5 shadow-2xl text-left z-10"
-            style={{ ["--rot" as string]: "1.5deg", ["--delay" as string]: ".8s" }}
-          >
+          <div className="absolute right-6 top-24 w-96 bg-pipe-dark border border-pipe-lime/40 rounded-xl p-5 shadow-2xl text-left z-10">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-8 h-8 rounded-lg bg-pipe-lime/15 flex items-center justify-center text-sm">
-                ✉️
+              <span className="w-8 h-8 rounded-lg bg-pipe-lime/15 flex items-center justify-center text-pipe-lime">
+                <IconeEmail className="w-4 h-4" />
               </span>
               <p className="text-white font-semibold text-sm">
-                E-mail gerado pela IA agora
+                Abordagem inicial
               </p>
-              <span className="ml-auto text-[10px] font-bold uppercase text-pipe-lime animate-pulse">
-                ● ao vivo
+              <span className="ml-auto text-[10px] font-bold uppercase text-pipe-lime">
+                Você edita antes de enviar
               </span>
             </div>
             <p className="text-xs text-pipe-blue font-medium">
               Assunto: Rastreabilidade de lote no Boi Forte
             </p>
             <p className="text-xs text-gray-300 mt-2 leading-relaxed">
-              Olá, time do Boi Forte — frigoríficos que exportam precisam provar
-              a origem de cada lote em auditoria. Nosso módulo de rastreabilidade
-              conecta a linha de produção ao selo digital...
+              Olá, time do Boi Forte — frigoríficos que exportam precisam
+              comprovar a origem de cada lote em auditoria. Escrevi sobre a
+              integração do módulo à linha de produção. Faz sentido uma
+              conversa rápida?
             </p>
             <div className="mt-3 flex items-center gap-2">
-              <button className="text-xs font-semibold text-black bg-pipe-lime rounded-md px-3 py-1.5 pointer-events-none">
-                📋 Copiar e enviar
-              </button>
+              <span className="text-xs font-semibold text-black bg-pipe-lime rounded-md px-3 py-1.5 pointer-events-none">
+                Revisar e copiar
+              </span>
               <span className="text-[11px] text-pipe-muted">
-                editável na ficha do lead
+                edita na ficha da empresa
               </span>
             </div>
           </div>
 
-          <div
-            className="anim-float absolute left-40 bottom-0 w-72 bg-pipe-card border border-pipe-lime/30 rounded-xl p-4 shadow-2xl text-left"
-            style={{ ["--rot" as string]: "-1deg", ["--delay" as string]: "1.6s" }}
-          >
-            <p className="text-xs text-pipe-muted">
-              🔎 linkedin.com/in/ricardo-almeida-ti
+          <div className="absolute left-40 bottom-0 w-72 bg-pipe-card border border-pipe-lime/30 rounded-xl p-4 shadow-2xl text-left">
+            <p className="flex items-center gap-2 text-xs text-pipe-muted">
+              <IconeBusca className="w-3.5 h-3.5" />
+              linkedin.com/in/ricardo-almeida-ti
             </p>
             <p className="text-sm text-white font-medium mt-1 truncate">
               ricardo.almeida@metalurgica-exemplo.com.br
             </p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
-                ✓ e-mail sugerido pela IA
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-lime-400 bg-lime-500/10 border border-lime-500/30 rounded-full px-3 py-1">
+                <IconeVerificado className="w-3.5 h-3.5" />
+                e-mail sugerido
               </span>
-              <span className="text-[10px] font-bold uppercase text-black bg-pipe-blue rounded-full px-2 py-0.5 animate-pulse">
-                ⚡ grátis
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-black bg-pipe-blue rounded-full px-2 py-0.5">
+                <IconeTelefone className="w-3 h-3" />
+                Telefone verificado
               </span>
             </div>
           </div>
@@ -286,41 +321,22 @@ export default function Inicio() {
         </div>
       </section>
 
-      {/* NÚMEROS */}
-
-      <section className="max-w-6xl mx-auto px-6 py-14">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {[
-            ["70M+", "de empresas"],
-            ["5 fontes", "de caça ao contato"],
-            ["R$ 0", "por e-mail sugerido pela IA"],
-            ["4 canais", "de abordagem gerados por IA"],
-          ].map(([valor, rotulo]) => (
-            <div
-              key={rotulo}
-              className="bg-pipe-card border border-pipe-border rounded-xl py-6 px-3 hover:border-pipe-blue/50 transition"
-            >
-              <p className="font-display text-3xl md:text-4xl text-pipe-lime">
-                {valor}
-              </p>
-              <p className="text-pipe-muted text-xs mt-1.5">{rotulo}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* COMO FUNCIONA */}
 
       <section id="como-funciona" className="max-w-6xl mx-auto px-6 py-14">
         <h2 className="font-display text-3xl md:text-4xl text-white text-center">
-          Do zero à prospecção em 3 passos
+          Três passos até a primeira lista
         </h2>
+        <p className="text-pipe-muted text-center mt-3 max-w-2xl mx-auto">
+          Do perfil da sua empresa à primeira abordagem, sem reescrever nada
+          do zero.
+        </p>
 
         <div className="grid md:grid-cols-3 gap-6 mt-12">
           {passos.map((passo) => (
             <div
               key={passo.numero}
-              className="bg-pipe-card border border-pipe-border rounded-xl p-6 hover:border-pipe-blue/50 hover:-translate-y-1 transition duration-200"
+              className="bg-pipe-card border border-pipe-border rounded-xl p-6 hover:border-pipe-blue/50 transition"
             >
               <span className="w-10 h-10 rounded-lg bg-pipe-blue/15 text-pipe-blue font-bold flex items-center justify-center text-lg">
                 {passo.numero}
@@ -338,71 +354,52 @@ export default function Inicio() {
             href="/prospeccao"
             className="inline-block bg-pipe-blue text-black font-bold rounded-xl px-8 py-3.5 hover:brightness-110 transition"
           >
-            Começar meu teste grátis →
+            Criar conta grátis
           </Link>
+        </div>
+      </section>
+
+      {/* FATOS */}
+
+      <section className="max-w-6xl mx-auto px-6 pb-14">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          {fatos.map(([valor, rotulo]) => (
+            <div
+              key={rotulo}
+              className="bg-pipe-card border border-pipe-border rounded-xl py-6 px-3"
+            >
+              <p className="font-display text-3xl md:text-4xl text-pipe-lime">
+                {valor}
+              </p>
+              <p className="text-pipe-muted text-xs mt-1.5">{rotulo}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* DIFERENCIAIS */}
 
-      <section id="diferenciais" className="relative max-w-6xl mx-auto px-6 py-16">
-        {/* Brilhos de fundo */}
-        <div className="pointer-events-none absolute -top-20 left-1/4 w-96 h-96 rounded-full bg-pipe-lime/10 blur-[120px]" />
-        <div className="pointer-events-none absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-pipe-blue/10 blur-[120px]" />
-
-        <span className="relative inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-black bg-pipe-lime rounded-full px-4 py-1.5 mx-auto block w-fit">
-          ⚡ O que ninguém mais entrega
+      <section id="diferenciais" className="max-w-6xl mx-auto px-6 py-16">
+        <span className="inline-flex text-xs font-bold tracking-widest uppercase text-black bg-pipe-lime rounded-full px-4 py-1.5 mx-auto block w-fit">
+          Diferenciais
         </span>
 
-        <h2 className="relative font-display text-3xl md:text-5xl text-white text-center mt-6">
-          Encontrar empresas é commodity.
-          <br />
-          <span className="text-pipe-lime">O que fazemos depois, não.</span>
+        <h2 className="font-display text-3xl md:text-5xl text-white text-center mt-6">
+          A lista é só o começo.
         </h2>
 
-        <p className="relative text-gray-300 text-center mt-5 max-w-2xl mx-auto text-lg">
-          Todo mundo busca nos mesmos lugares. O jogo muda quando a
-          lista sai{" "}
-          <span className="text-white font-semibold">pronta pra vender</span>.
+        <p className="text-gray-300 text-center mt-5 max-w-2xl mx-auto text-lg">
+          Achar CNPJ qualquer um acha. Saber quem abordar, com o quê e por quê
+          é o trabalho. É para isso que a FP Pipe existe.
         </p>
 
-        {/* DUO EXCLUSIVO */}
-
-        <div className="relative grid md:grid-cols-2 gap-6 mt-12">
-          {diferenciais.slice(0, 2).map((item) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+          {diferenciais.map((item) => (
             <div
               key={item.titulo}
-              className="rounded-2xl p-[2px] bg-gradient-to-br from-pipe-lime/70 via-pipe-border to-pipe-blue/70 shadow-[0_0_40px_rgba(127,255,0,0.08)] hover:shadow-[0_0_60px_rgba(127,255,0,0.18)] transition duration-300"
+              className="bg-pipe-card border border-pipe-border rounded-xl p-6 hover:border-pipe-blue/60 transition"
             >
-              <div className="rounded-2xl bg-pipe-dark p-8 h-full relative overflow-hidden">
-                <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wider text-black bg-pipe-lime rounded-full px-3 py-1">
-                  exclusivo fp pipe
-                </span>
-
-                <span className="w-14 h-14 rounded-xl bg-pipe-lime/15 border border-pipe-lime/30 flex items-center justify-center text-3xl">
-                  {item.icone}
-                </span>
-
-                <h3 className="text-white font-bold text-2xl mt-5">
-                  {item.titulo}
-                </h3>
-                <p className="text-gray-300 text-base mt-3 leading-relaxed">
-                  {item.texto}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* DEMAIS DIFERENCIAIS */}
-
-        <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
-          {diferenciais.slice(2).map((item) => (
-            <div
-              key={item.titulo}
-              className="bg-pipe-card border border-pipe-border rounded-xl p-6 hover:border-pipe-blue/60 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,191,255,0.12)] transition duration-200"
-            >
-              <span className="w-11 h-11 rounded-lg bg-pipe-blue/12 border border-pipe-blue/25 flex items-center justify-center text-2xl">
+              <span className="w-11 h-11 rounded-lg bg-pipe-blue/12 border border-pipe-blue/25 flex items-center justify-center text-pipe-blue">
                 {item.icone}
               </span>
               <h3 className="text-white font-semibold text-base mt-4">
@@ -414,56 +411,54 @@ export default function Inicio() {
             </div>
           ))}
         </div>
-
-        <div className="relative text-center mt-12">
-          <Link
-            href="/planos"
-            className="relative inline-block overflow-hidden anim-shine anim-cta-pulse bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
-          >
-            Quero esses diferenciais trabalhando pra mim →
-          </Link>
-        </div>
       </section>
 
       {/* PLANOS */}
 
-      <section className="max-w-6xl mx-auto px-6 py-14">
+      <section id="planos" className="max-w-6xl mx-auto px-6 py-14">
         <h2 className="font-display text-3xl md:text-4xl text-white text-center">
           Escolha seu plano
         </h2>
 
         <p className="text-pipe-muted text-center mt-3 max-w-xl mx-auto">
-          Comece grátis: <span className="text-white font-semibold">1 lista com até 25 leads</span>{" "}
-          — no Brasil e nas Américas — pra testar de verdade. Depois, escolha o plano —{" "}
-          <span className="text-white font-semibold">
-            anual sai ~20% mais barato
-          </span>{" "}
-          e trava o preço por 12 meses.
+          O teste já entrega uma lista de até 25 empresas. No plano anual o
+          valor por mês sai ~20% menor e fica travado por 12 meses.
         </p>
 
         <div className="grid md:grid-cols-3 gap-5 mt-10 items-stretch">
           {/* SILVER */}
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-7 flex flex-col">
-            <p className="text-sm font-bold text-gray-300">
-              🥈 SILVER
-            </p>
+            <p className="text-sm font-bold text-gray-300">Silver</p>
 
             <p className="mt-4 text-white">
-              <span className="font-display text-4xl font-bold">R$ 117</span>
-              <span className="text-pipe-muted text-sm"> /mês no anual</span>
-            </p>
-
-            <p className="text-pipe-muted text-xs mt-1">
-              ou R$ 147 mês a mês · sem fidelidade
+              <span className="font-display text-4xl font-bold">R$ 147</span>
+              <span className="text-pipe-muted text-sm"> /mês</span>
+              <span className="ml-2 text-xs font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-full px-2 py-0.5">
+                −20% no anual
+              </span>
             </p>
 
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Até <span className="text-white font-semibold">250 empresas/mês</span> em listas</li>
-              <li>✓ Score de IA priorizando seu ICP</li>
-              <li>✓ E-mails sugeridos pela IA (25/mês)</li>
-              <li>✓ Exportação CSV pro CRM</li>
-              <li className="text-pipe-muted">— Sem Buscador de contatos</li>
-              <li className="text-pipe-muted">— Disparo em massa é Gold+</li>
+              {[
+                "250 empresas em listas por mês",
+                "Score 0–100 com justificativa",
+                "Primeiras abordagens escritas (25/mês)",
+                "Exportação em CSV",
+                "1 usuário",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+              <li className="flex items-start gap-2.5 text-pipe-muted">
+                <IconeCadeado className="w-4 h-4 shrink-0 mt-0.5" />
+                Sem buscador de contatos
+              </li>
+              <li className="flex items-start gap-2.5 text-pipe-muted">
+                <IconeCadeado className="w-4 h-4 shrink-0 mt-0.5" />
+                Sem telefones verificados
+              </li>
             </ul>
 
             <Link
@@ -475,69 +470,72 @@ export default function Inicio() {
           </div>
 
           {/* GOLD */}
-          <div className="relative bg-pipe-card border-2 border-pipe-lime rounded-2xl p-7 flex flex-col md:-translate-y-3 anim-glow overflow-hidden">
+          <div className="relative bg-pipe-card border-2 border-pipe-lime rounded-2xl p-7 flex flex-col md:-translate-y-3">
             <span className="absolute top-0 right-0 text-[10px] font-bold uppercase tracking-wide bg-pipe-lime text-black rounded-bl-xl px-3 py-1">
-              mais popular
+              Recomendado
             </span>
 
-            <p className="text-sm font-bold text-pipe-lime">
-              🥇 GOLD
-            </p>
+            <p className="text-sm font-bold text-pipe-lime">Gold</p>
 
             <p className="mt-4 text-white">
-              <span className="font-display text-4xl font-bold">R$ 227</span>
-              <span className="text-pipe-muted text-sm"> /mês no anual</span>
+              <span className="font-display text-4xl font-bold">R$ 297</span>
+              <span className="text-pipe-muted text-sm"> /mês</span>
               <span className="ml-2 text-xs font-bold text-pipe-lime bg-pipe-lime/10 border border-pipe-lime/30 rounded-full px-2 py-0.5">
-                −24%
+                −24% no anual
               </span>
             </p>
 
-            <p className="text-pipe-muted text-xs mt-1">
-              ou R$ 297 mês a mês · sem fidelidade
-            </p>
-
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Até <span className="text-white font-semibold">400 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">Buscador de contatos</span> (400 buscas/mês)</li>
-              <li>✓ <span className="text-white font-semibold">50 telefones verificados</span> do decisor</li>
-              <li>✓ <span className="text-white font-semibold">Disparo em massa: 100 e-mails/dia</span></li>
-              <li>✓ Abordagens de IA personalizadas (100/mês)</li>
-              <li>✓ Até 3 usuários na mesma conta</li>
+              {[
+                "400 empresas em listas por mês",
+                "Buscador de contatos (até 400 buscas/mês)",
+                "50 telefones verificados de decisores",
+                "Primeiras abordagens escritas (100/mês)",
+                "Envio em massa: 100 e-mails/dia",
+                "3 usuários",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
             </ul>
 
             <Link
               href="/planos"
-              className="relative overflow-hidden anim-shine mt-7 text-center text-sm font-bold bg-pipe-lime text-black rounded-lg px-5 py-3 hover:brightness-110 transition"
+              className="mt-7 text-center text-sm font-bold bg-pipe-lime text-black rounded-lg px-5 py-3 hover:brightness-110 transition"
             >
-              Assinar Gold →
+              Assinar Gold
             </Link>
           </div>
 
           {/* PLATINUM */}
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-7 flex flex-col">
-            <p className="text-sm font-bold text-gray-300">
-              💎 PLATINUM
-            </p>
+            <p className="text-sm font-bold text-gray-300">Platinum</p>
 
             <p className="mt-4 text-white">
-              <span className="font-display text-4xl font-bold">R$ 387</span>
-              <span className="text-pipe-muted text-sm"> /mês no anual</span>
+              <span className="font-display text-4xl font-bold">R$ 497</span>
+              <span className="text-pipe-muted text-sm"> /mês</span>
               <span className="ml-2 text-xs font-bold text-pipe-blue bg-pipe-blue/10 border border-pipe-blue/30 rounded-full px-2 py-0.5">
-                −22%
+                −22% no anual
               </span>
             </p>
 
-            <p className="text-pipe-muted text-xs mt-1">
-              ou R$ 497 mês a mês · sem fidelidade
-            </p>
-
             <ul className="text-sm text-gray-300 space-y-2.5 mt-6 flex-1">
-              <li>✓ Até <span className="text-white font-semibold">1.000 empresas/mês</span> em listas</li>
-              <li>✓ <span className="text-white font-semibold">Buscador de contatos</span> (1.000 buscas/mês)</li>
-              <li>✓ <span className="text-white font-semibold">100 telefones verificados</span> do decisor</li>
-              <li>✓ <span className="text-white font-semibold">Disparo em massa: 300 e-mails/dia</span></li>
-              <li>✓ Prioridade na fila + suporte prioritário</li>
-              <li>✓ Até 6 usuários na mesma conta</li>
+              {[
+                "1.000 empresas em listas por mês",
+                "Buscador de contatos (até 1.000 buscas/mês)",
+                "100 telefones verificados de decisores",
+                "Primeiras abordagens escritas (300/mês)",
+                "Envio em massa: 300 e-mails/dia",
+                "6 usuários",
+                "Prioridade na fila de geração",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
             </ul>
 
             <Link
@@ -556,87 +554,50 @@ export default function Inicio() {
           className="group block mt-5 bg-pipe-card border border-pipe-blue/40 hover:border-pipe-blue rounded-2xl p-6 transition"
         >
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <p className="font-display text-xl text-white whitespace-nowrap">
-              🌎 Internacional
+            <p className="flex items-center gap-2 font-display text-xl text-white whitespace-nowrap">
+              <IconeEmpresa className="w-5 h-5 text-pipe-blue" />
+              Internacional
             </p>
             <p className="text-sm text-pipe-muted flex-1">
-              Prospecção em{" "}
-              <span className="text-white font-semibold">toda a América</span>{" "}
-              — Norte, Central e Sul. A partir de{" "}
+              Brasil, América do Norte, Central e Sul nos planos
+              internacionais, a partir de{" "}
               <span className="text-white font-semibold">
                 R$ 157/mês no anual
               </span>
               .
             </p>
-            <span className="text-sm font-semibold text-pipe-blue group-hover:underline whitespace-nowrap">
-              Ver planos internacionais →
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-pipe-blue group-hover:underline whitespace-nowrap">
+              Ver planos internacionais
+              <IconeSetaExterna className="w-4 h-4" />
             </span>
           </div>
         </Link>
 
         <p className="text-pipe-muted/60 text-xs text-center mt-6">
-          Teste grátis sem cartão: 1 lista com até 25 leads · cancele quando
-          quiser · sem fidelidade · risco zero pra você testar
+          Teste grátis sem cartão · 1 lista com até 25 empresas · cancele
+          quando quiser.
         </p>
       </section>
 
-      {/* COMPARATIVO */}
+      {/* PERGUNTAS FREQUENTES */}
 
-      <section className="max-w-4xl mx-auto px-6 py-10">
-        <div className="bg-pipe-card border border-pipe-border rounded-2xl p-8">
-          <h2 className="font-display text-2xl md:text-3xl text-white text-center">
-            Quanto custa um lead pronto?
-          </h2>
+      <section id="perguntas" className="max-w-3xl mx-auto px-6 py-14">
+        <h2 className="font-display text-3xl md:text-4xl text-white text-center">
+          Perguntas que ficam no caminho
+        </h2>
 
-          <table className="w-full mt-8 text-sm">
-            <thead>
-              <tr className="text-pipe-muted text-left">
-                <th className="pb-3 font-medium">Tipo de plataforma</th>
-                <th className="pb-3 font-medium">Custo por lead</th>
-                <th className="pb-3 font-medium">E-mail do decisor?</th>
-                <th className="pb-3 font-medium">Telefone verificado?</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-pipe-border">
-              <tr>
-                <td className="py-3 text-pipe-muted">
-                  Dados B2B tradicionais
-                </td>
-                <td className="py-3">R$ 3–6 por contato desbloqueado</td>
-                <td className="py-3 text-pipe-muted">Não</td>
-                <td className="py-3 text-pipe-muted">Não</td>
-              </tr>
-              <tr>
-                <td className="py-3 text-pipe-muted">
-                  Plataformas com score IA
-                </td>
-                <td className="py-3">~R$ 1 por lead</td>
-                <td className="py-3 text-pipe-muted">Não</td>
-                <td className="py-3 text-pipe-muted">Não</td>
-              </tr>
-              <tr className="bg-pipe-blue/5">
-                <td className="py-3 font-semibold text-pipe-blue">
-                  FP Pipe · plano Gold
-                </td>
-                <td className="py-3 font-semibold text-white">
-                  R$ 0 por e-mail sugerido pela IA
-                </td>
-                <td className="py-3 font-semibold text-pipe-lime">
-                  ✓ Sugeridos pela IA (grátis)
-                </td>
-                <td className="py-3 font-semibold text-pipe-lime">
-                  ✓ 50 buscas/mês (LinkedIn)
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <p className="text-pipe-muted/70 text-xs mt-6">
-            No Gold e Platinum, os e-mails são gerados pela IA com base no nome +
-            domínio da empresa usando o saldo mensal de abordagens. Telefones são
-            verificados (dados públicos + MillionPhones) usando o saldo de cada
-            plano — Gold 50, Platinum 100.
-          </p>
+        <div className="mt-10 space-y-4">
+          {perguntas.map((item) => (
+            <div
+              key={item.pergunta}
+              className="bg-pipe-card border border-pipe-border rounded-xl p-6"
+            >
+              <h3 className="text-white font-semibold">{item.pergunta}</h3>
+              <p className="text-pipe-muted text-sm mt-2 leading-relaxed">
+                {item.resposta}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -644,22 +605,21 @@ export default function Inicio() {
 
       <section className="max-w-6xl mx-auto px-6 py-20 text-center">
         <h2 className="font-display text-4xl md:text-5xl text-white">
-          Sua próxima lista pode estar pronta{" "}
+          Sua próxima lista pode sair{" "}
           <span className="text-pipe-lime">hoje</span>.
         </h2>
 
         <p className="text-pipe-muted mt-4 max-w-xl mx-auto text-lg">
-          Cada dia sem prospecção é um cliente que seu concorrente atendeu
-          primeiro. Aqui, sua lista, os e-mails sugeridos pela IA e o telefone
-          do decisor saem no mesmo dia.
+          No teste você monta uma lista, compara os scores e lê a primeira
+          abordagem. Sem cartão para começar.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-9">
           <Link
             href="/prospeccao"
-            className="relative overflow-hidden anim-shine anim-cta-pulse bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
+            className="bg-pipe-lime text-black font-bold text-lg rounded-xl px-9 py-4 hover:brightness-110 transition"
           >
-            Criar conta grátis agora →
+            Criar conta grátis
           </Link>
           <Link
             href="/planos"
@@ -670,9 +630,8 @@ export default function Inicio() {
         </div>
 
         <p className="text-sm text-pipe-muted mt-5">
-          Já tem conta?{" "}
           <Link href="/login" className="text-white font-semibold underline underline-offset-4 hover:text-pipe-lime transition">
-            Entrar
+            Já tem conta? Entrar
           </Link>
         </p>
       </section>
@@ -681,7 +640,10 @@ export default function Inicio() {
 
       <footer className="border-t border-pipe-border">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-pipe-muted/60">
-          <p>© FP Pipe — Inteligência comercial para quem vende B2B.</p>
+          <p>
+            © {new Date().getFullYear()} FP Pipe · Prospecção B2B — lista,
+            contato e primeira abordagem.
+          </p>
           <div className="flex items-center gap-6">
             <Link href="/planos" className="hover:text-white transition">
               Planos

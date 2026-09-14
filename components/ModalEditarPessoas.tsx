@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { IconeBusca } from "./Icones";
+
 export type DadosPessoas = {
   aprovadorNome: string;
   aprovadorCargo: string;
@@ -89,23 +91,23 @@ export default function ModalEditarPessoas({
           className="absolute top-4 right-4 text-pipe-muted hover:text-white text-xl transition"
           aria-label="Fechar"
         >
-          ✕
+          ×
         </button>
 
         <h2 className="font-display text-3xl text-white">
-          Editar <span className="text-pipe-lime">pessoas do lead</span>
+          Editar <span className="text-pipe-lime">contatos da empresa</span>
         </h2>
 
         <p className="text-pipe-muted text-sm mt-2">
           Achou as pessoas no LinkedIn? Cole aqui o link e os contatos diretos.
-          Fica salvo na sua base — e é por esses dados que buscamos no Apollo.
+          Ficam salvos na sua base — e é por esses dados que buscamos no Apollo.
         </p>
 
         <form onSubmit={submeter} className="space-y-6 mt-6">
           {/* APROVADOR */}
           <div className="border border-purple-500/30 rounded-lg p-4">
             <p className="text-sm font-bold text-purple-400 mb-3">
-              🟣 Aprovador (quem assina a compra)
+              Aprovador (quem assina a compra)
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -166,7 +168,7 @@ export default function ModalEditarPessoas({
           {/* CAMPEÃO */}
           <div className="border border-lime-500/30 rounded-lg p-4">
             <p className="text-sm font-bold text-pipe-lime mb-3">
-              🎯 Influenciador (quem recebe sua proposta)
+              Influenciador (quem recebe sua proposta)
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -227,7 +229,7 @@ export default function ModalEditarPessoas({
           {/* EMPRESA */}
           <div className="border border-pipe-border rounded-lg p-4">
             <p className="text-sm font-bold text-pipe-blue mb-3">
-              🏢 Dados da empresa
+              Dados da empresa
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -308,9 +310,16 @@ export default function ModalEditarPessoas({
                       className="text-[11px] font-semibold bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30 px-2.5 py-1.5 rounded-lg hover:bg-pipe-blue/20 disabled:opacity-50 transition"
                       title="Busca o LinkedIn da empresa no Google e preenche automaticamente"
                     >
-                      {buscandoLinkedin
-                        ? "🔎 Buscando..."
-                        : "🔍 Achar LinkedIn no Google (1 crédito)"}
+                      {buscandoLinkedin ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          Buscando...
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5">
+                          <IconeBusca tamanho={12} />
+                          Achar LinkedIn no Google (1 crédito)
+                        </span>
+                      )}
                     </button>
 
                     {avisoLinkedin && (
@@ -328,7 +337,7 @@ export default function ModalEditarPessoas({
             type="submit"
             className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 transition"
           >
-            Salvar fichas →
+            Salvar alterações
           </button>
         </form>
       </div>

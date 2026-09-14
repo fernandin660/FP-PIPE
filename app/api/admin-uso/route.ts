@@ -112,15 +112,15 @@ export async function GET() {
   );
 
   const fontesDeMoeda = [
-    { chave: "listas", nome: "🧭 Créditos de listas", tabela: "creditos" },
+    { chave: "listas", nome: "Créditos de listas", tabela: "creditos" },
     {
       chave: "buscador",
-      nome: "🔎 Créditos de buscador",
+      nome: "Créditos de buscador",
       tabela: "creditos_contatos",
     },
     {
       chave: "abordagens",
-      nome: "✍️ Créditos de abordagem (IA)",
+      nome: "Créditos de abordagem (IA)",
       tabela: "creditos_ia",
     },
   ];
@@ -172,7 +172,7 @@ export async function GET() {
 
   moedas.push({
     chave: "telefone",
-    nome: "📞 Créditos de telefone",
+    nome: "Créditos de telefone",
     total: usuariosTelefone.reduce((soma, u) => soma + u.saldo, 0),
     usuarios: usuariosTelefone,
   });

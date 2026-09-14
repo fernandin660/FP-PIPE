@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { criarClienteSupabase } from "../lib/supabase/client";
+import { IconeCopiar, IconeEscrever, IconeEstrela } from "./Icones";
 
 type EmpresaAlvo = {
   id: string;
@@ -33,21 +34,21 @@ type Props = {
 };
 
 const OBJETIVOS = [
-  { chave: "agendar_reuniao", rotulo: "📅 Agendar reunião" },
-  { chave: "descobrir_responsavel", rotulo: "🔎 Descobrir o responsável" },
-  { chave: "fazer_diagnostico", rotulo: "🩺 Fazer diagnóstico" },
-  { chave: "apresentar_solucao", rotulo: "💡 Apresentar solução" },
-  { chave: "follow_up", rotulo: "🔁 Fazer follow-up" },
-  { chave: "reativar_contato", rotulo: "📣 Reativar contato" },
-  { chave: "gerar_interesse", rotulo: "✨ Gerar interesse" },
-  { chave: "outro", rotulo: "✏️ Outro" },
+  { chave: "agendar_reuniao", rotulo: "Agendar reunião" },
+  { chave: "descobrir_responsavel", rotulo: "Descobrir o responsável" },
+  { chave: "fazer_diagnostico", rotulo: "Fazer diagnóstico" },
+  { chave: "apresentar_solucao", rotulo: "Apresentar solução" },
+  { chave: "follow_up", rotulo: "Fazer follow-up" },
+  { chave: "reativar_contato", rotulo: "Reativar contato" },
+  { chave: "gerar_interesse", rotulo: "Gerar interesse" },
+  { chave: "outro", rotulo: "Outro" },
 ];
 
 const CANAIS = [
-  { chave: "email", rotulo: "✉️ E-mail" },
-  { chave: "linkedin", rotulo: "💼 LinkedIn" },
-  { chave: "whatsapp", rotulo: "💬 WhatsApp" },
-  { chave: "ligacao", rotulo: "📞 Ligação" },
+  { chave: "email", rotulo: "E-mail" },
+  { chave: "linkedin", rotulo: "LinkedIn" },
+  { chave: "whatsapp", rotulo: "WhatsApp" },
+  { chave: "ligacao", rotulo: "Ligação" },
 ];
 
 export default function ModalAbordagem({
@@ -81,6 +82,7 @@ export default function ModalAbordagem({
     if (!aberto || !empresa) return;
 
     // Empresa trocou: zera qualquer resultado anterior.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResultado(null);
     setEditando(false);
     setCopiado(false);
@@ -303,7 +305,7 @@ export default function ModalAbordagem({
         <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4 z-10">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">
-              Gerar abordagem com IA
+              Gerar abordagem
             </p>
             <h2 className="font-display text-xl text-white mt-0.5">
               {nomeEmpresa}
@@ -319,7 +321,7 @@ export default function ModalAbordagem({
             onClick={aoFechar}
             className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
           >
-            ✕
+            ×
           </button>
         </div>
 
@@ -358,7 +360,7 @@ export default function ModalAbordagem({
                       : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
                   }`}
                 >
-                  📦 Todo o portfólio
+                  Todo o portfólio
                 </button>
 
                 <button
@@ -369,7 +371,7 @@ export default function ModalAbordagem({
                       : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
                   }`}
                 >
-                  ✏️ Outro produto
+                  Outro produto
                 </button>
               </div>
 
@@ -440,7 +442,7 @@ export default function ModalAbordagem({
                 disabled={!podeGerar}
                 className="bg-pipe-lime text-black font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
               >
-                {gerando ? "🤖 Nossa equipe está escrevendo..." : "Gerar abordagem"}
+                {gerando ? "Gerando a abordagem…" : "Gerar abordagem"}
               </button>
             </div>
           </div>
@@ -450,7 +452,7 @@ export default function ModalAbordagem({
           <div className="px-6 py-5 space-y-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="text-[11px] font-semibold text-pipe-muted">
-                {rotuloCanal} · ✅ Salvo no histórico
+                {rotuloCanal} · Salvo no histórico
               </span>
 
               <button
@@ -503,7 +505,7 @@ export default function ModalAbordagem({
                     disabled={salvandoEdicao || !conteudoEdicao.trim()}
                     className="text-xs font-bold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
                   >
-                    {salvandoEdicao ? "Salvando..." : "💾 Salvar alterações"}
+                    {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
                   </button>
                 </div>
               </section>
@@ -524,14 +526,20 @@ export default function ModalAbordagem({
                     onClick={copiar}
                     className="text-xs font-semibold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 transition"
                   >
-                    {copiado ? "✅ Copiado!" : "📋 Copiar"}
+                    <span className="inline-flex items-center gap-1.5">
+                      <IconeCopiar tamanho={14} />
+                      {copiado ? "Copiada" : "Copiar abordagem"}
+                    </span>
                   </button>
 
                   <button
                     onClick={comecarEdicao}
                     className="text-xs font-semibold border border-pipe-border text-gray-300 px-4 py-2 rounded-lg hover:bg-pipe-dark transition"
                   >
-                    ✏️ Editar
+                    <span className="inline-flex items-center gap-1.5">
+                      <IconeEscrever tamanho={14} />
+                      Editar
+                    </span>
                   </button>
 
                   <button
@@ -539,7 +547,7 @@ export default function ModalAbordagem({
                     disabled={gerando}
                     className="text-xs font-semibold border border-pipe-border text-gray-300 px-4 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition"
                   >
-                    {gerando ? "Gerando..." : "🔄 Gerar novamente"}
+                    {gerando ? "Gerando..." : "Gerar novamente"}
                   </button>
 
                   {!modeloSalvo ? (
@@ -569,12 +577,15 @@ export default function ModalAbordagem({
                         onClick={() => setMostrandoModelo(true)}
                         className="text-xs font-semibold border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/10 transition"
                       >
-                        ⭐ Salvar como modelo
+                        <span className="inline-flex items-center gap-1.5">
+                          <IconeEstrela tamanho={14} />
+                          Salvar como modelo
+                        </span>
                       </button>
                     )
                   ) : (
                     <span className="text-xs font-semibold text-amber-400 self-center">
-                      ⭐ Salvo nos Modelos
+                      Salvo nos Modelos
                     </span>
                   )}
                 </div>
