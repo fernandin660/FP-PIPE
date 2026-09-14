@@ -113,6 +113,11 @@ type EventoHistorico = {
   criado_em: string;
 };
 
+type ProdutoCadastro = {
+  id: string;
+  nome: string;
+};
+
 type EmpresaPick = {
   id: string;
   razao_social: string | null;
@@ -335,6 +340,9 @@ export default function PaginaCrm() {
   const [historico, setHistorico] = useState<EventoHistorico[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [mudandoResponsavel, setMudandoResponsavel] = useState(false);
+  const [produtosCadastrados, setProdutosCadastrados] = useState<
+    ProdutoCadastro[]
+  >([]);
 
   // Atividade manual
   const [formAtividade, setFormAtividade] = useState({
@@ -409,6 +417,16 @@ export default function PaginaCrm() {
       setSaldoCreditos(dadosCreditos?.saldo ?? null);
 
       await carregarCrm();
+
+      try {
+        const resProdutos = await fetch("/api/produtos");
+        if (resProdutos.ok) {
+          const dadosProdutos = await resProdutos.json();
+          setProdutosCadastrados(dadosProdutos.produtos ?? []);
+        }
+      } catch {
+        // Sem produtos cadastrados, o select fica apenas com "Sem produto".
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -1608,17 +1626,49 @@ export default function PaginaCrm() {
                   <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
                     Produto / serviço
                   </p>
-                  <input
-                    type="text"
-                    placeholder="Ex.: Assinatura Pro"
-                    value={leadDetalhe.produto ?? ""}
+                  <select
+                    value={
+                      leadDetalhe.produto &&
+                      produtosCadastrados.some(
+                        (p) => p.nome === leadDetalhe.produto
+                      )
+                        ? leadDetalhe.produto
+                        : ""
+                    }
                     onChange={(e) =>
                       void mudarOportunidade(leadDetalhe, {
-                        produto: e.target.value,
+                        produto: e.target.value === "" ? null : e.target.value,
                       })
                     }
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
-                  />
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  >
+                    <option value="">Sem produto</option>
+                    {produtosCadastrados.map((p) => (
+                      <option key={p.id} value={p.nome}>
+                        {p.nome}
+                      </option>
+                    ))}
+                    {leadDetalhe.produto &&
+                      !produtosCadastrados.some(
+                        (p) => p.nome === leadDetalhe.produto
+                      ) && (
+                        <option value={leadDetalhe.produto}>
+                          {leadDetalhe.produto}
+                        </option>
+                      )}
+                  </select>
+                  {produtosCadastrados.length === 0 && (
+                    <p className="mt-1 text-[11px] text-pipe-muted">
+                      Cadastre seus produtos na aba{" "}
+                      <Link
+                        href="/produtos"
+                        className="text-pipe-blue hover:underline"
+                      >
+                        Produtos
+                      </Link>{" "}
+                      para padronizar este campo.
+                    </p>
+                  )}
                 </div>
               </section>
 

@@ -10,6 +10,7 @@ import type { PerfilVendedor } from "./ModalPerfil";
 import {
   IconeAlvo,
   IconeBusca,
+  IconeCaixa,
   IconeCartao,
   IconeCasa,
   IconeEmpresa,
@@ -333,6 +334,12 @@ export default function Sidebar({
             "Equipe",
             <IconeEstrela className="w-4 h-4 shrink-0" />,
             pathname === "/equipe"
+          )}
+          {item(
+            "/produtos",
+            "Produtos",
+            <IconeCaixa className="w-4 h-4 shrink-0" />,
+            pathname === "/produtos"
           )}
           {ehAdmin && (
             <>

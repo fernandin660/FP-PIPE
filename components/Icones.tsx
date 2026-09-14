@@ -109,6 +109,16 @@ export function IconeEquipe(props: PropriedadesIcone) {
   );
 }
 
+export function IconeCaixa(props: PropriedadesIcone) {
+  return (
+    <Base {...props}>
+      <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+      <path d="m3 8 9 5 9-5" />
+      <path d="M12 13v8" />
+    </Base>
+  );
+}
+
 export function IconeCasa(props: PropriedadesIcone) {
   return (
     <Base {...props}>
