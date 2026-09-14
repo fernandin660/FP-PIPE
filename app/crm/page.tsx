@@ -421,6 +421,10 @@ export default function PaginaCrm() {
     setSelecionados(leadsFiltrados.map((l) => l.id));
   }
 
+  function selecionarTodos() {
+    setSelecionados(leads.map((l) => l.id));
+  }
+
   const alvosSelecionados = () => leads.filter((l) => selecionados.includes(l.id));
 
   async function moverSelecionados() {
@@ -1575,6 +1579,12 @@ export default function PaginaCrm() {
                 className="text-xs text-pipe-muted hover:text-white transition"
               >
                 Selecionar visíveis ({totalFiltrado})
+              </button>
+              <button
+                onClick={selecionarTodos}
+                className="text-xs text-pipe-muted hover:text-white transition"
+              >
+                Selecionar todo o kanban
               </button>
               <span className="w-px h-5 bg-pipe-border hidden sm:block" />
               <select
