@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
 import { validarSenhaForca } from "../lib/senhas";
@@ -21,7 +22,8 @@ export default function TelaEntrada() {
     const next = new URLSearchParams(window.location.search).get("next");
     // Só aceita caminhos internos para evitar open redirect.
     if (next && next.startsWith("/") && !next.startsWith("//")) {
-      setProximoDestino(next);
+      const id = setTimeout(() => setProximoDestino(next), 0);
+      return () => clearTimeout(id);
     }
   }, []);
 
@@ -206,9 +208,9 @@ setMensagem(
 
         <p className="text-pipe-muted/60 text-xs mt-8">
           © FP Pipe — Inteligência comercial para quem vende B2B.{" "}
-          <a href="/" className="hover:text-pipe-blue transition">
+          <Link href="/" className="hover:text-pipe-blue transition">
             Conheça os diferenciais
-          </a>
+          </Link>
         </p>
       </div>
 

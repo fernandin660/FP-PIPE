@@ -18,8 +18,8 @@ export default function LinkUsuario() {
     let ativo = true;
     const supabase = criarClienteSupabase();
     if (!supabase) {
-      setCarregando(false);
-      return;
+      const id = setTimeout(() => setCarregando(false), 0);
+      return () => clearTimeout(id);
     }
     (async () => {
       const {

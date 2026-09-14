@@ -19,20 +19,17 @@ export default function PaginaTermos() {
 
         <h1 className="font-display text-4xl text-white mt-6">Termos de Uso</h1>
         <p className="text-pipe-muted text-sm mt-2">
-          Última atualização: agosto de 2026
+          Última atualização: setembro de 2026
         </p>
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed">
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
-              1. Objeto
-            </h2>
+            <h2 className="text-xl font-bold text-white mb-3">1. Objeto</h2>
             <p>
-              Os presentes Termos regulam o uso da plataforma FP Pipe, que
-              oferece inteligência comercial B2B: definição de perfil de
-              cliente ideal (ICP), busca e pontuação de empresas por CNPJ,
-              identificação de decisores, buscador de contatos verificados e
-              geração de abordagens com IA.
+              O FP Pipe é uma plataforma de prospecção B2B que ajuda você a
+              montar listas de empresas com o perfil do seu cliente ideal,
+              identificar quem decide a compra e preparar a primeira abordagem.
+              O uso do serviço está sujeito a estes Termos.
             </p>
           </section>
 
@@ -41,101 +38,83 @@ export default function PaginaTermos() {
               2. Conta do usuário
             </h2>
             <ul className="list-disc pl-5 space-y-2">
-              <li>Você deve fornecer informações verdadeiras no cadastro.</li>
               <li>
-                Sua senha é pessoal e intransferível; você é responsável pelo
-                uso da sua conta.
+                Você deve fornecer informações verdadeiras e manter seus dados
+                de cadastro atualizados.
               </li>
               <li>
-                É proibido criar múltiplas contas para acumular créditos grátis.
+                Sua conta e senha são pessoais e intransferíveis; você é
+                responsável pelo uso que se fizer delas.
+              </li>
+              <li>
+                É proibido criar múltiplas contas para acumular créditos
+                gratuitos ou benefícios de teste.
               </li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">
-              3. Planos, créditos e pagamentos
+              3. Planos, pagamento e reembolso
             </h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                O plano <strong>Teste grátis</strong> oferece 25 empresas/mês
-                (Brasil + países das Américas), 1 lista, 25 buscas de contato e
-                2 abordagens com IA, para avaliação do serviço.
+                O funcionamento dos planos, limites e créditos está descrito na
+                página de planos do produto, que integra estes Termos.
               </li>
               <li>
-                Os planos pagos (Silver, Gold e Platinum) incluem cotas mensais
-                de empresas, listas e créditos conforme divulgado na página de
-                planos. Créditos são recarregados a cada ciclo pago e{" "}
-                <strong>não se acumulam</strong> entre ciclos além do saldo
-                vigente.
+                Os pagamentos são processados por serviços de pagamento de
+                terceiros; não armazenamos dados de cartão.
               </li>
               <li>
-                Os pagamentos são processados pelo Mercado Pago. Não armazenamos
-                dados de cartão.
-              </li>
-              <li>
-                A assinatura é paga por ciclo escolhido (mensal ou anual),
-                <strong> sem renovação automática</strong>: ao fim do ciclo, você
-                pode renovar manualmente na plataforma. Avisaremos sobre a
-                expiração dentro do produto.
-              </li>
-              <li>
-                Preços podem ser reajustados com aviso prévio de 30 dias; o
-                valor do seu ciclo em curso não muda.
+                Conforme o art. 49 do Código de Defesa do Consumidor, você pode
+                desistir da compra em até{" "}
+                <strong>7 (sete) dias corridos</strong> após a contratação, com
+                reembolso integral, pelo e-mail{" "}
+                <a
+                  href={`mailto:${CONTATO}`}
+                  className="text-pipe-blue hover:underline"
+                >
+                  {CONTATO}
+                </a>
+                .
               </li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">
-              4. Direito de arrependimento
-            </h2>
-            <p>
-              Conforme o art. 49 do Código de Defesa do Consumidor, você pode
-              desistir da compra em até <strong>7 (sete) dias corridos</strong>{" "}
-              após a contratação, com reembolso integral. Basta solicitar pelo
-              e-mail{" "}
-              <a href={`mailto:${CONTATO}`} className="text-pipe-blue hover:underline">
-                {CONTATO}
-              </a>
-              . O estorno é feito pelo Mercado Pago no mesmo meio de pagamento.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-bold text-white mb-3">
-              5. Uso aceitável
+              4. Uso aceitável
             </h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                As listas e contatos são para prospecção comercial legítima da
-                SUA empresa.
+                As listas e contatos obtidos são para prospecção comercial
+                legítima da sua empresa.
               </li>
               <li>
-                É proibido revender, redistribuir ou publicar os dados obtidos;
-                usar para spam, esquemas ilegais ou concorrentes diretos do FP
-                Pipe.
+                É proibido revender, redistribuir ou publicar os dados obtidos,
+                usar o serviço para spam ou atividades ilícitas, automatizar a
+                coleta de dados da plataforma ou burlar limites e créditos.
               </li>
               <li>
-                É proibido automatizar scraping da plataforma ou burlar limites
-                e créditos.
-              </li>
-              <li>
-                Você declara respeitar a LGPD e as regras de comunicação
-                comercial ao contactar os leads obtidos.
+                Você declara respeitar a legislação aplicável, incluindo a
+                LGPD, ao utilizar os dados obtidos.
               </li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">
-              6. Disponibilidade e suporte
+              5. Disponibilidade e suporte
             </h2>
             <p>
-              Buscamos alta disponibilidade, mas o serviço pode passar por
-              manutenções ou depender de serviços de terceiros (fontes de dados,
-              IA, gateways). Suporte:{" "}
-              <a href={`mailto:${CONTATO}`} className="text-pipe-blue hover:underline">
+              Buscamos manter o serviço disponível, mas ele pode passar por
+              manutenções ou depender de serviços de terceiros (provedores de
+              dados, hospedagem e infraestrutura). Suporte:{" "}
+              <a
+                href={`mailto:${CONTATO}`}
+                className="text-pipe-blue hover:underline"
+              >
                 {CONTATO}
               </a>
             </p>
@@ -143,22 +122,33 @@ export default function PaginaTermos() {
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">
-              7. Suspensão e encerramento
+              6. Suspensão e encerramento
             </h2>
             <p>
-              Violação destes Termos pode levar à suspensão imediata da conta,
-              sem reembolso proporcional quando comprovada má-fé. Você pode
-              encerrar a conta quando quiser solicitando por e-mail.
+              A violação destes Termos pode levar à suspensão da conta. Você
+              pode encerrar o uso do serviço quando quiser, solicitando a
+              exclusão da conta pelos canais de contato.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">
-              8. Foro e legislação
+              7. Alterações destes Termos
             </h2>
             <p>
-              Aplica-se a legislação brasileira. Fica eleito o foro do domicílio
-              do consumidor para dirimir eventuais disputas.
+              Estes Termos podem ser atualizados para refletir mudanças no
+              produto ou na legislação, com aviso prévio razoável e publicação
+              nesta página.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-white mb-3">
+              8. Legislação e foro
+            </h2>
+            <p>
+              Aplica-se a legislação brasileira. Fica eleito o foro do
+              domicílio do consumidor para dirimir eventuais disputas.
             </p>
           </section>
         </div>
