@@ -12,7 +12,6 @@ const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
 // De onde vem cada número:
 // - maps: Google Maps Platform, crédito grátis de US$200/mês
 //   (~5 mil text searches com folga para outros endpoints).
-// - anymail: conta free do Anymail Finder = 200 créditos no total.
 // - openai: pay-as-you-go sem teto rígido; 2000 é vigia de volume.
 // - gemini: camada gratuita generosa do Google AI Studio; reserva
 //   da OpenAI na pontuação de leads.
@@ -24,7 +23,6 @@ const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
 // - resend: plano free = 100 e-mails/dia ≈ 3000/mês.
 export const LIMITES_MENSAIS: Record<string, number> = {
   maps: 5000,
-  anymail: 200,
   openai: 2000,
   gemini: 5000,
   groq: 3000,

@@ -9,6 +9,8 @@ type ApiUso = {
   chamadas: number;
   limite: number | null;
   ajustado?: boolean;
+  cache?: number;
+  viaLedger?: boolean;
 };
 
 type Moeda = {
@@ -42,7 +44,6 @@ type PainelMillionPhones = {
 
 const NOMES_APIS: Record<string, string> = {
   maps: "🗺️ Google Maps",
-  anymail: "📧 Anymail Finder",
   openai: "🤖 OpenAI",
   gemini: "✨ Google Gemini (reserva)",
   serper: "🔎 Serper (busca Google)",
@@ -208,6 +209,14 @@ export default function PaginaAdminUso() {
                             · ajustado
                           </span>
                         )}
+                        {a.viaLedger && (
+                          <span
+                            className="ml-2 text-[10px] font-bold uppercase tracking-wide text-pipe-lime"
+                            title="Chamadas reais contadas pelo ledger de enriquecimento"
+                          >
+                            · contagem real
+                          </span>
+                        )}
                       </p>
 
                       <div className="flex items-center gap-3">
@@ -263,6 +272,14 @@ export default function PaginaAdminUso() {
                                   }`}
                                 >
                                   {percentual}%
+                                </span>
+                              ) : null}
+                              {a.cache ? (
+                                <span
+                                  className="ml-2 text-[11px] text-pipe-muted"
+                                  title="Respostas servidas do cache (não gastam crédito da API)"
+                                >
+                                  · {a.cache} via cache
                                 </span>
                               ) : null}
                             </p>

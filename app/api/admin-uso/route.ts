@@ -56,12 +56,49 @@ export async function GET() {
     .select("api");
   const ajustados = new Set((ajustes ?? []).map((a) => a.api));
 
-  const apis = Object.keys(LIMITES_MENSAIS).map((api) => ({
-    api,
-    chamadas: mapaUso.get(api) ?? 0,
-    limite: efetivos[api] ?? LIMITES_MENSAIS[api],
-    ajustado: ajustados.has(api),
-  }));
+  // Fonte de verdade das chamadas reais: o ledger do engine de
+  // enriquecimento. Providers como maps/serper/minhareceita auditam
+  // TODA execução aqui, mas não passam por registrarUso (que conta só
+  // rotas isoladas). Soma-se ao uso_apis e expõe cache à parte.
+  const { data: tentativas } = await admin
+    .from("enriquecimento_attempts")
+    .select("provider, cache_hit, criado_em");
+
+  const chamadasLedger = new Map<string, number>();
+  const cacheLedger = new Map<string, number>();
+  for (const t of tentativas ?? []) {
+    const provider = t.provider;
+    if (!provider || !t.criado_em || String(t.criado_em).slice(0, 7) !== mes)
+      continue;
+    if (t.cache_hit) {
+      cacheLedger.set(provider, (cacheLedger.get(provider) ?? 0) + 1);
+    } else {
+      chamadasLedger.set(provider, (chamadasLedger.get(provider) ?? 0) + 1);
+    }
+  }
+
+  // Providers do engine que espelham uma API listada no painel.
+  const MAPA_PROVIDER_API: Record<string, string> = {
+    maps: "maps",
+    serper: "serper",
+    minhareceita: "minhareceita",
+    casadosdados: "casadosdados",
+  };
+
+  const apis = Object.keys(LIMITES_MENSAIS).map((api) => {
+    const provider = MAPA_PROVIDER_API[api];
+    const noLedger = provider
+      ? chamadasLedger.get(provider) ?? 0
+      : 0;
+    return {
+      api,
+      chamadas: (mapaUso.get(api) ?? 0) + noLedger,
+      limite: efetivos[api] ?? LIMITES_MENSAIS[api],
+      ajustado: ajustados.has(api),
+      cache: provider ? cacheLedger.get(provider) ?? 0 : 0,
+      viaLedger: noLedger > 0,
+    };
+  });
 
   const { data: listaUsuarios } = await admin.auth.admin.listUsers({
     perPage: 500,
