@@ -72,6 +72,67 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ erro: "Membro não encontrado nesta organização." }, { status: 404 });
   }
 
+  // Validação antifraude: a soma das cotas distribuídas entre os membros
+  // não pode exceder o limite total do plano da organização.
+  const { data: todosMembros } = await supabase
+    .from("organizacao_membros")
+    .select("id, limite_listas, limite_buscador, limite_telefone, limite_ia")
+    .eq("organizacao_id", orgId);
+
+  const def = acesso.def;
+
+  if (atualizacao.limite_listas !== undefined && def.listasMes != null) {
+    const somaOutros = (todosMembros ?? [])
+      .filter((m) => m.id !== membroId)
+      .reduce((acc, m) => acc + (m.limite_listas ?? 0), 0);
+    const novoValor = atualizacao.limite_listas ?? 0;
+    if (somaOutros + novoValor > def.listasMes) {
+      return NextResponse.json(
+        { erro: `A soma dos créditos de listas (${somaOutros + novoValor}) excede o limite total do plano ${def.nome} (${def.listasMes}).` },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (atualizacao.limite_buscador !== undefined && def.buscasMes != null) {
+    const somaOutros = (todosMembros ?? [])
+      .filter((m) => m.id !== membroId)
+      .reduce((acc, m) => acc + (m.limite_buscador ?? 0), 0);
+    const novoValor = atualizacao.limite_buscador ?? 0;
+    if (somaOutros + novoValor > def.buscasMes) {
+      return NextResponse.json(
+        { erro: `A soma dos créditos de buscador (${somaOutros + novoValor}) excede o limite total do plano ${def.nome} (${def.buscasMes}).` },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (atualizacao.limite_telefone !== undefined) {
+    const somaOutros = (todosMembros ?? [])
+      .filter((m) => m.id !== membroId)
+      .reduce((acc, m) => acc + (m.limite_telefone ?? 0), 0);
+    const novoValor = atualizacao.limite_telefone ?? 0;
+    if (somaOutros + novoValor > def.creditosTelefone) {
+      return NextResponse.json(
+        { erro: `A soma dos créditos de telefone (${somaOutros + novoValor}) excede o limite total do plano ${def.nome} (${def.creditosTelefone}).` },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (atualizacao.limite_ia !== undefined) {
+    const somaOutros = (todosMembros ?? [])
+      .filter((m) => m.id !== membroId)
+      .reduce((acc, m) => acc + (m.limite_ia ?? 0), 0);
+    const novoValor = atualizacao.limite_ia ?? 0;
+    if (somaOutros + novoValor > def.creditosAbordagem) {
+      return NextResponse.json(
+        { erro: `A soma dos créditos de IA (${somaOutros + novoValor}) excede o limite total do plano ${def.nome} (${def.creditosAbordagem}).` },
+        { status: 400 }
+      );
+    }
+  }
+
   const { error: erroUpdate } = await supabase
     .from("organizacao_membros")
     .update(atualizacao)
