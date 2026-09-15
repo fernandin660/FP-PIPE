@@ -1,25 +1,59 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 
 export async function DELETE(request: Request) {
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 
-  const { supabase, orgId, papel } = gate.ctx!;
+  const { supabase, orgId, papel, usuarioId } = gate.ctx!;
+
+  let corpo: { membroId?: unknown; email?: unknown; sair?: unknown };
+  try {
+    corpo = await request.json();
+  } catch {
+    return NextResponse.json({ erro: "Payload inválido." }, { status: 400 });
+  }
+
+  // ─── Sair da equipe (o próprio membro não-admin se remove) ───
+  if (corpo.sair === true) {
+    if (papel === "admin") {
+      return NextResponse.json(
+        { erro: "Administradores não podem sair da equipe." },
+        { status: 403 }
+      );
+    }
+
+    const admin = criarClienteSupabaseAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { erro: "Serviço indisponível." },
+        { status: 503 }
+      );
+    }
+
+    const { error } = await admin
+      .from("organizacao_membros")
+      .delete()
+      .eq("organizacao_id", orgId)
+      .eq("usuario_id", usuarioId);
+
+    if (error) {
+      return NextResponse.json(
+        { erro: "Não foi possível sair da equipe." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  }
 
   if (papel !== "admin") {
     return NextResponse.json(
       { erro: "Apenas administradores podem remover membros." },
       { status: 403 }
     );
-  }
-
-  let corpo: { membroId?: unknown; email?: unknown };
-  try {
-    corpo = await request.json();
-  } catch {
-    return NextResponse.json({ erro: "Payload inválido." }, { status: 400 });
   }
 
   const membroId =

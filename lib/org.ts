@@ -133,6 +133,56 @@ export async function contarMembros(
 }
 
 /**
+ * Verifica se a organização é "real" — ou seja, possui assinatura paga,
+ * outros membros ativos ou dados de trabalho. Orgs reais NUNCA podem ser
+ * apagadas automaticamente ao aceitar um convite de outra equipe.
+ */
+export async function orgEmUsoReal(
+  admin: NonNullable<
+    Awaited<ReturnType<typeof criarClienteSupabaseAdmin>>
+  >,
+  orgId: string
+): Promise<boolean> {
+  // 1. Assinatura paga ativa?
+  const { data: ass } = await admin
+    .from("assinaturas")
+    .select("plano")
+    .eq("organizacao_id", orgId)
+    .eq("status", "ativa")
+    .maybeSingle();
+  if (ass && ass.plano && ass.plano !== "teste") return true;
+
+  // 2. Outros membros ativos além do dono?
+  const { count } = await admin
+    .from("organizacao_membros")
+    .select("id", { count: "exact", head: true })
+    .eq("organizacao_id", orgId)
+    .eq("status", "ativo");
+  if ((count ?? 0) > 1) return true;
+
+  // 3. Dados de trabalho?
+  for (const tabela of ["companies", "listas", "contatos", "icps"]) {
+    const { count: n } = await admin
+      .from(tabela)
+      .select("id", { count: "exact", head: true })
+      .eq("organizacao_id", orgId);
+    if ((n ?? 0) > 0) return true;
+  }
+
+  // 4. Créditos com saldo?
+  for (const tabela of ["creditos", "creditos_contatos", "creditos_ia"]) {
+    const { count: n } = await admin
+      .from(tabela)
+      .select("id", { count: "exact", head: true })
+      .eq("organizacao_id", orgId)
+      .gt("saldo", 0);
+    if ((n ?? 0) > 0) return true;
+  }
+
+  return false;
+}
+
+/**
  * Verifica se o usuário é admin da organização.
  */
 export function isAdmin(papel: PapelOrg): boolean {

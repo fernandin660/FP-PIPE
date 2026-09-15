@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
+import { orgEmUsoReal } from "../../../../../lib/org";
 
 export async function POST(request: Request) {
   const gate = await exigirAcesso();
@@ -44,6 +45,44 @@ export async function POST(request: Request) {
 
   const orgDestino = convite.organizacao_id;
 
+  // ─── REGRA DE SEGURANÇA: um usuário pertence a UMA equipe ───
+  // Admins de equipes ativas não podem entrar em outra equipe, e quem já
+  // faz parte de uma equipe real não pode aceitar convite de outra equipe.
+  // Somente orgs auto-criadas e vazias (plano teste, sem dados) podem ser
+  // migradas/apagadas — o fluxo legítimo de "criou conta e foi convidado".
+  const { data: minhasOrgs } = await admin
+    .from("organizacao_membros")
+    .select("organizacao_id, papel")
+    .eq("usuario_id", usuarioId)
+    .eq("status", "ativo");
+
+  for (const org of minhasOrgs ?? []) {
+    if (org.organizacao_id === orgDestino) continue;
+    const ehReal = await orgEmUsoReal(admin, org.organizacao_id);
+
+    if (org.papel === "admin" && ehReal) {
+      return NextResponse.json(
+        {
+          erro:
+            "Sua conta é administradora de uma equipe ativa (com plano pago, dados ou colaboradores). Administradores não podem entrar em outra equipe com a mesma conta. Para participar de outra organização, crie uma conta separada.",
+          motivo: "admin_ja_possui_equipe",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (ehReal) {
+      return NextResponse.json(
+        {
+          erro:
+            "Sua conta já faz parte de outra equipe ativa. Cada usuário pode pertencer a apenas uma equipe. Peça ao administrador da sua equipe atual que remova seu acesso (ou saia da equipe em Equipe) antes de aceitar este convite.",
+          motivo: "ja_possui_equipe",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // 1. Atualiza o convite: define usuario_id e status=ativo
   const { error: erroUpdate } = await admin
     .from("organizacao_membros")
@@ -58,8 +97,9 @@ export async function POST(request: Request) {
   }
 
   // 2. Remove a organização auto-criada pelo trigger (se for diferente do destino)
+  //    Só ocorre quando a org atual é vazia (não-real) — já validado acima.
   if (orgAtual !== orgDestino) {
-    // Migra dados para a org de destino
+    // Migra dados para a org de destino (na prática, org vazia não tem dados)
     const tabelas = [
       "creditos",
       "creditos_contatos",

@@ -175,6 +175,27 @@ function EquipeContent() {
     }
   }
 
+  async function sairDaEquipe() {
+    if (!confirm("Sair desta equipe? Seu acesso será removido.")) return;
+
+    try {
+      const res = await fetch("/api/org/membros", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sair: true }),
+      });
+
+      if (res.ok) {
+        window.location.href = "/prospeccao";
+      } else {
+        const dados = await res.json();
+        alert(dados.erro ?? "Falha ao sair da equipe.");
+      }
+    } catch {
+      alert("Erro de conexão.");
+    }
+  }
+
   function tempoRestante(membroId: string): number {
     const ultimo = reenvios[membroId] ?? 0;
     const diff = 120 - (agora - ultimo) / 1000; // 120 segundos = 2 min
@@ -214,6 +235,20 @@ function EquipeContent() {
       <p className="text-gray-400 mb-8">
         {org.nome} · Plano {org.planoNome} · {org.totalMembros}/{org.usuariosInclusos} membro(s)
       </p>
+
+      {org.papel === "membro" && (
+        <div className="flex items-center gap-2 mb-8">
+          <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">
+            Membro
+          </span>
+          <button
+            onClick={sairDaEquipe}
+            className="text-xs px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
+          >
+            Sair da equipe
+          </button>
+        </div>
+      )}
 
       {/* Lista de membros */}
       <section className="mb-10">
