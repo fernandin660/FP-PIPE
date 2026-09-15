@@ -15,7 +15,7 @@ export async function GET() {
     supabase.from("organizacoes").select("nome").eq("id", orgId).single(),
     supabase
       .from("organizacao_membros")
-      .select("id, usuario_id, papel, status, email_convite, criado_em, limite_listas, limite_buscador, limite_telefone, limite_ia")
+      .select("id, usuario_id, papel, status, email_convite, criado_em")
       .eq("organizacao_id", orgId)
       .order("criado_em", { ascending: true }),
     contarMembros(supabase, orgId),
