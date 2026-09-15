@@ -156,7 +156,7 @@ export default function PaginaCreditos() {
         setMensagemSucesso("Limites atualizados com sucesso.");
         setTimeout(() => setMensagemSucesso(""), 3000);
       } else {
-        alert(dados.erro ?? "Falha ao atualizar limite.");
+        alert((dados.erro ?? "Falha ao atualizar limite.") + (dados.detalhe ? `\nDetalhe: ${dados.detalhe}` : ""));
       }
     } catch {
       alert("Erro de conexão ao atualizar limite.");
