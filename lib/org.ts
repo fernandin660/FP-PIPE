@@ -23,27 +23,34 @@ export async function resolverOrg(
   supabase: ClienteServidor,
   usuarioId: string
 ): Promise<ContextoOrg> {
-  // Busca membership existente. Prefere a organização onde o usuário é
-  // admin (a própria empresa) para que frontend e backend sempre resolvam
-  // a MESMA organização - evita divergência de créditos entre telas e API.
-  const { data: membro } = await supabase
+  const { data: membros } = await supabase
     .from("organizacao_membros")
     .select("organizacao_id, papel")
     .eq("usuario_id", usuarioId)
     .eq("status", "ativo")
     .order("papel", { ascending: false })
-    .order("criado_em", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("criado_em", { ascending: true });
 
-  if (membro) {
-    return { orgId: membro.organizacao_id, papel: membro.papel as PapelOrg };
+  if (membros && membros.length > 0) {
+    // Prefere a org que possui assinatura paga ativa
+    for (const m of membros) {
+      const { data: ass } = await supabase
+        .from("assinaturas")
+        .select("plano, status")
+        .eq("organizacao_id", m.organizacao_id)
+        .eq("status", "ativa")
+        .maybeSingle();
+      if (ass && ass.plano && ass.plano !== "teste") {
+        return { orgId: m.organizacao_id, papel: m.papel as PapelOrg };
+      }
+    }
+    return { orgId: membros[0].organizacao_id, papel: membros[0].papel as PapelOrg };
   }
 
-  // Safety net: usuário criado antes do trigger multi-empresa.
-  // Usa admin client pra criar org + membros + migrar dados.
   return provisionarOrg(supabase, usuarioId);
 }
+
+
 
 /**
  * Cria organização para um usuário que não tem e migra seus dados.
