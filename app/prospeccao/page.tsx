@@ -597,6 +597,8 @@ export default function Home() {
     string[]
   >([]);
 
+  const [somenteMatriz, setSomenteMatriz] = useState(false);
+
   // =========================
   // ICP GERADO
   // =========================
@@ -1172,6 +1174,8 @@ export default function Home() {
         setSubsegmentosSelecionados(d.subsegmentosSelecionados);
       if (Array.isArray(d.tiposEmpresaSelecionados))
         setTiposEmpresaSelecionados(d.tiposEmpresaSelecionados);
+      if (typeof d.somenteMatriz === "boolean")
+        setSomenteMatriz(d.somenteMatriz);
     } catch {}
   }, []);
   
@@ -1189,6 +1193,7 @@ export default function Home() {
           segmentosSelecionados,
           subsegmentosSelecionados,
           tiposEmpresaSelecionados,
+          somenteMatriz,
         })
       );
     } catch {}
@@ -1201,6 +1206,7 @@ porteEmpresa,
           segmentosSelecionados,
           subsegmentosSelecionados,
           tiposEmpresaSelecionados,
+          somenteMatriz,
   ]);
 
   const copiar = async (rotulo: string, texto: string) => {
@@ -1406,6 +1412,7 @@ porteEmpresa,
           cidades:
             tipoLocalizacao === "Cidade específica" ? cidadesBusca : [],
           portes: porteEmpresa,
+          somenteMatriz,
         }),
       });
 
@@ -2862,6 +2869,37 @@ porteEmpresa,
                       );
                     })}
                   </div>
+                </div>
+
+                {/* SOMENTE MATRIZ */}
+
+                <div>
+                  <h3 className="font-semibold text-base mb-1 text-white">
+                    Somente matriz
+                  </h3>
+
+                  <p className="text-pipe-muted mb-3 text-sm">
+                    Opcional. Traz apenas a sede (matriz) de cada empresa, sem
+                    as filiais.
+                  </p>
+
+                  <label className="flex items-start gap-3 bg-pipe-card border border-pipe-border rounded-lg p-3 cursor-pointer hover:border-pipe-lime/60 transition">
+                    <input
+                      type="checkbox"
+                      checked={somenteMatriz}
+                      onChange={(e) => setSomenteMatriz(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-lime-400"
+                    />
+                    <span>
+                      <span className="block text-sm text-gray-200 font-medium">
+                        Somente CNPJ e dados da empresa Matriz
+                      </span>
+                      <span className="block text-xs text-pipe-muted mt-0.5">
+                        Filtra pelo CNPJ da sede (ordem 0001). Filiais
+                        (0002 em diante) ficam de fora da lista.
+                      </span>
+                    </span>
+                  </label>
                 </div>
               </div>
               )}

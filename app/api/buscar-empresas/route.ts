@@ -243,6 +243,8 @@ export async function POST(request: Request) {
             (tiposEmpresaDisponiveis as readonly string[]).includes(t)
         )
       : [];
+    // Somente matriz: CNPJ da sede tem número de ordem "0001" (dígitos 9–12).
+    const somenteMatriz = dados.somenteMatriz === true;
 
     // Se o cliente mandar só subsegmentos (sem segmentos), infere os pais.
     const segmentosEfetivos =
@@ -327,6 +329,11 @@ export async function POST(request: Request) {
             const digitos = (item.cnpj ?? "").replace(/\D/g, "");
             if (!digitos || digitos.length !== 14) continue;
             if (mapaEmpresas.has(digitos)) continue;
+
+            // Só matriz: descarta filiais (ordem diferente de 0001).
+            if (somenteMatriz && digitos.substring(8, 12) !== "0001") {
+              continue;
+            }
 
             const razaoSocialItem = item.razao_social ?? "";
             const chaveRazao = normalizarTextoLocal(razaoSocialItem);
