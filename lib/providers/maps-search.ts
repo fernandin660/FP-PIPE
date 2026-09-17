@@ -70,20 +70,27 @@ export const mapsSearchProvider: Provider = {
         }>;
       };
 
-      const lugar = (dados.places ?? []).find(
-        (p) =>
-          typeof p.internationalPhoneNumber === "string" ||
-          typeof p.nationalPhoneNumber === "string"
-      );
+      // Coleta TODOS os telefones de TODOS os lugares
+      const telefonesBruto: string[] = [];
+      for (const p of dados.places ?? []) {
+        const tel = p.internationalPhoneNumber ?? p.nationalPhoneNumber;
+        if (tel) telefonesBruto.push(tel);
+      }
 
-      const telefoneMaps =
-        lugar?.internationalPhoneNumber ?? lugar?.nationalPhoneNumber ?? null;
+      // Remove duplicatas (normalizado)
+      const unicos = [...new Set(telefonesBruto.map(t => t.replace(/\D/g, "")))];
 
-      if (!telefoneMaps) return { ...base, ok: true, encontrado: false, fonte: "maps" };
+      if (unicos.length === 0) return { ...base, ok: true, encontrado: false, fonte: "maps" };
 
-      const telefones: TelefoneEncontrado[] = [
-        { numero: telefoneMaps, tipo: "company", fonte: "maps", confianca: 55 },
-      ];
+      const telefones: TelefoneEncontrado[] = unicos.map(t => ({
+        numero: t,
+        tipo: "company",
+        fonte: "maps",
+        confianca: 55,
+      }));
+
+      // Pega o displayName do primeiro lugar que tem telefone
+      const primeiroComTel = (dados.places ?? []).find(p => p.internationalPhoneNumber || p.nationalPhoneNumber);
 
       return {
         ...base,
@@ -93,7 +100,7 @@ export const mapsSearchProvider: Provider = {
         fonte: "maps",
         dados: {
           telefones,
-          fonteNome: lugar?.displayName?.text ?? "Google Maps",
+          fonteNome: primeiroComTel?.displayName?.text ?? "Google Maps",
         },
       };
     } catch (e) {

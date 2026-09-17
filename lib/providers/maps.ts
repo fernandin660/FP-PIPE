@@ -15,7 +15,9 @@ export const mapsProvider: Provider = {
 
       if (pedido.tipo === "telefone" || pedido.tipo === "website") {
         const m = await buscarTelefoneMaps(alvo.nomeEmpresa ?? "", alvo.cidade, alvo.uf);
-        if (m.telefone) telefones.push({ numero: m.telefone, tipo: "company", fonte: "maps", confianca: 55 });
+        for (const tel of m.telefones) {
+          telefones.push({ numero: tel, tipo: "company", fonte: "maps", confianca: 55 });
+        }
         if (m.website) website = m.website;
       }
 

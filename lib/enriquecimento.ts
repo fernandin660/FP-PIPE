@@ -99,8 +99,8 @@ export async function buscarTelefoneMaps(
   nomeEmpresa: string,
   cidade?: string,
   uf?: string
-): Promise<{ telefone?: string; website?: string }> {
-  if (!CHAVE_MAPS || !nomeEmpresa) return {};
+): Promise<{ telefones: string[]; website?: string }> {
+  if (!CHAVE_MAPS || !nomeEmpresa) return { telefones: [] };
 
   const termo = [nomeEmpresa, cidade, uf].filter(Boolean).join(" ");
 
@@ -125,20 +125,27 @@ export async function buscarTelefoneMaps(
       }
     );
 
-    if (!resposta.ok) return {};
+    if (!resposta.ok) return { telefones: [] };
 
     const dados = (await resposta.json()) as RespostaPlaces;
-    const lugar = (dados.places ?? [])[0];
 
-    return {
-      telefone:
-        lugar?.internationalPhoneNumber ??
-        lugar?.nationalPhoneNumber ??
-        undefined,
-      website: lugar?.websiteUri ?? undefined,
-    };
+    // Coleta TODOS os telefones de TODOS os lugares que tiverem telefone
+    const telefones: string[] = [];
+    const lugares = dados.places ?? [];
+    
+    for (const lugar of lugares) {
+      const tel = lugar.internationalPhoneNumber ?? lugar.nationalPhoneNumber;
+      if (tel) telefones.push(tel);
+    }
+
+    // Remove duplicatas (normalizado)
+    const unicos = [...new Set(telefones.map(t => t.replace(/\D/g, "")))];
+
+    const website = lugares[0]?.websiteUri ?? undefined;
+
+    return { telefones: unicos, website };
   } catch {
-    return {};
+    return { telefones: [] };
   }
 }
 
