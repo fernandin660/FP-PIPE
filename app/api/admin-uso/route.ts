@@ -273,6 +273,11 @@ export async function GET() {
     millionphones: {
       creditosPorAchado: CREDITOS_MP_POR_ACHADO,
       cotaMp,
+      // Conversão MP → nossa moeda (10 MP = 1 telefone)
+      saldoMpEmTelefones: cotaMp > 0 ? Math.floor((cotaMp - consumoHistoricoMp) / CREDITOS_MP_POR_ACHADO) : 0,
+      consumoMpEmTelefones: Math.floor(
+        mlpOrgaos.reduce((soma, u) => soma + u.consumoMp, 0) / CREDITOS_MP_POR_ACHADO
+      ),
       totalAchados: mlpOrgaos.reduce((soma, u) => soma + u.achados, 0),
       totalChamadas: mlpOrgaos.reduce((soma, u) => soma + u.chamadas, 0),
       totalConsumoMp: mlpOrgaos.reduce((soma, u) => soma + u.consumoMp, 0),
