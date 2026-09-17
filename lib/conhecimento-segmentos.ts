@@ -92,7 +92,8 @@ Serviços: regulação de sinistros; avaliação e perícia.`,
 
   "Serviços Financeiros": `Instituições Tradicionais: bancos comerciais e de investimento; cooperativas de crédito; corretoras de valores e investimentos.
 Fintechs: meios de pagamento e adquirentes; plataformas de crédito B2B e P2P; neobancos e cartões digitais.
-Gestão Empresarial: gestão de ativos (asset management); private equity e venture capital; securitizadoras e FIDC (fundos de investimento em direitos creditórios).`,
+Gestão Empresarial: gestão de ativos (asset management); private equity e venture capital; securitizadoras e FIDC (fundos de investimento em direitos creditórios).
+Contabilidade e Auditoria: escritórios de contabilidade e assessoria fiscal; auditoria contábil e compliance tributário; BPO financeiro e controladoria terceirizada.`,
 
   "Tecnologia e Software": `SaaS B2B: software ERP e CRM; HRtechs (gestão de pessoas); martechs e salestechs; edtechs B2B.
 Infraestrutura e Segurança: provedores de cloud computing (IaaS/PaaS); empresas de cibersegurança e SOC; provedores de TI gerida (MSPs).

@@ -803,7 +803,7 @@ export const segmentosClassificacao: Segmento[] = [
   {
     id: "Serviços Financeiros",
     nome: "Serviços Financeiros",
-    descricao: "Bancos, crédito, câmbio e fintechs.",
+    descricao: "Bancos, crédito, câmbio, fintechs e contabilidade.",
     subsegmentos: [
       {
         id: "fin-bancos",
@@ -822,6 +822,12 @@ export const segmentosClassificacao: Segmento[] = [
         nome: "Mercado de capitais",
         descricao: "Gestão de ativos e intermediação.",
         cnaes: ["6611802", "6612601", "6470101"],
+      },
+      {
+        id: "fin-contabilidade",
+        nome: "Contabilidade e auditoria",
+        descricao: "Escritórios de contabilidade, auditoria e assessoria fiscal.",
+        cnaes: ["6920601"],
       },
     ],
   },
