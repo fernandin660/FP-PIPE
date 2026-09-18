@@ -69,7 +69,7 @@ export default async function Admin() {
       admin.from("creditos").select("usuario_id, saldo"),
       admin.from("creditos_ia").select("usuario_id, saldo"),
       admin.from("companies").select("usuario_id"),
-      admin.from("organizacao_membros").select("usuario_id, organizacao_id, status"),
+      admin.from("organizacao_membros").select("usuario_id, organizacao_id, status, papel"),
     ]);
 
     const mapaPlano = new Map<string, { plano: string; status: string; ciclo: string }>();
@@ -117,12 +117,12 @@ export default async function Admin() {
       );
     }
 
-    // Mapa de usuário -> orgs ativas
-    const usuarioOrgsAtivas = new Map<string, string[]>();
+    // Mapa de usuário -> orgs ativas com papel
+    const usuarioOrgsAtivas = new Map<string, Array<{ orgId: string; papel: string }>>();
     for (const m of membros ?? []) {
       if (m.status === "ativo") {
         const arr = usuarioOrgsAtivas.get(m.usuario_id) ?? [];
-        arr.push(m.organizacao_id);
+        arr.push({ orgId: m.organizacao_id, papel: m.papel });
         usuarioOrgsAtivas.set(m.usuario_id, arr);
       }
     }
@@ -131,14 +131,25 @@ export default async function Admin() {
       .map((u) => {
         const assinatura = mapaPlano.get(u.id);
         const orgsDoUsuario = usuarioOrgsAtivas.get(u.id) ?? [];
-        const temEquipePremium = orgsDoUsuario.some(orgId => orgsComPlanoPremium.has(orgId));
-        const planoPremiumDaEquipe = orgsDoUsuario.find(orgId => orgsComPlanoPremium.has(orgId))
-          ? orgsComPlanoPremium.get(orgsDoUsuario.find(orgId => orgsComPlanoPremium.has(orgId))!)
-          : null;
-
+        
+        // Procura a melhor org premium (prioriza onde é admin)
         let planoExibicao: string;
-        if (temEquipePremium && planoPremiumDaEquipe) {
-          planoExibicao = `Pertencente a equipe ${planoPremiumDaEquipe === "gold" ? "Gold" : "Platinum"}`;
+        let melhorOrg: { orgId: string; papel: string; plano: "gold" | "platinum" } | null = null;
+        
+        for (const org of orgsDoUsuario) {
+          const planoOrg = orgsComPlanoPremium.get(org.orgId);
+          if (planoOrg === "gold" || planoOrg === "platinum") {
+            // Prioriza admin sobre membro
+            if (!melhorOrg || (org.papel === "admin" && melhorOrg.papel !== "admin")) {
+              melhorOrg = { orgId: org.orgId, papel: org.papel, plano: planoOrg };
+            }
+          }
+        }
+
+        if (melhorOrg) {
+          const prefixo = melhorOrg.papel === "admin" ? "Adm do plano" : "Pertencente a equipe";
+          const nomePlano = melhorOrg.plano === "gold" ? "Gold" : "Platinum";
+          planoExibicao = `${prefixo} ${nomePlano}`;
         } else {
           planoExibicao =
             DEFINICAO_PLANOS[(assinatura?.plano ?? "") as PlanoChave]?.nome ??
