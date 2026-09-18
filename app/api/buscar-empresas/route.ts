@@ -313,9 +313,10 @@ export async function POST(request: Request) {
     const excluiImobiliarios =
       !recortes.some((r) => SEGMENTOS_IMOBILIARIOS.has(r.segmento));
 
-    for (const { segmento, codigo } of recortesEscolhidos) {
-      if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) break;
-      chamadas += 1;
+    const CONCURRENCIA_MAXIMA = 3;
+
+    async function processarRecorte({ segmento, codigo }: { segmento: string; codigo: string }) {
+      if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) return;
       try {
         const resposta = await pesquisarRecorte(
           [codigo],
@@ -368,8 +369,31 @@ export async function POST(request: Request) {
       } catch {
         // Recorte falhou — segue para o próximo
       }
-      await new Promise((r) => setTimeout(r, 300));
     }
+
+    // Processa recortes em paralelo com concorrência limitada
+    async function processarComConcorrencia() {
+      const fila = [...recortesEscolhidos];
+      const executando: Promise<void>[] = [];
+
+      async function processarProximo() {
+        while (fila.length > 0 && mapaEmpresas.size < LIMITE_TOTAL_EMPRESAS) {
+          const recorte = fila.shift();
+          if (!recorte) break;
+          await processarRecorte(recorte);
+          chamadas += 1;
+        }
+      }
+
+      // Inicia até CONCURRENCIA_MAXIMA workers
+      for (let i = 0; i < Math.min(CONCURRENCIA_MAXIMA, recortesEscolhidos.length); i++) {
+        executando.push(processarProximo());
+      }
+
+      await Promise.all(executando);
+    }
+
+    await processarComConcorrencia();
 
     const empresasFinais = Array.from(mapaEmpresas.values()).slice(
       0,

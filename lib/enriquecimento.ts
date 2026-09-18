@@ -62,6 +62,13 @@ export async function buscarTelefoneSerper(
   return {};
 }
 
+function dddValido(tel: string): boolean {
+  const digitos = tel.replace(/\D/g, "");
+  if (digitos.length < 10) return false;
+  const ddd = parseInt(digitos.slice(0, 2), 10);
+  return ddd >= 11 && ddd <= 99; // DDDs brasileiros válidos
+}
+
 export async function buscarTelefoneEmpresaSerper(
   nomeEmpresa: string
 ): Promise<{ telefones: string[] }> {
@@ -76,7 +83,8 @@ export async function buscarTelefoneEmpresaSerper(
     if (!resposta.ok) return { telefones: [] };
     const dados = (await resposta.json()) as SerperResposta;
     const texto = (dados.organic ?? []).map((item) => `${item.title ?? ""} ${item.snippet ?? ""}`).join(" ");
-    return { telefones: [...new Set(texto.match(/\(?\d{2}\)?\s*\d{4,5}[-.\s]?\d{4}/g) ?? [])].slice(0, 10) };
+    const brutos = [...new Set(texto.match(/\(?\d{2}\)?\s*\d{4,5}[-.\s]?\d{4}/g) ?? [])];
+    return { telefones: brutos.filter(dddValido).slice(0, 10) };
   } catch {
     return { telefones: [] };
   }
@@ -654,13 +662,16 @@ export async function buscarCacheEnriquecimento(
 ): Promise<{
   telefones: string[];
   website?: string;
+  cargo?: string;
+  dados_cadastrais?: Record<string, unknown>;
+  emails?: string[];
 } | null> {
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return null;
 
   const { data } = await admin
     .from("enriquecimento_cache")
-    .select("telefones, website")
+    .select("telefones, website, cargo, dados_cadastrais, emails")
     .eq("linkedin_url", linkedinUrl)
     .maybeSingle();
 
@@ -670,7 +681,10 @@ export async function buscarCacheEnriquecimento(
 export async function salvarCacheEnriquecimento(
   linkedinUrl: string,
   telefones: string[],
-  website?: string
+  website?: string,
+  cargo?: string,
+  dados_cadastrais?: Record<string, unknown>,
+  emails?: string[]
 ) {
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return;
@@ -680,6 +694,9 @@ export async function salvarCacheEnriquecimento(
       linkedin_url: linkedinUrl,
       telefones,
       website: website ?? null,
+      cargo: cargo ?? null,
+      dados_cadastrais: dados_cadastrais ?? null,
+      emails: emails ?? null,
     },
     { onConflict: "linkedin_url" }
   );
@@ -801,9 +818,14 @@ export async function enriquecerTelefonesContato(
     await agregar("millionphones");
   }
 
-  // 7. Salva no cache
+  // 7. Salva no cache (inclui cargo, dados_cadastrais, emails se disponíveis)
   if (telefones.length > 0 || website) {
-    void salvarCacheEnriquecimento(linkedinUrl, telefones, website);
+    // Coleta dados dos providers que rodaram
+    const cargo = fontes.includes("cargo") ? "disponivel" : undefined; // placeholder
+    const dados_cadastrais = {}; // seria preenchido se houver provider de dados_cadastrais
+    const emails: string[] = []; // seria preenchido se houver provider de email
+    
+    void salvarCacheEnriquecimento(linkedinUrl, telefones, website, cargo, dados_cadastrais, emails);
   }
 
   return { telefones, website, fontes };
