@@ -64,11 +64,12 @@ export default async function Admin() {
 
     const [{ data: assinaturas }, { data: creditos }, { data: creditosIa }, {
       data: empresas,
-    }] = await Promise.all([
+    }, { data: membros }] = await Promise.all([
       admin.from("assinaturas").select("usuario_id, plano, status, ciclo"),
       admin.from("creditos").select("usuario_id, saldo"),
       admin.from("creditos_ia").select("usuario_id, saldo"),
       admin.from("companies").select("usuario_id"),
+      admin.from("organizacao_membros").select("usuario_id, organizacao_id, status"),
     ]);
 
     const mapaPlano = new Map<string, { plano: string; status: string; ciclo: string }>();
@@ -79,6 +80,24 @@ export default async function Admin() {
           status: a.status ?? "",
           ciclo: a.ciclo ?? "",
         });
+      }
+    }
+
+    // Mapeia orgs com plano Gold/Platinum ativo
+    const orgIdsDosMembros = [...new Set((membros ?? []).filter(m => m.status === "ativo").map(m => m.organizacao_id))];
+    let orgsComPlanoPremium = new Map<string, string>(); // orgId -> plano (gold/platinum)
+    
+    if (orgIdsDosMembros.length > 0) {
+      const { data: assinaturasOrgs } = await admin
+        .from("assinaturas")
+        .select("organizacao_id, plano, status")
+        .in("organizacao_id", orgIdsDosMembros)
+        .eq("status", "ativa");
+      
+      for (const a of assinaturasOrgs ?? []) {
+        if (a.plano === "gold" || a.plano === "platinum") {
+          orgsComPlanoPremium.set(a.organizacao_id, a.plano);
+        }
       }
     }
 
@@ -98,9 +117,34 @@ export default async function Admin() {
       );
     }
 
+    // Mapa de usuário -> orgs ativas
+    const usuarioOrgsAtivas = new Map<string, string[]>();
+    for (const m of membros ?? []) {
+      if (m.status === "ativo") {
+        const arr = usuarioOrgsAtivas.get(m.usuario_id) ?? [];
+        arr.push(m.organizacao_id);
+        usuarioOrgsAtivas.set(m.usuario_id, arr);
+      }
+    }
+
     linhas = (listagem?.users ?? [])
       .map((u) => {
         const assinatura = mapaPlano.get(u.id);
+        const orgsDoUsuario = usuarioOrgsAtivas.get(u.id) ?? [];
+        const temEquipePremium = orgsDoUsuario.some(orgId => orgsComPlanoPremium.has(orgId));
+        const planoPremiumDaEquipe = orgsDoUsuario.find(orgId => orgsComPlanoPremium.has(orgId))
+          ? orgsComPlanoPremium.get(orgsDoUsuario.find(orgId => orgsComPlanoPremium.has(orgId))!)
+          : null;
+
+        let planoExibicao: string;
+        if (temEquipePremium && planoPremiumDaEquipe) {
+          planoExibicao = `Pertencente a equipe ${planoPremiumDaEquipe === "gold" ? "Gold" : "Platinum"}`;
+        } else {
+          planoExibicao =
+            DEFINICAO_PLANOS[(assinatura?.plano ?? "") as PlanoChave]?.nome ??
+            (assinatura?.plano ? assinatura.plano : "Teste grátis");
+        }
+
         return {
           id: u.id,
           email: u.email ?? "(sem e-mail)",
@@ -110,9 +154,7 @@ export default async function Admin() {
           ultimoLogin: u.last_sign_in_at
             ? new Date(u.last_sign_in_at).toLocaleDateString("pt-BR")
             : "—",
-          plano:
-            DEFINICAO_PLANOS[(assinatura?.plano ?? "") as PlanoChave]?.nome ??
-            (assinatura?.plano ? assinatura.plano : "Teste grátis"),
+          plano: planoExibicao,
           statusAssinatura: assinatura?.status || "sem assinatura",
           ciclo: assinatura?.ciclo || "—",
           saldoContatos: mapaContatos.has(u.id)
