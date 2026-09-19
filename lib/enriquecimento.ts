@@ -796,26 +796,44 @@ export async function enriquecerTelefonesContato(
     return r;
   }
 
-  // 2+3. Serper (google_search + google_empresa) + Maps (maps + website)
-  await agregar("serper");
-  await agregar("maps");
+  // 1. Serper + Maps em PARALELO (independentes)
+  const [serperResult, mapsResult] = await Promise.all([
+    agregar("serper"),
+    agregar("maps"),
+  ]);
+  
+  // Atualiza website se Maps trouxe
+  if (mapsResult.dados?.website && !website) website = mapsResult.dados.website;
+  
+  // Atualiza CNPJ se Serper trouxe
+  const cnpjSerper = serperResult.dados?.cadastrais?.cnpj;
+  if (!cnpjEncontrado && typeof cnpjSerper === "string" && cnpjSerper) {
+    cnpjEncontrado = cnpjSerper;
+  }
 
-  // 4+5. Casa dos Dados (casa_dos_dados + cnpj) → Brasil API (brasil_api)
-  // Só busca CNPJ externamente se ele não veio informado (igual ao legado).
+  // 2. CNPJ-dependent chain: casadosdados -> brasilapi (sequencial, dependente)
   if (!cnpjEncontrado) {
-    await agregar("casadosdados");
+    const casaResult = await agregar("casadosdados");
+    const cnpjCasa = casaResult.dados?.cadastrais?.cnpj;
+    if (!cnpjEncontrado && typeof cnpjCasa === "string" && cnpjCasa) {
+      cnpjEncontrado = cnpjCasa;
+    }
   }
   if (cnpjEncontrado) {
     pedido.alvo.cnpj = cnpjEncontrado;
     await agregar("brasilapi");
   }
 
-  // 6. MillionPhones — telefone pessoal via LinkedIn (pago, 1 crédito de
-  // telefone). Sempre quando há LinkedIn: complementa os números grátis da
-  // empresa (cascata acima) com o contato pessoal, em vez de parar no
-  // primeiro "company". Sem saldo, o engine registra sem_creditos e segue.
-  if (linkedinUrl) {
+  // 3. MillionPhones em PARALELO com o resto (independente, pago)
+  // Inicia antes da cadeia CNPJ se quiser máximo paralelismo, 
+  // mas aqui roda após para não gastar crédito se já achou telefones grátis
+  if (linkedinUrl && telefones.length === 0) {
+    // Só gasta crédito se NÃO achou telefones grátis
     await agregar("millionphones");
+  } else if (linkedinUrl && telefones.length > 0) {
+    // Já tem telefones grátis: dispara millionphones em background (fire-and-forget)
+    // para enriquecer cache sem bloquear resposta
+    void agregar("millionphones");
   }
 
   // 7. Salva no cache (inclui cargo, dados_cadastrais, emails se disponíveis)
