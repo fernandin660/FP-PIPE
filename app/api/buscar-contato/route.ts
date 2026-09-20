@@ -6,24 +6,12 @@ import { exigirAcesso } from "../../../lib/gate";
 import { registrarUso } from "../../../lib/avisos";
 import { buscarContatoCompleto, buscarDadosCnpj } from "../../../lib/enriquecimento";
 import { exigirRateLimit } from "../../../lib/rate-limit";
-import { debitarCreditosContatos } from "../../../lib/creditos-contatos";
 
 const REGEX_LINKEDIN =
   /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9_%-]+\/?$/i;
 
 function normalizarLinkedin(url: string): string {
   return url.trim().toLowerCase().replace(/\/+$/, "");
-}
-
-// Reserva 1 crédito de busca (creditos_contatos). O débito é atômico
-// (UPDATE condicional no saldo lido) e retenta em corrida — não depende de
-// RPC de banco. Retorna novo saldo ou null quando o saldo realmente zerou.
-async function reservarBuscaContato(
-  admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
-  orgId: string,
-  usuarioId: string
-): Promise<number | null> {
-  return debitarCreditosContatos(admin, orgId, usuarioId, 1);
 }
 
 async function localizarContatoExistente(
@@ -51,170 +39,131 @@ type CorpoBusca = {
   tipo?: unknown;
 };
 
-type CorpoAtribuicao = {
-  contatoId?: unknown;
-  companyId?: unknown;
-};
-
-export async function PUT(requisicao: Request) {
-  const supabase = await criarClienteSupabaseServidor();
-  if (!supabase) {
-    return NextResponse.json(
-      { erro: "Autenticação não configurada." },
-      { status: 503 }
-    );
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ erro: "Faça login novamente." }, { status: 401 });
-  }
-
-  const { data: membroAtual } = await supabase
-    .from("organizacao_membros")
-    .select("organizacao_id")
-    .eq("usuario_id", user.id)
-    .eq("status", "ativo")
-    .limit(1)
-    .maybeSingle();
-
-  let corpo: CorpoAtribuicao;
-  try {
-    corpo = (await requisicao.json()) as CorpoAtribuicao;
-  } catch {
-    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
-  }
-
-  const contatoId = String(corpo.contatoId ?? "");
-  const companyId = String(corpo.companyId ?? "");
-
-  if (!contatoId || !companyId) {
-    return NextResponse.json({ erro: "Dados incompletos." }, { status: 400 });
-  }
-
-  const { data: contato } = await supabase
-    .from("contatos")
-    .select("id, nome, cargo, email, linkedin_url")
-    .eq("id", contatoId)
-    .eq("organizacao_id", membroAtual?.organizacao_id ?? "")
-    .single();
-
-  const { data: empresa } = await supabase
-    .from("companies")
-    .select("id, campeao_email")
-    .eq("id", companyId)
-    .eq("organizacao_id", membroAtual?.organizacao_id ?? "")
-    .single();
-
-  if (!contato || !empresa) {
-    return NextResponse.json(
-      { erro: "Contato ou lead não encontrado." },
-      { status: 404 }
-    );
-  }
-
-  const orgGuard = membroAtual?.organizacao_id ?? "";
-
-  await supabase
-    .from("contatos")
-    .update({ company_id: companyId })
-    .eq("id", contatoId)
-    .eq("organizacao_id", orgGuard);
-
-  if (!empresa.campeao_email) {
-    await supabase
-      .from("companies")
-      .update({
-        campeao_nome: contato.nome,
-        campeao_cargo: contato.cargo,
-        campeao_email: contato.email,
-        campeao_linkedin: contato.linkedin_url,
-      })
-      .eq("id", companyId)
-      .eq("organizacao_id", orgGuard);
-  }
-
-  return NextResponse.json({ ok: true });
+async function salvarCacheEmail(
+  admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
+  linkedinUrl: string,
+  depto: string,
+  email: string,
+  nome: string,
+  cargo: string,
+  empresa: string
+) {
+  if (!admin) return;
+  await admin.from("emails_cache").upsert(
+    {
+      linkedin_url: linkedinUrl,
+      email,
+      nome,
+      cargo,
+      empresa,
+      departamento_uso: depto,
+    },
+    { onConflict: "linkedin_url" }
+  );
 }
 
-export async function POST(requisicao: Request) {
-  const bloqueado = await exigirRateLimit(requisicao, "buscar-contato", 10, 60);
+async function upsertContato(
+  admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>,
+  orgId: string,
+  usuarioId: string,
+  linkedinUrl: string | null,
+  contato: {
+    email: string | null;
+    nome: string | null;
+    cargo: string | null;
+    empresa: string | null;
+    telefones: string[];
+  },
+  existingId: string | null
+) {
+  if (!admin) return null;
+
+  const base = {
+    linkedin_url: linkedinUrl,
+    email: contato.email,
+    nome: contato.nome,
+    cargo: contato.cargo,
+    empresa: contato.empresa,
+    telefones: contato.telefones,
+  };
+
+  if (existingId) {
+    const { data } = await admin
+      .from("contatos")
+      .update({
+        email: contato.email,
+        nome: contato.nome,
+        cargo: contato.cargo,
+        empresa: contato.empresa,
+        telefones: contato.telefones,
+      })
+      .eq("id", existingId)
+      .select()
+      .single();
+    return data;
+  } else {
+    const { data } = await admin
+      .from("contatos")
+      .insert({
+        ...base,
+        usuario_id: usuarioId,
+        organizacao_id: orgId,
+        emails: contato.email ? [contato.email] : [],
+        telefones: contato.telefones,
+      })
+      .select()
+      .single();
+    return data;
+  }
+}
+
+async function atualizarTelefonesContato(
+  admin: NonNullable<ReturnType<typeof criarClienteSupabaseAdmin>>,
+  contatoId: string,
+  telefones: string[]
+) {
+  if (!admin || !contatoId || telefones.length === 0) return;
+  await admin.from("contatos").update({ telefones }).eq("id", contatoId);
+}
+
+function pontuarIcp(termosIcp: string, cargo: string | null, empresa: string | null) {
+  if (!termosIcp) return { score: null, motivos: [] as string[] };
+  const texto = `${cargo ?? ""} ${empresa ?? ""}`.toLowerCase();
+  const termos = termosIcp.toLowerCase().split(/[^a-z0-9À-ÿ]+/i).filter((t) => t.length >= 4);
+  const encontrados = [...new Set(termos.filter((termo) => texto.includes(termo)))];
+  const score = Math.min(100, 35 + encontrados.length * 15 + (cargo ? 20 : 0));
+  return { score, motivos: encontrados.slice(0, 4) };
+}
+
+export async function POST(request: Request) {
+  const bloqueado = await exigirRateLimit(request, "buscar-contato", 30, 60);
   if (bloqueado) return bloqueado;
 
   const gate = await exigirAcesso();
   if (gate.resposta) return gate.resposta;
 
-  const { supabase, usuarioId, orgId, acesso } = gate.ctx!;
-
-  if (!acesso.def.temBuscador) {
-    return NextResponse.json(
-      {
-        erro:
-          "O plano Silver não inclui o Buscador de contatos. Faça upgrade para Gold ou Platinum em /planos.",
-        motivo: "sem_buscador",
-      },
-      { status: 403 }
-    );
-  }
+  const { supabase, orgId, usuarioId, acesso } = gate.ctx!;
 
   let corpo: CorpoBusca;
   try {
-    corpo = (await requisicao.json()) as CorpoBusca;
+    corpo = await request.json();
   } catch {
-    return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
+    return NextResponse.json({ erro: "Payload inválido." }, { status: 400 });
   }
 
-  const linkedinInput = String(corpo.linkedinUrl ?? "").trim();
-  const empresaInputRaw = String(corpo.empresa ?? "").trim();
-  let nomeInput = String(corpo.nome ?? "").trim();
+  const linkedinInput =
+    typeof corpo.linkedinUrl === "string" ? corpo.linkedinUrl.trim() : "";
+  const empresaInput = typeof corpo.empresa === "string" ? corpo.empresa.trim() : "";
+  const nomeInput = typeof corpo.nome === "string" ? corpo.nome.trim() : "";
+  const cnpjInput = typeof corpo.cnpj === "string" ? corpo.cnpj.trim() : "";
 
-  // CNPJ normalizado (só dígitos; completa com 0 à esquerda se veio 13).
-  const cnpjBruto = String(corpo.cnpj ?? "").replace(/\D/g, "");
-  const cnpjCampoNormalizado = cnpjBruto.length === 13 ? `0${cnpjBruto}` : cnpjBruto;
-  const temCnpjCampo = cnpjCampoNormalizado.length === 14;
-
-  // Se o valor digitado no campo "empresa" é na verdade um CNPJ (13 ou 14
-  // dígitos), busca a Razão Social oficial via Brasil API antes da cascata.
-  let empresaInput = empresaInputRaw;
-  let cnpjNormalizado = temCnpjCampo && !empresaInputRaw ? cnpjCampoNormalizado : "";
-
-  const empresaDigits = empresaInputRaw.replace(/\D/g, "");
-  if (!cnpjNormalizado && (empresaDigits.length === 13 || empresaDigits.length === 14)) {
-    cnpjNormalizado = empresaDigits.length === 13 ? `0${empresaDigits}` : empresaDigits;
-    const dadosCnpj = await buscarDadosCnpj(cnpjNormalizado);
-    if (dadosCnpj.razaoSocial) empresaInput = dadosCnpj.razaoSocial;
-  }
-
+  const temLinkedin = REGEX_LINKEDIN.test(linkedinInput);
+  const linkedinNormalizado = temLinkedin ? normalizarLinkedin(linkedinInput) : "";
+  const cnpjNormalizado = cnpjInput.replace(/\D/g, "");
   const temCnpj = cnpjNormalizado.length === 14;
-
-  const linkedinNormalizado = linkedinInput
-    ? normalizarLinkedin(linkedinInput)
-    : "";
-
-  const temLinkedin = !!linkedinNormalizado && REGEX_LINKEDIN.test(linkedinNormalizado);
-  const temEmpresa = !!empresaInput;
-
-  // Extrair nome da pessoa da URL do LinkedIn se não foi informado
-  if (!nomeInput && temLinkedin) {
-    const partes = linkedinNormalizado.split("/").filter(Boolean);
-    const slug = partes[partes.length - 1] ?? "";
-    nomeInput = slug
-      .replace(/-[0-9a-f]{8,}$/, "")
-      .replace(/-\d+$/, "")
-      .split("-")
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join(" ");
-  }
-
-  if (!temLinkedin && !temEmpresa && !nomeInput && !temCnpj) {
-    return NextResponse.json(
-      { erro: "Informe a URL do LinkedIn, o nome da empresa, o CNPJ ou o nome da pessoa." },
-      { status: 400 }
-    );
-  }
+  const temEmpresa = empresaInput.length > 0;
+  const temNome = nomeInput.length > 0;
 
   const tipo = ["email", "telefone", "both"].includes(String(corpo.tipo))
     ? String(corpo.tipo)
@@ -224,10 +173,7 @@ export async function POST(requisicao: Request) {
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) {
-    return NextResponse.json(
-      { erro: "Serviço de créditos indisponível." },
-      { status: 503 }
-    );
+    return NextResponse.json({ erro: "Serviço de créditos indisponível." }, { status: 503 });
   }
 
   const { data: perfilDepto } = await supabase
@@ -235,8 +181,7 @@ export async function POST(requisicao: Request) {
     .select("departamento_uso, area_atuacao, produtos_servicos, nichos")
     .eq("usuario_id", usuarioId)
     .maybeSingle();
-  const deptoAtual =
-    (perfilDepto?.departamento_uso as string | null)?.trim() || "";
+  const deptoAtual = (perfilDepto?.departamento_uso as string | null)?.trim() || "";
 
   const termosIcp = [
     perfilDepto?.area_atuacao,
@@ -246,7 +191,7 @@ export async function POST(requisicao: Request) {
     .filter((termo): termo is string => typeof termo === "string" && !!termo.trim())
     .join(" ");
 
-  function pontuarIcp(cargo: string | null, empresa: string | null) {
+  function pontuarIcpLocal(cargo: string | null, empresa: string | null) {
     if (!termosIcp) return { score: null, motivos: [] as string[] };
     const texto = `${cargo ?? ""} ${empresa ?? ""}`.toLowerCase();
     const termos = termosIcp.toLowerCase().split(/[^a-z0-9À-ÿ]+/i).filter((t) => t.length >= 4);
@@ -259,20 +204,20 @@ export async function POST(requisicao: Request) {
   if (temLinkedin) {
     const { data: cacheHit } = await admin
       .from("emails_cache")
-      .select("email, nome, cargo, empresa")
+      .select("email, nome, cargo, empresa, telefones")
       .eq("linkedin_url", linkedinNormalizado)
       .eq("departamento_uso", deptoAtual)
       .maybeSingle();
 
     if (cacheHit?.email) {
-      let saldoTelefoneCache = 0;
+      let saldoTelefoneCacheHit = 0;
       if (precisaTelefone) {
         const { data: telCache } = await supabase
           .from("creditos_telefone")
           .select("saldo")
           .eq("organizacao_id", orgId)
           .maybeSingle();
-        saldoTelefoneCache = telCache?.saldo ?? 0;
+        saldoTelefoneCacheHit = telCache?.saldo ?? 0;
       }
 
       const contatoCache = {
@@ -289,101 +234,82 @@ export async function POST(requisicao: Request) {
         linkedinNormalizado
       );
 
-      let salvoCache = null;
+      // Se cache tem telefones E não precisa buscar telefone, retorna direto
+      if (!precisaTelefone || (cacheHit.telefones && cacheHit.telefones.length > 0)) {
+        const salvoCache = await upsertContato(admin, supabase, orgId, usuarioId, linkedinNormalizado, {
+          email: cacheHit.email,
+          nome: cacheHit.nome,
+          cargo: cacheHit.cargo,
+          empresa: cacheHit.empresa,
+          telefones: cacheHit.telefones ?? [],
+        }, existenteCache?.id ?? null);
 
-      if (existenteCache) {
-        const { data } = await supabase
-          .from("contatos")
-          .update({
-            email: contatoCache.email,
-            nome: contatoCache.nome,
-            cargo: contatoCache.cargo,
-            empresa: contatoCache.empresa,
-          })
-          .eq("id", existenteCache.id)
-          .select()
-          .single();
-        salvoCache = data;
-      } else {
-        const { data } = await supabase
-          .from("contatos")
-          .insert({
-            ...contatoCache,
-            usuario_id: usuarioId,
-            organizacao_id: orgId,
-            emails: [contatoCache.email],
-            telefones: [],
-          })
-          .select()
-          .single();
-        salvoCache = data;
+        return NextResponse.json({
+          encontrado: true,
+          doCache: true,
+          contato: salvoCache ?? { ...contatoCache, telefones: cacheHit.telefones ?? [] },
+          emails: tipo !== "telefone" ? [cacheHit.email] : [],
+          telefones: cacheHit.telefones ?? [],
+          fontesTelefone: ["cache"],
+          saldoTelefones: 0,
+          matchScore: pontuarIcpLocal(contatoCache.cargo, contatoCache.empresa).score,
+          matchMotivos: pontuarIcpLocal(contatoCache.cargo, contatoCache.empresa).motivos,
+        });
       }
 
+      // Cache hit mas precisa buscar telefone (cache não tem telefone)
       let telefones: string[] = [];
       let fontesTelefone: string[] = [];
 
-      if (tipo === "telefone" || tipo === "both") {
-        // Buscar telefone mesmo com e-mail em cache roda providers pagos
-        // (Google/Maps/Serper): consome 1 crédito de busca (moeda
-        // creditos_contatos, a mesma de desbloquear-lead/buscas de contato).
-        const buscaDisponivelCache = await reservarBuscaContato(admin, orgId, usuarioId);
-        if (buscaDisponivelCache == null) {
-          return NextResponse.json(
-            {
-              erro: `Você usou suas buscas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos para buscar mais.`,
-              motivo: "limite_buscas",
-            },
-            { status: 403 }
-          );
-        }
-        const enrich = await buscarContatoCompleto(
-          linkedinNormalizado,
-          contatoCache.empresa ?? "",
-          contatoCache.nome ?? "",
-          undefined,
-          undefined,
-          undefined,
-          { organizacao_id: orgId, usuario_id: usuarioId }
-        );
-        telefones = enrich.telefones;
-        fontesTelefone = enrich.fontesTelefone;
-        if (fontesTelefone.includes("millionphones")) {
-          void registrarUso("buscador_contatos");
-        }
+      // Busca telefone via engine (não reserva crédito aqui - engine faz isso)
+      const enrich = await buscarContatoCompleto(
+        linkedinNormalizado,
+        contatoCache.empresa ?? "",
+        contatoCache.nome ?? "",
+        undefined,
+        undefined,
+        undefined,
+        { organizacao_id: orgId, usuario_id: usuarioId }
+      );
+      telefones = enrich.telefones;
+      fontesTelefone = enrich.fontesTelefone;
 
-        // O débito do telefone é feito pelo engine (runProvider) ao chamar o
-        // MillionPhones; aqui só relemos o saldo para o retorno.
+      // Atualiza contatos com telefones encontrados
+      const salvoCache = await upsertContato(admin, supabase, orgId, usuarioId, linkedinNormalizado, {
+        email: cacheHit.email,
+        nome: cacheHit.nome,
+        cargo: cacheHit.cargo,
+        empresa: cacheHit.empresa,
+        telefones,
+      }, existenteCache?.id ?? null);
+
+      // Atualiza cache de email com telefones
+      await salvarCacheEmail(admin, linkedinNormalizado, deptoAtual, cacheHit.email, cacheHit.nome, cacheHit.cargo, cacheHit.empresa);
+
+      if (enrich.fontesTelefone.includes("millionphones")) {
+        void registrarUso("buscador_contatos");
+      }
+
+      let saldoTelefoneCacheFull = 0;
+      if (precisaTelefone) {
         const { data: telCachePos } = await supabase
           .from("creditos_telefone")
           .select("saldo")
           .eq("organizacao_id", orgId)
           .maybeSingle();
-        saldoTelefoneCache = telCachePos?.saldo ?? 0;
+        saldoTelefoneCacheFull = telCachePos?.saldo ?? 0;
       }
-
-        if (telefones.length > 0 && salvoCache?.id) {
-          await supabase
-            .from("contatos")
-            .update({ telefones })
-            .eq("id", salvoCache.id);
-        }
 
       return NextResponse.json({
         encontrado: true,
         doCache: true,
-        contato:
-          salvoCache ?? {
-            ...contatoCache,
-            id: existenteCache?.id,
-            company_id: existenteCache?.company_id ?? null,
-            telefones,
-          },
-        emails: tipo !== "telefone" ? [contatoCache.email] : [],
+        contato: salvoCache ?? { ...cacheHit, telefones },
+        emails: tipo !== "telefone" ? [cacheHit.email] : [],
         telefones,
         fontesTelefone,
-        saldoTelefones: saldoTelefoneCache,
-        matchScore: pontuarIcp(contatoCache.cargo, contatoCache.empresa).score,
-        matchMotivos: pontuarIcp(contatoCache.cargo, contatoCache.empresa).motivos,
+        saldoTelefones: saldoTelefoneCacheFull,
+        matchScore: pontuarIcpLocal(contatoCache.cargo, contatoCache.empresa).score,
+        matchMotivos: pontuarIcpLocal(contatoCache.cargo, contatoCache.empresa).motivos,
       });
     }
   }
@@ -402,16 +328,8 @@ export async function POST(requisicao: Request) {
   // Busca completa (fora do cache) roda providers pagos
   // (Google/Maps/Serper/Casados Dados): consome 1 crédito de busca
   // (moeda creditos_contatos, creditada com as buscas do plano).
-  const buscaDisponivel = await reservarBuscaContato(admin, orgId, usuarioId);
-  if (buscaDisponivel == null) {
-    return NextResponse.json(
-      {
-        erro: `Você usou suas buscas do plano ${acesso.def.nome} neste mês. Faça upgrade em /planos para buscar mais.`,
-        motivo: "limite_buscas",
-      },
-      { status: 403 }
-    );
-  }
+  // O motor de enriquecimento (runProvider) já faz a reserva/débito atômico.
+  // Não precisamos chamar reservarBuscaContato aqui.
 
   // Busca: LinkedIn URL + empresa + CNPJ + nome (o que tiver)
   const resultado = await buscarContatoCompleto(
@@ -428,14 +346,13 @@ export async function POST(requisicao: Request) {
     ? await localizarContatoExistente(supabase, orgId, linkedinNormalizado)
     : null;
 
-  let novoSaldoTelefone = saldoTelefone;
+  let novoSaldoTelefone = 0;
   const veioDoMillionPhones = resultado.fontesTelefone.includes("millionphones");
   if (veioDoMillionPhones) {
     void registrarUso("buscador_contatos");
   }
 
-  // O débito do telefone é feito pelo engine (runProvider) ao chamar o
-  // MillionPhones; aqui só relemos o saldo para o retorno.
+  // Re-lê saldo de telefone após enriquecimento (o engine já debitou se usou MillionPhones)
   if (precisaTelefone) {
     const { data: telPos } = await supabase
       .from("creditos_telefone")
@@ -454,7 +371,7 @@ export async function POST(requisicao: Request) {
   };
 
   // Salva no cache global (só se tiver LinkedIn)
-  if (admin && temLinkedin) {
+  if (temLinkedin) {
     await admin.from("emails_cache").upsert(
       {
         linkedin_url: linkedinNormalizado,
@@ -472,7 +389,7 @@ export async function POST(requisicao: Request) {
   let salvo = null;
 
   if (temLinkedin) {
-    const existente = existenteAntes;
+    const existente = await localizarContatoExistente(supabase, orgId, linkedinNormalizado);
 
     if (existente) {
       const { data } = await supabase
@@ -492,9 +409,13 @@ export async function POST(requisicao: Request) {
       const { data } = await supabase
         .from("contatos")
         .insert({
-          ...contato,
-           usuario_id: usuarioId,
-           organizacao_id: orgId,
+          linkedin_url: linkedinNormalizado,
+          email: contato.email,
+          nome: contato.nome,
+          cargo: contato.cargo,
+          empresa: contato.empresa,
+          usuario_id: usuarioId,
+          organizacao_id: orgId,
           emails: contato.email ? [contato.email] : [],
           telefones: resultado.telefones,
         })
@@ -523,7 +444,7 @@ export async function POST(requisicao: Request) {
     fontesEmail: resultado.fontesEmail,
     fontesTelefone: resultado.fontesTelefone,
     saldoTelefones: novoSaldoTelefone,
-    matchScore: pontuarIcp(contato.cargo, contato.empresa).score,
-    matchMotivos: pontuarIcp(contato.cargo, contato.empresa).motivos,
+    matchScore: pontuarIcpLocal(contato.cargo, contato.empresa).score,
+    matchMotivos: pontuarIcpLocal(contato.cargo, contato.empresa).motivos,
   });
 }
