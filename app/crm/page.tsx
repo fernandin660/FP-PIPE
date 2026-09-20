@@ -434,49 +434,52 @@ export default function PaginaCrm() {
     if (!stageId || alvos.length === 0) return;
 
     setProcessandoMassa(true);
-    const destino = (leadsPorStage.get(stageId) ?? []).filter(
-      (l) => !selecionados.includes(l.id)
-    );
-    const falhas: string[] = [];
-    let base = destino.length;
 
-    for (const l of alvos) {
-      const ordem = base;
-      base += 1;
-      try {
-        const res = await fetch(`/api/crm/${ledIdEscape(l.id)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stage_id: stageId,
-            stage_origem_id: l.stage_id,
-            ordenacao: ordem,
-          }),
-        });
-        if (!res.ok) {
-          const dados = await res.json().catch(() => null);
-          throw new Error(dados?.erro ?? "Falha ao mover o lead.");
-        }
-        setLeads((atual) =>
-          atual.map((x) =>
-            x.id === l.id ? { ...x, stage_id: stageId, ordenacao: ordem } : x
-          )
-        );
-      } catch {
-        falhas.push(nomeEmpresa(l.company));
+    const operacoes = alvos.map((l, i) => {
+      return {
+        tipo: "mover" as const,
+        leadId: l.id,
+        stageId,
+        ordenacao: (leadsPorStage.get(stageId) ?? []).length + i,
+      };
+    });
+
+    try {
+      const res = await fetch("/api/crm/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operacoes }),
+      });
+      const dados = await res.json();
+      if (!res.ok || !dados.ok) {
+        throw new Error(dados?.erro ?? "Falha ao mover leads.");
       }
+      const falhas: string[] = [];
+      for (const r of dados.resultados) {
+        if (!r.sucesso) {
+          const lead = alvos.find((a) => a.id === (r.operacao as { leadId: string }).leadId);
+          if (lead) falhas.push(nomeEmpresa(lead.company));
+        }
+      }
+      if (falhas.length > 0) {
+        const falhasStr = falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "");
+        setErro(`Não movidos: ${falhas.length} (${falhasStr}).`);
+      } else {
+        setLeads((atual) =>
+          atual.map((x) => {
+            const op = operacoes.find((o) => o.leadId === x.id);
+            if (op && op.tipo === "mover") return { ...x, stage_id: stageId, ordenacao: op.ordenacao };
+            return x;
+          })
+        );
+      }
+    } catch {
+      setErro("Erro ao mover leads em lote.");
     }
 
     setProcessandoMassa(false);
     setSelecionados([]);
     setMassaStageId("");
-    if (falhas.length > 0) {
-      setErro(
-        `Não movidos: ${falhas.length} (${falhas.slice(0, 3).join(", ")}${
-          falhas.length > 3 ? "…" : ""
-        }).`
-      );
-    }
   }
 
   async function abrirCadenciaMassa() {
