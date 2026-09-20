@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/preserve-manual-memoization */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useDeferredValue } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -326,6 +326,7 @@ export default function PaginaCrm() {
 
   // Filtros
   const [filtroTexto, setFiltroTexto] = useState("");
+  const filtroTextoDebounced = useDeferredValue(filtroTexto);
   const [filtroResponsavel, setFiltroResponsavel] = useState("todos");
   const [filtroScore, setFiltroScore] = useState("todos");
   const [filtroEstagio, setFiltroEstagio] = useState("todos");
@@ -647,7 +648,7 @@ export default function PaginaCrm() {
 
   // ---- Filtros ----
   const leadsFiltrados = useMemo(() => {
-    const texto = filtroTexto.trim().toLowerCase();
+    const texto = filtroTextoDebounced.trim().toLowerCase();
     return leads.filter((l) => {
       if (filtroEstagio !== "todos" && l.stage_id !== filtroEstagio) return false;
       if (filtroResponsavel !== "todos") {
@@ -677,7 +678,7 @@ export default function PaginaCrm() {
       }
       return true;
     });
-  }, [leads, filtroTexto, filtroResponsavel, filtroScore, filtroEstagio]);
+  }, [leads, filtroTextoDebounced, filtroResponsavel, filtroScore, filtroEstagio]);
 
   const leadsPorStage = useMemo(() => {
     const m = new Map<string, LeadCrm[]>();
