@@ -132,7 +132,12 @@ function LeadCardComponent({
         onAbrirDetalhe(lead);
       }}
       title={modoMassa ? undefined : ROTULO_ATIVIDADE_STATUS[lead.atividade_status]}
-      style={{ borderLeftWidth: 5, borderLeftColor: corBarra }}
+      style={{
+        borderLeftWidth: 5,
+        borderLeftColor: corBarra,
+        contentVisibility: "auto",
+        containIntrinsicSize: "0 180px",
+      }}
       className={`group bg-pipe-bg border rounded-xl p-3 transition select-none ${
         arrastandoId === lead.id
           ? "opacity-40 border-pipe-blue"
