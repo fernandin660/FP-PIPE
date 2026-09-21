@@ -503,23 +503,36 @@ export default function PaginaCrm() {
 
     setProcessandoMassa(true);
     const falhas: string[] = [];
-    for (const l of alvos) {
-      try {
-        const res = await fetch("/api/crm/cadencia?acao=entrar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            company_id: l.company_id,
-            cadencia_id: cadenciaId,
-          }),
-        });
-        if (!res.ok) {
-          const dados = await res.json().catch(() => null);
-          throw new Error(dados?.erro ?? "Falha ao aplicar a cadência.");
-        }
-      } catch {
-        falhas.push(nomeEmpresa(l.company));
+
+    const operacoes = alvos.map((l) => ({
+      tipo: "cadencia" as const,
+      leadPipelineId: l.id,
+      cadenciaId,
+    }));
+
+    try {
+      const res = await fetch("/api/crm/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operacoes }),
+      });
+      const dados = await res.json();
+      if (!res.ok || !dados.ok) {
+        throw new Error(dados?.erro ?? "Falha ao aplicar cadência em lote.");
       }
+      const falhas: string[] = [];
+      for (const r of dados.resultados) {
+        if (!r.sucesso) {
+          const lead = alvos.find((a) => a.id === (r.operacao as { leadPipelineId: string }).leadPipelineId);
+          if (lead) falhas.push(nomeEmpresa(lead.company));
+        }
+      }
+      if (falhas.length > 0) {
+        const falhasStr = falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "");
+        setErro(`Cadência não aplicada em ${falhas.length} (${falhasStr}).`);
+      }
+    } catch {
+      setErro("Erro ao aplicar cadência em lote.");
     }
 
     setProcessandoMassa(false);
@@ -527,13 +540,6 @@ export default function PaginaCrm() {
     setCadenciasMassa([]);
     setCadenciaMassaId("");
     setSelecionados([]);
-    if (falhas.length > 0) {
-      setErro(
-        `Cadência não aplicada em ${falhas.length} (${
-          falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "")
-        }).`
-      );
-    }
   }
 
   async function excluirSelecionados() {
@@ -550,38 +556,54 @@ export default function PaginaCrm() {
     }
 
     setProcessandoMassa(true);
-    const removidos: string[] = [];
-    const falhas: string[] = [];
-    for (const l of alvos) {
-      try {
-        const res = await fetch(`/api/crm/${ledIdEscape(l.id)}`, {
-          method: "DELETE",
-        });
-        if (res.ok) {
-          removidos.push(l.id);
-        } else {
-          throw new Error("Falha ao remover do pipeline.");
-        }
-      } catch {
-        falhas.push(nomeEmpresa(l.company));
+
+    const operacoes = alvos.map((l) => ({
+      tipo: "excluir" as const,
+      leadId: l.id,
+    }));
+
+    try {
+      const res = await fetch("/api/crm/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operacoes }),
+      });
+      const dados = await res.json();
+      if (!res.ok || !dados.ok) {
+        throw new Error(dados?.erro ?? "Falha ao remover leads em lote.");
       }
+
+      const removidos: string[] = [];
+      const falhas: string[] = [];
+      for (const r of dados.resultados ?? []) {
+        if (r.sucesso) {
+          removidos.push(r.operacao.leadId);
+        } else {
+          const lead = alvos.find((a) => a.id === r.operacao.leadId);
+          if (lead) falhas.push(nomeEmpresa(lead.company));
+        }
+      }
+
+      if (removidos.length > 0) {
+        setLeads((atual) => atual.filter((x) => !removidos.includes(x.id)));
+        setLeadDetalhe(null);
+        setSelecionados((atual) => atual.filter((i) => !removidos.includes(i)));
+      }
+      if (falhas.length > 0) {
+        setErro(
+          `Não removidos: ${falhas.length} (${falhas.slice(0, 3).join(", ")}${
+            falhas.length > 3 ? "…" : ""
+          }).`
+        );
+      } else if (removidos.length === 0) {
+        setSelecionados([]);
+      }
+    } catch {
+      setErro("Erro ao remover leads em lote.");
+      setSelecionados([]);
     }
 
     setProcessandoMassa(false);
-    if (removidos.length > 0) {
-      setLeads((atual) => atual.filter((x) => !removidos.includes(x.id)));
-      setLeadDetalhe(null);
-      setSelecionados((atual) => atual.filter((i) => !removidos.includes(i)));
-    }
-    if (falhas.length > 0) {
-      setErro(
-        `Não removidos: ${falhas.length} (${falhas.slice(0, 3).join(", ")}${
-          falhas.length > 3 ? "…" : ""
-        }).`
-      );
-    } else {
-      setSelecionados([]);
-    }
   }
 
   useEffect(() => {
