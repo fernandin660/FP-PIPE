@@ -131,7 +131,7 @@ export async function GET() {
     const { data } = await supabase
       .from("companies")
       .select(
-        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, campeao_linkedin, aprovador_nome, aprovador_cargo, aprovador_email, aprovador_telefone, aprovador_linkedin, cargo_prioritario, porte, cnae_descricao, capital_social, data_abertura, confirmado, endereco, informacoes_adicionais, interpretacao_ia"
+        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, aprovador_email, aprovador_telefone, cargo_prioritario, porte, capital_social, data_abertura, confirmado, endereco"
       )
       // Escopo por organização: o CRM só resolve empresas da org atual.
       // Isso impede vazar dados cross-org e esconde empresas legadas (org NULL).
