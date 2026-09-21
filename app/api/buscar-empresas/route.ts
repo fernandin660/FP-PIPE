@@ -10,6 +10,7 @@ import {
   segmentosDosSubsegmentos,
   tiposEmpresaDisponiveis,
 } from "@/lib/classificacao";
+import { cnaesCompletosDoSegmento } from "@/lib/cnae-mapa";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
@@ -264,15 +265,32 @@ export async function POST(request: Request) {
     void registrarUso("casadosdados");
 
     // Expande segmentos → subsegmentos → CNAEs, aplicando o tipo de empresa.
+    // Quando o segmento tem subsegmentos escolhidos, usa os CNAEs curados
+    // desses subsegmentos. Sem subsegmentos, usa a UNIÃO dos curados com TODOS
+    // os CNAEs das divisões da hierarquia CNAE 2.0 (tabela cnae_completa) —
+    // cobertura muito maior sem perder os códigos curados (variações de
+    // subclasse que o import de classes não cobre).
     const recortes: Array<{ segmento: string; codigo: string }> = [];
     for (const segmento of segmentosEfetivos) {
       const segmentoId = mapaSegmentoId.get(chaveSemAcento(segmento));
       if (!segmentoId) continue;
-      const codigosTodos = cnaesDeSegmentoComSubselecao(
-        segmentoId,
-        subsegmentos
+
+      const subDoSegmento = (subsegmentos ?? []).filter((id) =>
+        (segmentosClassificacao.find((s) => s.id === segmentoId)?.subsegmentos ??
+          []).some((s) => s.id === id)
       );
-      const codigoFiltrados = filtrarCnaesPorTipos(codigosTodos, tiposEmpresa);
+
+      let codigosTodo =
+        subDoSegmento.length > 0
+          ? cnaesDeSegmentoComSubselecao(segmentoId, subDoSegmento)
+          : [
+              ...new Set([
+                ...cnaesDeSegmentoComSubselecao(segmentoId, []),
+                ...(await cnaesCompletosDoSegmento(admin, segmentoId)),
+              ]),
+            ];
+
+      const codigoFiltrados = filtrarCnaesPorTipos(codigosTodo, tiposEmpresa);
       for (const codigo of codigoFiltrados) {
         recortes.push({ segmento: segmentoId, codigo });
       }

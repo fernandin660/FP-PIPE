@@ -2782,6 +2782,11 @@ porteEmpresa,
                                     : "subsegmentos"}
                                 </span>
                               )}
+                              {selecionado && !algumSubMarcado && (
+                                <span className="text-[11px] text-lime-400 mt-0.5">
+                                  todos os CNAEs
+                                </span>
+                              )}
                             </button>
                             <button
                               onClick={() =>
