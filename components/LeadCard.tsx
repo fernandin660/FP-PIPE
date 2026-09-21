@@ -32,7 +32,11 @@ const ROTULO_ATIVIDADE_STATUS: Record<string, string> = {
 };
 
 function nomeEmpresa(e: EmpresaCrm | null): string {
-  return e?.nome_fantasia ?? e?.razao_social ?? (e?.cnpj ? "CNPJ: " + e.cnpj : "Empresa sem nome");
+  return (
+    e?.nome_fantasia ||
+    e?.razao_social ||
+    (e?.cnpj ? formatarCnpj(e.cnpj) : "Empresa sem nome")
+  );
 }
 
 function nomePessoa(lead: { company: EmpresaCrm | null }): string {
