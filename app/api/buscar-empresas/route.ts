@@ -24,6 +24,10 @@ const URL_CASADOSDADOS =
 const LIMITE_POR_RECORTE = 20;
 const MAX_CHAMADAS = 6;
 const LIMITE_TOTAL_EMPRESAS = 50;
+// Paginação defensiva: cada recorte avança de página apenas enquanto a página
+// atual não trouxer nenhuma empresa nova (todas já salvas na org), com teto
+// para não estourar o custo/chamadas do provedor.
+const MAX_PAGINAS_POR_RECORTE = 4;
 
 const MAPA_PORTE: Record<string, string[]> = {
   MEI: [],
@@ -107,12 +111,14 @@ async function pesquisarRecorte(
   uf?: string,
   municipios: string[] = [],
   codigosPorte: string[] = [],
-  incluirMei = false
+  incluirMei = false,
+  pagina = 1
 ): Promise<RespostaCasadosDados | null> {
   const corpo: Record<string, unknown> = {
     codigo_atividade_principal: codigosCnae,
     situacao_cadastral: ["ATIVA"],
     limite: LIMITE_POR_RECORTE,
+    pagina,
   };
   if (uf) corpo.uf = [uf];
   if (municipios.length > 0) corpo.municipio = municipios.slice(0, 4);
@@ -258,6 +264,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // CNPJs que a organização já possui em companies. As buscas vêm e
+    // já inserem as empresas na org (upsert por organizacao_id+cnpj), então a
+    // tabela é a fonte de "empresas já salvas". Filtrar aqui evita que uma
+    // nova busca com os mesmos filtros repita a lista anterior.
+    const { data: cnpjsOrg } = await supabase
+      .from("companies")
+      .select("cnpj")
+      .eq("organizacao_id", orgId);
+    const { data: cnpjsUsuario } = await supabase
+      .from("companies")
+      .select("cnpj")
+      .eq("usuario_id", usuarioId);
+    const cnpjsJaSalvos = new Set<string>();
+    for (const linha of [...(cnpjsOrg ?? []), ...(cnpjsUsuario ?? [])]) {
+      const digitos = (linha.cnpj ?? "").replace(/\D/g, "");
+      if (digitos.length === 14) cnpjsJaSalvos.add(digitos);
+    }
+
     const mapaEmpresas = new Map<string, EmpresaEncontrada>();
     const mapaRazoesSociais = new Set<string>();
     let chamadas = 0;
@@ -336,18 +360,42 @@ export async function POST(request: Request) {
     async function processarRecorte({ segmento, codigo }: { segmento: string; codigo: string }) {
       if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) return;
       try {
-        const resposta = await pesquisarRecorte(
-          [codigo],
-          estado,
-          cidades,
-          codigosPorte,
-          incluirMei
-        );
-        if (resposta?.cnpjs) {
+        // Pagina até achar empresa nova que ainda não foi salva na org. Paramos
+        // na primeira página que contribui algo — não "consome" o resto do
+        // resultado do CasasDados para o lead pedir mais páginas depois.
+        let chavePaginaAnterior = "";
+        for (let pagina = 1; pagina <= MAX_PAGINAS_POR_RECORTE; pagina++) {
+          if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) return;
+          const resposta = await pesquisarRecorte(
+            [codigo],
+            estado,
+            cidades,
+            codigosPorte,
+            incluirMei,
+            pagina
+          );
+          if (!resposta?.cnpjs || resposta.cnpjs.length === 0) return;
+
+          // Se a API ignora "pagina" (devolve o mesmo resultado), parar:
+          // paginar repetido só gastaria chamadas sem trazer novidade.
+          const chavePagina = resposta.cnpjs
+            .map((i) => (i.cnpj ?? "").replace(/\D/g, ""))
+            .filter((d) => d.length === 14)
+            .sort()
+            .join(",");
+          if (chavePagina !== "" && chavePagina === chavePaginaAnterior) return;
+          chavePaginaAnterior = chavePagina;
+
+          const total = resposta.total ?? 0;
+          const totalPaginas =
+            total > 0 ? Math.ceil(total / LIMITE_POR_RECORTE) : pagina;
+
+          let novas = 0;
           for (const item of resposta.cnpjs) {
             const digitos = (item.cnpj ?? "").replace(/\D/g, "");
             if (!digitos || digitos.length !== 14) continue;
             if (mapaEmpresas.has(digitos)) continue;
+            if (cnpjsJaSalvos.has(digitos)) continue;
 
             // Só matriz: descarta filiais (ordem diferente de 0001).
             if (somenteMatriz && digitos.substring(8, 12) !== "0001") {
@@ -382,7 +430,14 @@ export async function POST(request: Request) {
               uf: estado ?? "",
               municipio: cidades[0] ?? "",
             });
+            novas += 1;
           }
+
+          // Página atual contribuiu: não paginar mais este recorte.
+          if (novas > 0) return;
+
+          // Não há mais páginas no provedor para este recorte.
+          if (pagina >= totalPaginas) return;
         }
       } catch {
         // Recorte falhou — segue para o próximo
