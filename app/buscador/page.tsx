@@ -1605,7 +1605,7 @@ function BuscadorContent() {
                               </section>
                             )}
 
-                            {resultadoPessoa.linkedin_url && !resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones") && (
+                            {!veioDoCache && resultadoPessoa.linkedin_url && !resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones") && (
                               <p className="text-[10px] text-amber-400 border-t border-pipe-border pt-3 italic">
                                 Telefone pessoal não encontrado via MillionPhones para este LinkedIn.
                               </p>
@@ -1614,7 +1614,7 @@ function BuscadorContent() {
                             {resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] !== "millionphones") && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
-                                  <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> Telefones encontrados (Web)
+                                  <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {veioDoCache ? "Telefones encontrados" : "Telefones encontrados (Web)"}
                                 </p>
                                 <div className="space-y-1.5 text-sm">
                                   {resultadoPessoa.telefones.map((tel, i) => (

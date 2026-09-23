@@ -661,6 +661,7 @@ export async function buscarCacheEnriquecimento(
   linkedinUrl: string
 ): Promise<{
   telefones: string[];
+  fontes?: string[];
   website?: string;
   cargo?: string;
   dados_cadastrais?: Record<string, unknown>;
@@ -669,18 +670,30 @@ export async function buscarCacheEnriquecimento(
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return null;
 
-  const { data } = await admin
-    .from("enriquecimento_cache")
-    .select("telefones, website, cargo, dados_cadastrais, emails")
-    .eq("linkedin_url", linkedinUrl)
-    .maybeSingle();
+  try {
+    const { data } = await admin
+      .from("enriquecimento_cache")
+      .select("telefones, fontes, website, cargo, dados_cadastrais, emails")
+      .eq("linkedin_url", linkedinUrl)
+      .maybeSingle();
 
-  return data ?? null;
+    return data ?? null;
+  } catch {
+    // Coluna fontes ainda não existe: usa modo legado (sem fontes).
+    const { data } = await admin
+      .from("enriquecimento_cache")
+      .select("telefones, website, cargo, dados_cadastrais, emails")
+      .eq("linkedin_url", linkedinUrl)
+      .maybeSingle();
+
+    return data ?? null;
+  }
 }
 
 export async function salvarCacheEnriquecimento(
   linkedinUrl: string,
   telefones: string[],
+  fontes?: string[],
   website?: string,
   cargo?: string,
   dados_cadastrais?: Record<string, unknown>,
@@ -693,6 +706,7 @@ export async function salvarCacheEnriquecimento(
     {
       linkedin_url: linkedinUrl,
       telefones,
+      fontes: fontes ?? null,
       website: website ?? null,
       cargo: cargo ?? null,
       dados_cadastrais: dados_cadastrais ?? null,
@@ -754,7 +768,7 @@ export async function enriquecerTelefonesContato(
     return {
       telefones: cache.telefones,
       website: cache.website ?? undefined,
-      fontes: ["cache"],
+      fontes: cache.fontes?.length === cache.telefones.length ? cache.fontes : ["cache"],
     };
   }
 
@@ -840,7 +854,7 @@ export async function enriquecerTelefonesContato(
     const dados_cadastrais = {}; // seria preenchido se houver provider de dados_cadastrais
     const emails: string[] = []; // seria preenchido se houver provider de email
     
-    void salvarCacheEnriquecimento(linkedinUrl, telefones, website, cargo, dados_cadastrais, emails);
+    void salvarCacheEnriquecimento(linkedinUrl, telefones, fontes, website, cargo, dados_cadastrais, emails);
   }
 
   return { telefones, website, fontes };
