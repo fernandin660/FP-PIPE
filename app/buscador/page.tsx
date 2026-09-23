@@ -1607,7 +1607,7 @@ function BuscadorContent() {
 
                             {!veioDoCache && resultadoPessoa.linkedin_url && !resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones") && (
                               <p className="text-[10px] text-amber-400 border-t border-pipe-border pt-3 italic">
-                                Telefone pessoal não encontrado via MillionPhones para este LinkedIn.
+                                Contato pessoal não encontrado para esse perfil.
                               </p>
                             )}
 
