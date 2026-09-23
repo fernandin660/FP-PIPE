@@ -1565,13 +1565,13 @@ function BuscadorContent() {
                                   <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contato pessoal
                                 </p>
                                 <div className="space-y-1.5 text-sm">
-                                  {resultadoPessoa.telefones.map((tel) => (
+                                  {resultadoPessoa.telefones.map((tel, i) => (
                                     <div key={tel} className="flex items-center gap-2">
                                       <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
                                         <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
                                       </a>
                                       <span className="text-[10px] text-pipe-muted">
-                                        {resultadoPessoa.fontesTelefone.includes("millionphones") ? "MillionPhones" : "Web"}
+                                        {resultadoPessoa.fontesTelefone[i] === "millionphones" ? "MillionPhones" : "Web"}
                                       </span>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(tel); }}

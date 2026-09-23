@@ -824,16 +824,13 @@ export async function enriquecerTelefonesContato(
     await agregar("brasilapi");
   }
 
-  // 3. MillionPhones em PARALELO com o resto (independente, pago)
-  // Inicia antes da cadeia CNPJ se quiser máximo paralelismo, 
-  // mas aqui roda após para não gastar crédito se já achou telefones grátis
-  if (linkedinUrl && telefones.length === 0) {
-    // Só gasta crédito se NÃO achou telefones grátis
+  // 3. MillionPhones via LinkedIn (provider pago: 1 crédito de telefone).
+  // SEMPRE aguardado quando há LinkedIn — se rodasse em background
+  // (fire-and-forget), o crédito seria debitado mas o telefone pessoal
+  // não voltaria na resposta síncrona. O engine estorna se não achar
+  // número, então só custa quando entrega o contato.
+  if (linkedinUrl) {
     await agregar("millionphones");
-  } else if (linkedinUrl && telefones.length > 0) {
-    // Já tem telefones grátis: dispara millionphones em background (fire-and-forget)
-    // para enriquecer cache sem bloquear resposta
-    void agregar("millionphones");
   }
 
   // 7. Salva no cache (inclui cargo, dados_cadastrais, emails se disponíveis)
