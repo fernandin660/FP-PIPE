@@ -1375,7 +1375,9 @@ function BuscadorContent() {
                             )}
                             {resultadoPessoa.telefones.length > 0 && (
                               <span className="text-xs text-pipe-lime font-semibold">
-                                pessoal ({resultadoPessoa.telefones.length})
+                                {resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones")
+                                  ? `pessoal (${resultadoPessoa.telefones.filter((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones").length})`
+                                  : `telefone (${resultadoPessoa.telefones.length})`}
                               </span>
                             )}
                             {!!(resultadoPessoa.emails.length > 0 || fichaEmpresa?.emails_genericos?.length) && (
@@ -1559,27 +1561,29 @@ function BuscadorContent() {
                               </section>
                             )}
 
-                            {(resultadoPessoa.telefones.length > 0 || resultadoPessoa.emails.length > 0) && (
+                            {(resultadoPessoa.telefones.filter((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones").length > 0 || resultadoPessoa.emails.length > 0) && (
                               <section className="border-t border-pipe-border pt-4">
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
                                   <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contato pessoal
                                 </p>
                                 <div className="space-y-1.5 text-sm">
                                   {resultadoPessoa.telefones.map((tel, i) => (
-                                    <div key={tel} className="flex items-center gap-2">
-                                      <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
-                                        <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
-                                      </a>
-                                      <span className="text-[10px] text-pipe-muted">
-                                        {resultadoPessoa.fontesTelefone[i] === "millionphones" ? "MillionPhones" : "Web"}
-                                      </span>
-                                      <button
-                                        onClick={async () => { await navigator.clipboard.writeText(tel); }}
-                                        className="text-xs text-pipe-muted hover:text-white transition"
-                                      >
-                                        <IconeCopiar tamanho={16} />
-                                      </button>
-                                    </div>
+                                    resultadoPessoa.fontesTelefone[i] === "millionphones" && (
+                                      <div key={tel} className="flex items-center gap-2">
+                                        <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
+                                          <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
+                                        </a>
+                                        <span className="text-[10px] text-pipe-muted">
+                                          MillionPhones
+                                        </span>
+                                        <button
+                                          onClick={async () => { await navigator.clipboard.writeText(tel); }}
+                                          className="text-xs text-pipe-muted hover:text-white transition"
+                                        >
+                                          <IconeCopiar tamanho={16} />
+                                        </button>
+                                      </div>
+                                    )
                                   ))}
                                   {resultadoPessoa.emails.map((email) => (
                                     <div key={email} className="flex items-center gap-2">
@@ -1598,6 +1602,37 @@ function BuscadorContent() {
                                 {resultadoPessoa.emails.length > 0 && (
                                   <p className="text-[10px] text-pipe-muted mt-1 italic">E-mails sugeridos, confira antes de usar.</p>
                                 )}
+                              </section>
+                            )}
+
+                            {resultadoPessoa.linkedin_url && !resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones") && (
+                              <p className="text-[10px] text-amber-400 border-t border-pipe-border pt-3 italic">
+                                Telefone pessoal não encontrado via MillionPhones para este LinkedIn.
+                              </p>
+                            )}
+
+                            {resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] !== "millionphones") && (
+                              <section className="border-t border-pipe-border pt-4">
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                  <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> Telefones encontrados (Web)
+                                </p>
+                                <div className="space-y-1.5 text-sm">
+                                  {resultadoPessoa.telefones.map((tel, i) => (
+                                    resultadoPessoa.fontesTelefone[i] !== "millionphones" && (
+                                      <div key={tel} className="flex items-center gap-2">
+                                        <a href={`tel:${tel}`} className="text-pipe-lime font-semibold hover:underline">
+                                          <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
+                                        </a>
+                                        <button
+                                          onClick={async () => { await navigator.clipboard.writeText(tel); }}
+                                          className="text-xs text-pipe-muted hover:text-white transition"
+                                        >
+                                          <IconeCopiar tamanho={16} />
+                                        </button>
+                                      </div>
+                                    )
+                                  ))}
+                                </div>
                               </section>
                             )}
 
