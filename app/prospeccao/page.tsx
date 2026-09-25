@@ -650,6 +650,7 @@ export default function Home() {
   const [modalLeadAberto, setModalLeadAberto] = useState(false);
   const [cnpjEmEdicao, setCnpjEmEdicao] = useState<string | null>(null);
   const [erroEmpresas, setErroEmpresas] = useState("");
+  const [avisoEmpresas, setAvisoEmpresas] = useState("");
   const [pontuandoEmpresas, setPontuandoEmpresas] = useState(false);
   const [pontuadas, setPontuadas] = useState(false);
   const [empresasSelecionadas, setEmpresasSelecionadas] = useState<
@@ -1396,6 +1397,7 @@ porteEmpresa,
 
     setBuscandoEmpresas(true);
     setErroEmpresas("");
+    setAvisoEmpresas("");
     setEmpresasEncontradas([]);
     setPontuadas(false);
 
@@ -1421,6 +1423,10 @@ porteEmpresa,
       if (!resposta.ok) {
         throw new Error(dados.erro || "Erro ao buscar empresas");
       }
+
+      setAvisoEmpresas(
+        typeof dados.aviso === "string" ? dados.aviso : ""
+      );
 
       const empresas: Array<{
         cnpj: string;
@@ -1502,6 +1508,7 @@ porteEmpresa,
           ? erro.message
           : "Não conseguimos buscar as empresas agora."
       );
+      setAvisoEmpresas("");
     } finally {
       setBuscandoEmpresas(false);
     }
@@ -3406,6 +3413,12 @@ porteEmpresa,
                   {erroEmpresas && (
                     <p className="mt-3 text-sm text-red-400 text-center">
                       {erroEmpresas}
+                    </p>
+                  )}
+
+                  {avisoEmpresas && (
+                    <p className="mt-3 text-sm text-amber-400 text-center">
+                      {avisoEmpresas}
                     </p>
                   )}
                 </>

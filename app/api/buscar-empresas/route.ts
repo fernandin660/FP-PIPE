@@ -28,6 +28,14 @@ const LIMITE_TOTAL_EMPRESAS = 50;
 // atual não trouxer nenhuma empresa nova (todas já salvas na org), com teto
 // para não estourar o custo/chamadas do provedor.
 const MAX_PAGINAS_POR_RECORTE = 4;
+// Compensação do endpoint público: ele ignora "pagina" e devolve sempre o
+// mesmo top-20 para um filtro. Iterando por UF, cada estado tem seu próprio
+// ranking, então "Brasil inteiro" passa a alcançar até 27×20 únicos por CNAE.
+const UFS_BRASIL = [
+  "ac", "al", "am", "ap", "ba", "ce", "df", "es", "go", "ma",
+  "mg", "ms", "mt", "pa", "pb", "pe", "pi", "pr", "rj", "rn",
+  "ro", "rr", "rs", "sc", "se", "sp", "to",
+];
 
 const MAPA_PORTE: Record<string, string[]> = {
   MEI: [],
@@ -120,7 +128,7 @@ async function pesquisarRecorte(
     limite: LIMITE_POR_RECORTE,
     pagina,
   };
-  if (uf) corpo.uf = [uf];
+  if (uf) corpo.uf = [uf.toLowerCase()];
   if (municipios.length > 0) corpo.municipio = municipios.slice(0, 4);
   if (codigosPorte.length > 0) {
     corpo.porte_empresa = { codigos: codigosPorte };
@@ -294,7 +302,7 @@ export async function POST(request: Request) {
     // os CNAEs das divisões da hierarquia CNAE 2.0 (tabela cnae_completa) —
     // cobertura muito maior sem perder os códigos curados (variações de
     // subclasse que o import de classes não cobre).
-    const recortes: Array<{ segmento: string; codigo: string }> = [];
+    const recortes: Array<{ segmento: string; codigo: string; uf?: string }> = [];
     for (const segmento of segmentosEfetivos) {
       const segmentoId = mapaSegmentoId.get(chaveSemAcento(segmento));
       if (!segmentoId) continue;
@@ -316,26 +324,39 @@ export async function POST(request: Request) {
 
       const codigoFiltrados = filtrarCnaesPorTipos(codigosTodo, tiposEmpresa);
       for (const codigo of codigoFiltrados) {
-        recortes.push({ segmento: segmentoId, codigo });
+        // Brasil inteiro (sem UF e sem cidade): a API pública ignora "pagina" e
+        // devolve SEMPRE o mesmo top-20 do filtro. Varrer as 27 UFs faz cada
+        // recorte trazer o top-20 do seu próprio estado — muito mais cobertura.
+        if (!estado && cidades.length === 0) {
+          for (const uf of UFS_BRASIL) {
+            recortes.push({ segmento: segmentoId, codigo, uf });
+          }
+        } else {
+          recortes.push({ segmento: segmentoId, codigo });
+        }
       }
     }
 
-    // Distribui as chamadas em rodadas entre os segmentos escolhidos: com o
-    // custo atual (máx. MAX_CHAMADAS), cada segmento participa da busca em vez
-    // de esgotar a cota no primeiro segmento da lista.
+    // Distribui as chamadas em rodadas entre os segmentos escolhidos.
     const recortesEscolhidos: typeof recortes = [];
     {
-      const porSegmento = new Map<string, string[]>();
+      const porSegmento = new Map<string, typeof recortes>();
       for (const recorte of recortes) {
         const lista = porSegmento.get(recorte.segmento);
-        if (lista) lista.push(recorte.codigo);
-        else porSegmento.set(recorte.segmento, [recorte.codigo]);
+        if (lista) lista.push(recorte);
+        else porSegmento.set(recorte.segmento, [recorte]);
       }
       const chavesSegmento = Array.from(porSegmento.keys());
       const indicePorSegmento = new Map<string, number>(
         chavesSegmento.map((chave) => [chave, 0])
       );
-      let restantes = MAX_CHAMADAS;
+      // Brasil inteiro expande 27 UFs por recorte: cada UF devolve o seu
+      // próprio top-20, então dá cota para varrer todas as UFs.
+      const cota =
+        !estado && cidades.length === 0
+          ? UFS_BRASIL.length
+          : MAX_CHAMADAS;
+      let restantes = cota;
       while (restantes > 0) {
         let avancou = false;
         for (const chave of chavesSegmento) {
@@ -343,7 +364,7 @@ export async function POST(request: Request) {
           const lista = porSegmento.get(chave)!;
           const indice = indicePorSegmento.get(chave)!;
           if (indice >= lista.length) continue;
-          recortesEscolhidos.push({ segmento: chave, codigo: lista[indice] });
+          recortesEscolhidos.push(lista[indice]);
           indicePorSegmento.set(chave, indice + 1);
           restantes -= 1;
           avancou = true;
@@ -357,7 +378,15 @@ export async function POST(request: Request) {
 
     const CONCURRENCIA_MAXIMA = 3;
 
-    async function processarRecorte({ segmento, codigo }: { segmento: string; codigo: string }) {
+    async function processarRecorte({
+      segmento,
+      codigo,
+      uf,
+    }: {
+      segmento: string;
+      codigo: string;
+      uf?: string;
+    }) {
       if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) return;
       try {
         // Pagina até achar empresa nova que ainda não foi salva na org. Paramos
@@ -368,7 +397,7 @@ export async function POST(request: Request) {
           if (mapaEmpresas.size >= LIMITE_TOTAL_EMPRESAS) return;
           const resposta = await pesquisarRecorte(
             [codigo],
-            estado,
+            uf ?? estado,
             cidades,
             codigosPorte,
             incluirMei,
@@ -427,7 +456,7 @@ export async function POST(request: Request) {
                 item.situacao_cadastral?.situacao_atual ?? "ATIVA",
               dataSituacao: item.situacao_cadastral?.data?.slice(0, 10) ?? "",
               segmentoIcp: segmento,
-              uf: estado ?? "",
+              uf: uf ?? estado ?? "",
               municipio: cidades[0] ?? "",
             });
             novas += 1;
@@ -504,6 +533,10 @@ export async function POST(request: Request) {
       empresas: empresasFinais,
       totalUnicos: empresasFinais.length,
       recortesPesquisados: chamadas,
+      aviso:
+        empresasFinais.length === 0 && chamadas > 0
+          ? "Todas as empresas deste recorte já estão salvas na sua organização. Refine os filtros, escolha outra região ou aguarde o próximo ciclo de busca para encontrar novas."
+          : undefined,
       plano: acesso.plano,
       cotaRestante: Math.max(0, restante - empresasFinais.length),
     });
