@@ -312,7 +312,7 @@ export async function POST(request: Request) {
           []).some((s) => s.id === id)
       );
 
-      let codigosTodo =
+      const codigosTodo =
         subDoSegmento.length > 0
           ? cnaesDeSegmentoComSubselecao(segmentoId, subDoSegmento)
           : [
@@ -335,6 +335,22 @@ export async function POST(request: Request) {
           recortes.push({ segmento: segmentoId, codigo });
         }
       }
+    }
+
+    // Nenhum recorte gerado: os segmentos não existem ou o tipo de empresa
+    // selecionado não tem CNAEs cadastrados. Sem recortes, não há chamadas e a
+    // resposta vazia (sem aviso) deixava o usuário sem nenhum retorno visual.
+    if (recortes.length === 0) {
+      return NextResponse.json(
+        {
+          erro:
+            tiposEmpresa.length > 0
+              ? "O tipo de empresa selecionado não possui empresas mapeadas para os segmentos escolhidos. Remova o filtro de tipo de empresa ou escolha outro tipo."
+              : "Não encontramos CNAEs para os segmentos selecionados. Tente selecionar outros segmentos.",
+          motivo: "sem_recortes",
+        },
+        { status: 400 }
+      );
     }
 
     // Distribui as chamadas em rodadas entre os segmentos escolhidos.
