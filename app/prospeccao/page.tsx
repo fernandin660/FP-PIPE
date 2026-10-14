@@ -1414,6 +1414,7 @@ porteEmpresa,
           cidades:
             tipoLocalizacao === "Cidade específica" ? cidadesBusca : [],
           portes: porteEmpresa,
+          faixaFuncionarios,
           somenteMatriz,
         }),
       });

@@ -44,6 +44,53 @@ const MAPA_PORTE: Record<string, string[]> = {
   "Médio/Grande": ["05"],
 };
 
+// O porte da Receita ("05" = DEMAIS) é regime tributário, não tamanho: inclui
+// muitas empresas pequenas que só não são Simples. Para não devolver empresa
+// pequena em quem pediu médio/grande, aplicamos também um piso de capital
+// social (proxy de tamanho disponível na API da CasasDados via
+// capital_social.minimo). Valores são heurísticos e podem ser calibrados.
+const MAPA_CAPITAL_MINIMO_PORTE: Record<string, number> = {
+  MEI: 0,
+  ME: 0,
+  EPP: 0,
+  "Médio/Grande": 1_000_000,
+};
+
+// Faixas de funcionários reaproveitadas como proxy de capital social, já que a
+// base pública não expõe quadro de funcionários. A busca aplica o MAIOR piso
+// entre porte e faixa escolhidos.
+const MAPA_CAPITAL_MINIMO_FUNCIONARIOS: Record<string, number> = {
+  "1-10": 0,
+  "11-50": 50_000,
+  "51-200": 360_000,
+  "201-500": 1_000_000,
+  "501-1000": 5_000_000,
+  "1000+": 10_000_000,
+};
+
+function chaveFaixaFuncionarios(faixa: string): string {
+  return faixa
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s/g, "");
+}
+
+function calcularCapitalMinimo(
+  portes: string[],
+  faixasFuncionarios: string[]
+): number {
+  let minimo = 0;
+  for (const porte of portes) {
+    minimo = Math.max(minimo, MAPA_CAPITAL_MINIMO_PORTE[porte] ?? 0);
+  }
+  for (const faixa of faixasFuncionarios) {
+    minimo = Math.max(
+      minimo,
+      MAPA_CAPITAL_MINIMO_FUNCIONARIOS[chaveFaixaFuncionarios(faixa)] ?? 0
+    );
+  }
+  return minimo;
+}
+
 // Segmentos onde empresas imobiliárias são o alvo legítimo da busca.
 // Nos demais, nomes com esses termos são holdings de terras/imóveis
 // (ex.: fazenda registrada como "Gestão Imobiliária") e devem ser excluídos.
@@ -120,6 +167,7 @@ async function pesquisarRecorte(
   municipios: string[] = [],
   codigosPorte: string[] = [],
   incluirMei = false,
+  capitalMinimo = 0,
   pagina = 1
 ): Promise<RespostaCasadosDados | null> {
   const corpo: Record<string, unknown> = {
@@ -132,6 +180,9 @@ async function pesquisarRecorte(
   if (municipios.length > 0) corpo.municipio = municipios.slice(0, 4);
   if (codigosPorte.length > 0) {
     corpo.porte_empresa = { codigos: codigosPorte };
+  }
+  if (capitalMinimo > 0) {
+    corpo.capital_social = { minimo: capitalMinimo };
   }
   if (incluirMei) {
     corpo.mei = { optante: true };
@@ -243,6 +294,12 @@ export async function POST(request: Request) {
     // MEI é uma subcategoria da Microempresa (porte 01). Quando "ME" também
     // está selecionado, o código 01 já cobre os MEIs — evita AND indevido.
     const incluirMei = portes.includes("MEI") && !portes.includes("ME");
+    const faixasFuncionarios: string[] = Array.isArray(dados.faixaFuncionarios)
+      ? dados.faixaFuncionarios.filter(
+          (f: unknown): f is string => typeof f === "string"
+        )
+      : [];
+    const capitalMinimo = calcularCapitalMinimo(portes, faixasFuncionarios);
 
     // Subsegmentos (ids canônicos da hierarquia) e tipos de empresa são
     // refinamentos opcionais: segmento sozinho já cobre todos os subsegmentos.
@@ -417,6 +474,7 @@ export async function POST(request: Request) {
             cidades,
             codigosPorte,
             incluirMei,
+            capitalMinimo,
             pagina
           );
           if (!resposta?.cnpjs || resposta.cnpjs.length === 0) return;
