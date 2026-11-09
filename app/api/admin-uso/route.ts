@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { criarClienteSupabaseServidor } from "../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { LIMITES_MENSAIS, limitesEfetivos } from "../../../lib/avisos";
+import { ehDonoDoProduto } from "../../../lib/super-admin";
 
 export async function GET() {
   const supabase = await criarClienteSupabaseServidor();
@@ -18,11 +19,8 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const emailDono = (
-    process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br"
-  ).toLowerCase();
 
-  if (!user || (user.email ?? "").toLowerCase() !== emailDono) {
+  if (!ehDonoDoProduto(user)) {
     return NextResponse.json(
       { erro: "Acesso restrito ao dono do produto." },
       { status: 403 }

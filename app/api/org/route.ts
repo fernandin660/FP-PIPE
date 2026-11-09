@@ -34,7 +34,7 @@ export async function GET() {
       if (!usuario?.user?.email) return m;
 
       // Atualiza o email_convite na tabela pra não precisar buscar de novo
-      await supabase
+      await admin
         .from("organizacao_membros")
         .update({ email_convite: usuario.user.email })
         .eq("id", m.id)

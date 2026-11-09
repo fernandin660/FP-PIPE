@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cópia aninhada acidental do projeto / builds
+/inteligencia-comercial/

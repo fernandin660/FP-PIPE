@@ -1,5 +1,6 @@
 import { criarClienteSupabaseAdmin } from "./supabase/admin";
 import { runProvider } from "./enrichment/engine";
+import { urlPublicaSegura } from "./url-segura";
 
 const CHAVE_MAPS = process.env.GOOGLE_MAPS_API_KEY ?? "";
 const CHAVE_SERPER = process.env.SERPER_API_KEY ?? "";
@@ -507,22 +508,9 @@ export async function buscarContatosNoSite(website: string): Promise<{
   if (!website) return { emails: [], telefones: [] };
 
   try {
-    const origem = new URL(website);
-    // Anti-SSRF: só http(s) e nunca rede privada/metadata/local.
-    if (origem.protocol !== "http:" && origem.protocol !== "https:") {
-      return { emails: [], telefones: [] };
-    }
-    const host = origem.hostname.toLowerCase();
-    const privado =
-      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(host) ||
-      host === "::1" ||
-      host.endsWith(".internal") ||
-      host.endsWith(".local") ||
-      /^127\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-    if (privado) return { emails: [], telefones: [] };
+    // Anti-SSRF: resolve o DNS e recusa qualquer destino interno.
+    const origem = await urlPublicaSegura(website);
+    if (!origem) return { emails: [], telefones: [] };
 
     const paginas = new Set([origem.toString()]);
     const resposta = await fetch(origem.toString(), {

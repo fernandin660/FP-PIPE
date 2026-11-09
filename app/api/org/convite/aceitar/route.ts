@@ -16,7 +16,8 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   const emailUsuario = user?.email?.toLowerCase() ?? "";
 
-  if (!emailUsuario) {
+  // O convite é casado pelo e-mail: só vale para e-mail confirmado.
+  if (!emailUsuario || !user?.email_confirmed_at) {
     return NextResponse.json(
       { erro: "Não foi possível identificar seu e-mail." },
       { status: 400 }

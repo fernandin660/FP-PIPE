@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../lib/supabase/admin";
 import { LIMITES_MENSAIS } from "../../../lib/avisos";
-
-const EMAIL_ADMIN =
-  process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
+import { ehDonoDoProduto } from "../../../lib/super-admin";
 
 export async function POST(request: Request) {
   const gate = await exigirAcesso();
@@ -17,7 +15,7 @@ export async function POST(request: Request) {
     data: { user },
   } = await gate.ctx!.supabase.auth.getUser();
 
-  if ((user?.email ?? "").toLowerCase() !== EMAIL_ADMIN.toLowerCase()) {
+  if (!ehDonoDoProduto(user)) {
     return NextResponse.json({ erro: "Não encontrado." }, { status: 404 });
   }
 

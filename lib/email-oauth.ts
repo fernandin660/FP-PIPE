@@ -27,7 +27,56 @@ export function descriptografarToken(valor: string): string {
 }
 
 export function assinarEstado(valor: string): string {
+  if (!segredo) throw new Error("EMAIL_OAUTH_SECRET não configurado.");
   return crypto.createHmac("sha256", segredo).update(valor).digest("base64url");
+}
+
+const VALIDADE_ESTADO_MS = 15 * 60 * 1000;
+
+/** Gera o parâmetro `state` assinado (usuário, org, horário e nonce). */
+export function criarEstadoOAuth(usuarioId: string, orgId: string): string {
+  const estado = `${usuarioId}.${orgId}.${Date.now()}.${crypto.randomBytes(18).toString("hex")}`;
+  return `${Buffer.from(estado).toString("base64url")}.${assinarEstado(estado)}`;
+}
+
+/**
+ * Valida o `state` devolvido pelo provedor: assinatura, validade (15 min)
+ * e — essencial contra OAuth CSRF — que quem está concluindo o fluxo é o
+ * MESMO usuário logado que o iniciou. Sem isso, um atacante podia mandar
+ * o link de consentimento para uma vítima e conectar a caixa de e-mail
+ * dela na conta do atacante.
+ */
+export async function validarEstadoOAuth(
+  estadoBruto: string
+): Promise<{ usuarioId: string; orgId: string } | null> {
+  if (!segredo) return null;
+  const [estadoCodificado, assinatura] = estadoBruto.split(".");
+  if (!estadoCodificado || !assinatura) return null;
+  let estado = "";
+  try {
+    estado = Buffer.from(estadoCodificado, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
+  const esperado = Buffer.from(assinarEstado(estado));
+  const recebido = Buffer.from(assinatura);
+  if (esperado.length !== recebido.length || !crypto.timingSafeEqual(esperado, recebido)) {
+    return null;
+  }
+  const [usuarioId, orgId, ts] = estado.split(".");
+  const emitidoEm = Number(ts);
+  if (!usuarioId || !orgId || !Number.isFinite(emitidoEm)) return null;
+  if (Date.now() - emitidoEm > VALIDADE_ESTADO_MS) return null;
+
+  const { criarClienteSupabaseServidor } = await import("./supabase/server");
+  const supabase = await criarClienteSupabaseServidor();
+  if (!supabase) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.id !== usuarioId) return null;
+
+  return { usuarioId, orgId };
 }
 
 // Origem canônica para redirect_uri e redirecionamentos de retorno.

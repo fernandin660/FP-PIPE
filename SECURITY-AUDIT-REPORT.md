@@ -177,3 +177,29 @@ Todo o código-fonte foi revisado e endurecido. Nenhuma API está mais acessíve
 | V-DEP2 | ~~CRÍTICA~~ | ~~next RCE + sharp (npm audit)~~ | ✅ FIXED (`next@16.3.4`, audit 0) |
 
 *Status: **✅ FIXED** = vulnerabilidade fechada no código; **REQUER ENV/MIGRATION** = o código está fechado, mas a ativação total depende de aplicar a env/migration em produção; **⏸ DECISÃO** = pendente de decisão de produto.*
+---
+
+# 🔒 AUDITORIA 2026-11-09 (banco + código)
+
+| ID | Sev. | Falha | Correção | Status |
+|---|---|---|---|---|
+| B1 | **CRÍTICA** | `creditar/debitar_saldo_*` executáveis por anon/authenticated via `/rest/v1/rpc` — qualquer visitante criava créditos ilimitados ou zerava saldo de qualquer org | `REVOKE` de anon/authenticated (`supabase-seguranca-revoga-rpc-saldo.sql`) | ✅ prod |
+| B2 | **CRÍTICA** | Storage `logos`/`portfolios`: qualquer pessoa (sem login) enviava, sobrescrevia ou apagava qualquer arquivo | Policies só na pasta `<uid>/` + tipos/tamanho permitidos | ✅ prod |
+| B3 | **ALTA** | Policies de `organizacao_membros`/`pipeline_stages` com tautologia `m.organizacao_id = m.organizacao_id`: membro comum virava admin, mudava limites, removia colegas | Helper `_usuario_admin(org)` e policies refeitas | ✅ prod |
+| B4 | **ALTA** | OAuth CSRF nos fluxos Gmail/Outlook/Zoho: atacante conectava a caixa de e-mail da vítima na própria conta e disparava e-mails em nome dela | `state` com validade de 15 min + exige que o usuário logado no callback seja quem iniciou (`validarEstadoOAuth`) | ✅ código |
+| B5 | **ALTA** | Next.js 16.3 com RCE/SSRF/cache poisoning conhecidos (+ dompurify, sharp, zod, source-map-js) | `npm audit fix` → Next 16.4.6, 0 vulnerabilidades | ✅ código |
+| B6 | MÉDIA | Policies "legado" aceitavam qualquer `organizacao_id`: injetar empresas/listas/ICPs/contatos em outra org | `organizacao_id is null or _usuario_membro(...)` | ✅ prod |
+| B7 | MÉDIA | View `_org_diagnostico` (SECURITY DEFINER) expunha nome/dono de todas as orgs para visitantes | `REVOKE` + `security_invoker` | ✅ prod |
+| B8 | MÉDIA | `alertas_creditos` legível/apagável por qualquer usuário logado | Policy removida (só service_role) | ✅ prod |
+| B9 | MÉDIA | `extrair-anexo` buscava qualquer URL (redirect seguido, blocklist contornável por DNS/IP decimal) | Só aceita arquivos do próprio usuário no bucket `portfolios`; `redirect: "error"` | ✅ código |
+| B10 | MÉDIA | Anti-SSRF por lista de strings (contornável com domínio → 127.0.0.1, `::ffff:`, IP decimal) em `email-do-site`, `gerar-icp`, enriquecimento | `lib/url-segura.ts`: resolve DNS e bloqueia faixas privadas/reservadas/metadata | ✅ código |
+| B11 | MÉDIA | Webhook MP não conferia valor/moeda pagos | Exige `BRL` e valor ≥ preço do plano; comparação de assinatura em tempo constante | ✅ código |
+| B12 | MÉDIA | Seeds/trigger SECURITY DEFINER chamáveis por qualquer um (`_crm_seed_*` aceitava org alheia) | `REVOKE` + checagem de membro em `_crm_seed_estagios` | ✅ prod |
+| B13 | BAIXA | Painel admin / convites confiavam no e-mail sem exigir confirmação | `ehDonoDoProduto()` e aceite de convite exigem `email_confirmed_at` | ✅ código |
+| B14 | BAIXA | Sem cabeçalhos de segurança (clickjacking, sniffing, HSTS) | `next.config.ts` headers | ✅ código |
+| B15 | BAIXA | `crm/batch`: estágio de destino não validado contra a org | Valida `pipeline_stages.organizacao_id` | ✅ código |
+| B16 | INFO | 43 arquivos de build `.next/dev` versionados por engano | Removidos + `.gitignore` | ✅ código |
+
+**Bug corrigido junto:** `crm/batch` usava tabelas inexistentes (`cadencia_modelos`/`cadencia_execucoes`) e um `upsert` sem colunas obrigatórias — "aplicar cadência" e "mover" em lote falhavam. Agora reaproveita a mesma lógica da rota individual (`lib/crm-cadencia.ts`).
+
+**Pendente (painel, manual):** Supabase → Authentication → Settings → ativar *Leaked password protection*.

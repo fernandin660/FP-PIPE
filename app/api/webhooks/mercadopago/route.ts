@@ -4,6 +4,7 @@ import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import {
   DEFINICAO_PLANOS,
   duracaoDias,
+  precoDoPlano,
   type Ciclo,
   type PlanoChave,
 } from "../../../../lib/planos";
@@ -39,7 +40,9 @@ function validarAssinaturaMp(req: Request, dataId: string): boolean {
     .update(manifesto)
     .digest("hex");
 
-  return esperado === hash;
+  const a = Buffer.from(esperado);
+  const b = Buffer.from(String(hash));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 interface CorpoWebhook {
@@ -101,6 +104,22 @@ export async function POST(req: Request) {
   if (!usuarioId || !definicao || plano === "teste" || !orgId) {
     console.error("Webhook MP com referência inválida:", pagamento.external_reference);
     return NextResponse.json({ ok: true });
+  }
+
+  // Defesa extra: o valor pago precisa cobrir o preço do plano/ciclo e a
+  // moeda precisa ser BRL. Impede que um pagamento barato (ou de outro
+  // produto na mesma conta MP) libere um plano caro.
+  const valorPago = Number(pagamento.transaction_amount ?? 0);
+  const valorEsperado = precoDoPlano(plano, ciclo);
+  if (
+    pagamento.currency_id !== "BRL" ||
+    !Number.isFinite(valorPago) ||
+    valorPago + 0.01 < valorEsperado
+  ) {
+    console.error(
+      `Webhook MP rejeitado: valor ${valorPago} ${pagamento.currency_id} < esperado ${valorEsperado} (${plano}/${ciclo}).`
+    );
+    return NextResponse.json({ ok: true, ignorado: "valor_divergente" });
   }
 
   const admin = criarClienteSupabaseAdmin();

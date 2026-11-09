@@ -184,35 +184,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Anti-SSRF: só http(s) público, nunca rede interna/metadata.
+    // Só aceita arquivos que o próprio usuário enviou ao nosso storage
+    // (bucket "portfolios", pasta <usuario_id>/). Antes aceitava qualquer
+    // URL: servia de proxy para buscar páginas arbitrárias (SSRF) e de
+    // atalho para gastar créditos de IA com conteúdo de terceiros.
+    const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
+    const prefixoPermitido = `${base}/storage/v1/object/public/portfolios/${gate.ctx!.usuarioId}/`;
     let alvo: URL;
     try {
       alvo = new URL(url);
     } catch {
       return NextResponse.json({ erro: "Anexo inválido." }, { status: 400 });
     }
-    const host = alvo.hostname.toLowerCase();
-    const hostBloqueado =
-      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(
-        host
-      ) ||
-      host === "::1" ||
-      host.endsWith(".internal") ||
-      host.endsWith(".local") ||
-      /^127\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-    if (alvo.protocol !== "https:" && alvo.protocol !== "http:") {
-      return NextResponse.json({ erro: "URL não permitida." }, { status: 400 });
-    }
-    if (hostBloqueado) {
+    if (
+      !base ||
+      alvo.protocol !== "https:" ||
+      !alvo.toString().startsWith(prefixoPermitido) ||
+      alvo.pathname.includes("..")
+    ) {
       return NextResponse.json({ erro: "URL não permitida." }, { status: 400 });
     }
 
     const arquivo = await fetch(alvo.toString(), {
       signal: AbortSignal.timeout(30000),
-      redirect: "follow",
+      redirect: "error",
     });
 
     if (!arquivo.ok) {

@@ -3,12 +3,9 @@ import Link from "next/link";
 import { criarClienteSupabaseServidor } from "../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../lib/supabase/admin";
 import { DEFINICAO_PLANOS, type PlanoChave } from "../../lib/planos";
+import { ehDonoDoProduto } from "../../lib/super-admin";
 
 export const dynamic = "force-dynamic";
-
-const EMAIL_ADMIN = (
-  process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br"
-).toLowerCase();
 
 type UsuarioLinha = {
   id: string;
@@ -31,9 +28,7 @@ export default async function Admin() {
     data: { user: null },
   };
 
-  const emailUsuario = user?.email?.toLowerCase() ?? "";
-
-  if (!user || emailUsuario !== EMAIL_ADMIN) {
+  if (!ehDonoDoProduto(user)) {
     return (
       <main className="flex-1 flex items-center justify-center px-6 py-24">
         <div className="text-center">

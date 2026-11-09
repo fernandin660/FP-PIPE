@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { emailValido } from "../../../lib/emails";
+import { urlPublicaSegura } from "../../../lib/url-segura";
 
 const MAX_BYTES_HTML = 300 * 1024;
 const DOMINIOS_LIXO = [
@@ -21,30 +22,9 @@ const DOMINIOS_LIXO = [
 ];
 const EXTENSOES_LIXO = /\.(png|jpe?g|gif|webp|svg|css|js|pdf|ico)$/i;
 
-function urlPermitida(bruto: string): URL | null {
-  let alvo: URL;
-  try {
-    alvo = new URL(bruto);
-  } catch {
-    return null;
-  }
-  if (alvo.protocol !== "https:" && alvo.protocol !== "http:") return null;
-
-  const host = alvo.hostname.toLowerCase();
-  const hostBloqueado =
-    ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(
-      host
-    ) ||
-    host === "::1" ||
-    host.endsWith(".internal") ||
-    host.endsWith(".local") ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-  if (hostBloqueado) return null;
-
-  return alvo;
+function urlPermitida(bruto: string): Promise<URL | null> {
+  // Anti-SSRF: resolve o DNS e recusa qualquer destino interno.
+  return urlPublicaSegura(bruto);
 }
 
 function extrairEmails(html: string, hostSite: string): string[] {
@@ -117,9 +97,9 @@ export async function POST(request: Request) {
     }
 
     // Anti-SSRF: só http(s) público, nunca rede interna/metadata.
-    const alvo = siteBruto.startsWith("http")
-      ? urlPermitida(siteBruto)
-      : urlPermitida(`https://${siteBruto}`);
+    const alvo = await urlPermitida(
+      siteBruto.startsWith("http") ? siteBruto : `https://${siteBruto}`
+    );
     if (!alvo) {
       return NextResponse.json(
         { erro: "Site inválido ou não permitido." },

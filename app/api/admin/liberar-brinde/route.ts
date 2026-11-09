@@ -4,6 +4,7 @@ import { criarClienteSupabaseServidor } from "../../../../lib/supabase/server";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { DEFINICAO_PLANOS, type PlanoChave } from "../../../../lib/planos";
 import { reporCreditosTelefone } from "../../../../lib/creditos-telefone";
+import { ehDonoDoProduto } from "../../../../lib/super-admin";
 
 // ============================================================
 // Admin — Liberar brinde temporário para uma empresa.
@@ -40,11 +41,8 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const emailDono = (
-    process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br"
-  ).toLowerCase();
 
-  if (!user || (user.email ?? "").toLowerCase() !== emailDono) {
+  if (!ehDonoDoProduto(user)) {
     return NextResponse.json(
       { erro: "Acesso restrito ao dono do produto." },
       { status: 403 }
@@ -313,10 +311,7 @@ export async function GET() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const emailDono = (
-    process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br"
-  ).toLowerCase();
-  if (!user || (user.email ?? "").toLowerCase() !== emailDono) {
+  if (!ehDonoDoProduto(user)) {
     return NextResponse.json(
       { erro: "Acesso restrito ao dono do produto." },
       { status: 403 }

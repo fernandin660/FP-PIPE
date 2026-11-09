@@ -1,4 +1,5 @@
 import http from "http";
+import { urlPublicaSegura } from "../../../lib/url-segura";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { exigirRateLimit } from "../../../lib/rate-limit";
@@ -88,20 +89,8 @@ async function buscarTextoSite(urlEntrada: string): Promise<string> {
       url = "https://" + url;
     }
 
-    // Anti-SSRF: só http(s) público, nunca rede interna/metadata.
-    const alvo = new URL(url);
-    if (alvo.protocol !== "http:" && alvo.protocol !== "https:") return "";
-    const host = alvo.hostname.toLowerCase();
-    const bloqueado =
-      ["localhost", "0.0.0.0", "169.254.169.254", "metadata.google.internal"].includes(host) ||
-      host === "::1" ||
-      host.endsWith(".internal") ||
-      host.endsWith(".local") ||
-      /^127\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-    if (bloqueado) return "";
+    // Anti-SSRF: resolve o DNS e recusa qualquer destino interno.
+    if (!(await urlPublicaSegura(url))) return "";
 
     const controle = new AbortController();
     const temporizador = setTimeout(() => controle.abort(), 10000);

@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { criptografarToken, assinarEstado, limparVariavelOAuth, origemApp } from "../../../../../lib/email-oauth";
+import { criptografarToken, validarEstadoOAuth, limparVariavelOAuth, origemApp } from "../../../../../lib/email-oauth";
 import { criarClienteSupabaseAdmin } from "../../../../../lib/supabase/admin";
 
 export async function GET(request: Request) {
   const origem = origemApp(new URL(request.url).origin);
   const url = new URL(request.url);
-  const [estadoCodificado, assinatura] = (url.searchParams.get("state") ?? "").split(".");
-  let estado = "";
-  try { estado = Buffer.from(estadoCodificado, "base64url").toString("utf8"); } catch {}
-  const [usuarioId, orgId] = estado.split(".");
-  if (!usuarioId || !orgId || assinarEstado(estado) !== assinatura) return NextResponse.redirect(`${origem}/disparos?email=estado_invalido`);
+  const estadoValido = await validarEstadoOAuth(url.searchParams.get("state") ?? "");
+  if (!estadoValido) return NextResponse.redirect(`${origem}/disparos?email=estado_invalido`);
+  const { usuarioId, orgId } = estadoValido;
   const code = url.searchParams.get("code");
   if (!code) return NextResponse.redirect(`${origem}/disparos?email=cancelado`);
   const clientId = limparVariavelOAuth(process.env.ZOHO_OAUTH_CLIENT_ID);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { iniciarCadenciaLead } from "../../../../lib/crm-cadencia";
 
 type OperacaoMover = {
   tipo: "mover";
@@ -103,26 +104,42 @@ export async function POST(request: Request) {
       porStage.set(op.stageId, arr);
     }
 
+    const { data: stagesValidos } = await supabase
+      .from("pipeline_stages")
+      .select("id")
+      .eq("organizacao_id", orgId)
+      .in("id", [...porStage.keys()]);
+    const stagesSet = new Set((stagesValidos ?? []).map((st) => st.id));
+
     for (const [stageId, ops] of porStage) {
+      if (!stagesSet.has(stageId)) {
+        for (const op of ops) {
+          resultados.push({ operacao: op, sucesso: false, erro: "Estágio inválido." });
+        }
+        continue;
+      }
       // Busca ordenação atual do stage para calcular novas posições
       const { count } = await supabase
         .from("lead_pipeline")
         .select("id", { count: "exact", head: true })
+        .eq("organizacao_id", orgId)
         .eq("stage_id", stageId);
-      let ordenacaoBase = count ?? 0;
+      const ordenacaoBase = count ?? 0;
 
-      // Prepara updates em batch
-      const updates = ops.map((op, i) => ({
-        id: op.leadId,
-        stage_id: stageId,
-        ordenacao: ordenacaoBase + i,
-        atualizado_em: new Date().toISOString(),
-      }));
-
-      // Batch update usando upsert
-      const { error: erroUpdate } = await admin
-        .from("lead_pipeline")
-        .upsert(updates, { onConflict: "id" });
+      // Atualiza cada lead (sempre restrito à org).
+      let erroUpdate: { message: string } | null = null;
+      const agora = new Date().toISOString();
+      for (const [i, op] of ops.entries()) {
+        const { error } = await admin
+          .from("lead_pipeline")
+          .update({ stage_id: stageId, ordenacao: ordenacaoBase + i, atualizado_em: agora })
+          .eq("id", op.leadId)
+          .eq("organizacao_id", orgId);
+        if (error) {
+          erroUpdate = error;
+          break;
+        }
+      }
 
       if (erroUpdate) {
         for (const op of ops) {
@@ -202,54 +219,36 @@ export async function POST(request: Request) {
 
   // --- CADÊNCIA em batch ---
   if (cadenciaOps.length > 0) {
-    // Valida cadências
-    const cadenciaIds = [...new Set(cadenciaOps.map((op) => op.cadenciaId))];
-    const { data: cadenciasValidas } = await supabase
-      .from("cadencia_modelos")
-      .select("id")
+    // company_id de cada lead (necessário para o vínculo e o histórico).
+    const { data: leadsCadencia } = await supabase
+      .from("lead_pipeline")
+      .select("id, company_id")
       .eq("organizacao_id", orgId)
-      .in("id", cadenciaIds);
-    const validasSet = new Set((cadenciasValidas ?? []).map((c) => c.id));
+      .in(
+        "id",
+        cadenciaOps.map((op) => op.leadPipelineId)
+      );
+    const companyPorLead = new Map<string, string>();
+    for (const l of (leadsCadencia ?? []) as Array<{ id: string; company_id: string }>) {
+      companyPorLead.set(l.id, l.company_id);
+    }
 
     for (const op of cadenciaOps) {
-      if (!validasSet.has(op.cadenciaId)) {
-        resultados.push({
-          operacao: op,
-          sucesso: false,
-          erro: "Cadência inválida ou não pertence à organização.",
-        });
+      const companyId = companyPorLead.get(op.leadPipelineId);
+      if (!companyId) {
+        resultados.push({ operacao: op, sucesso: false, erro: "Lead não encontrado." });
         continue;
       }
-
-      const { error: erroCadencia } = await admin
-        .from("cadencia_execucoes")
-        .insert({
-          organizacao_id: orgId,
-          cadencia_modelo_id: op.cadenciaId,
-          lead_pipeline_id: op.leadPipelineId,
-          usuario_id: usuarioId,
-          status: "ativa",
-          etapa_atual: 0,
-        });
-
-      if (erroCadencia) {
-        resultados.push({
-          operacao: op,
-          sucesso: false,
-          erro: erroCadencia.message,
-        });
-      } else {
-        // Histórico
-        await admin.from("pipeline_historico").insert({
-          organizacao_id: orgId,
-          lead_pipeline_id: op.leadPipelineId,
-          company_id: null,
-          usuario_id: usuarioId,
-          tipo_evento: "cadencia_iniciada",
-          dados: { cadencia_id: op.cadenciaId },
-        });
-        resultados.push({ operacao: op, sucesso: true });
-      }
+      const r = await iniciarCadenciaLead(supabase, {
+        orgId,
+        usuarioId,
+        leadPipelineId: op.leadPipelineId,
+        companyId,
+        cadenciaId: op.cadenciaId,
+      });
+      resultados.push(
+        r.ok ? { operacao: op, sucesso: true } : { operacao: op, sucesso: false, erro: r.erro }
+      );
     }
   }
 
