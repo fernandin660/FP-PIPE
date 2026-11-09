@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { criarClienteSupabase } from "../../../lib/supabase/client";
-import { validarSenhaForca } from "../../../lib/senhas";
+import { validarSenhaForca, senhaFoiVazada, MENSAGEM_SENHA_VAZADA } from "../../../lib/senhas";
 import { IconeCadeado, IconeVerificado } from "../../../components/Icones";
 
 export default function PaginaRedefinir() {
@@ -56,6 +56,12 @@ export default function PaginaRedefinir() {
     }
 
     setCarregando(true);
+
+    if (await senhaFoiVazada(senha)) {
+      setCarregando(false);
+      setErro(MENSAGEM_SENHA_VAZADA);
+      return;
+    }
 
     const { error } = await supabase.auth.updateUser({ password: senha });
 

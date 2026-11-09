@@ -202,4 +202,4 @@ Todo o código-fonte foi revisado e endurecido. Nenhuma API está mais acessíve
 
 **Bug corrigido junto:** `crm/batch` usava tabelas inexistentes (`cadencia_modelos`/`cadencia_execucoes`) e um `upsert` sem colunas obrigatórias — "aplicar cadência" e "mover" em lote falhavam. Agora reaproveita a mesma lógica da rota individual (`lib/crm-cadencia.ts`).
 
-**Pendente (painel, manual):** Supabase → Authentication → Settings → ativar *Leaked password protection*.
+| B17 | BAIXA | Sem checagem de senhas vazadas (recurso do Supabase só no plano Pro); modal de cadastro aceitava senha de 6 caracteres | `senhaFoiVazada()` (HaveIBeenPwned, k-anonimato) no cadastro e na redefinição; regra de senha forte também no `AuthModal` | ✅ código |

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { criarClienteSupabase } from "../lib/supabase/client";
+import { validarSenhaForca, senhaFoiVazada, MENSAGEM_SENHA_VAZADA } from "../lib/senhas";
 
 type Props = {
   aberto: boolean;
@@ -65,6 +66,18 @@ export default function AuthModal({ aberto, onFechar }: Props) {
 
       onFechar();
     } else {
+      const motivo = validarSenhaForca(senha);
+      if (motivo) {
+        setCarregando(false);
+        setErro(motivo);
+        return;
+      }
+      if (await senhaFoiVazada(senha)) {
+        setCarregando(false);
+        setErro(MENSAGEM_SENHA_VAZADA);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -147,8 +160,8 @@ export default function AuthModal({ aberto, onFechar }: Props) {
           <input
             type="password"
             required
-            minLength={6}
-            placeholder="Sua senha (mínimo 6 caracteres)"
+            minLength={modo === "criar" ? 8 : undefined}
+            placeholder={modo === "criar" ? "Senha (8+ caracteres, maiúscula, número e símbolo)" : "Sua senha"}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"

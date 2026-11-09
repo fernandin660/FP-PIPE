@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
-import { validarSenhaForca } from "../lib/senhas";
+import { validarSenhaForca, senhaFoiVazada, MENSAGEM_SENHA_VAZADA } from "../lib/senhas";
 import { IconeEnviar, IconeVerificado } from "./Icones";
 
 export default function TelaEntrada() {
@@ -95,6 +95,11 @@ export default function TelaEntrada() {
       if (motivo) {
         setCarregando(false);
         setErro(motivo);
+        return;
+      }
+      if (await senhaFoiVazada(senha)) {
+        setCarregando(false);
+        setErro(MENSAGEM_SENHA_VAZADA);
         return;
       }
 

@@ -80,7 +80,7 @@ export default async function Admin() {
 
     // Mapeia orgs com plano Gold/Platinum ativo
     const orgIdsDosMembros = [...new Set((membros ?? []).filter(m => m.status === "ativo").map(m => m.organizacao_id))];
-    let orgsComPlanoPremium = new Map<string, string>(); // orgId -> plano (gold/platinum)
+    const orgsComPlanoPremium = new Map<string, string>(); // orgId -> plano (gold/platinum)
     
     if (orgIdsDosMembros.length > 0) {
       const { data: assinaturasOrgs } = await admin
