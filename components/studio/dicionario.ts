@@ -14,7 +14,7 @@ export const CONTATO = {
   telefone: "+33745064279",
   telefoneVisivel: "+33 7 45 06 42 79",
   // Preencher com o @ da página (ex.: "https://www.instagram.com/fppipe").
-  instagram: "",
+  instagram: "https://www.instagram.com/fppipe/",
 };
 
 type Item = { titulo: string; texto: string };
