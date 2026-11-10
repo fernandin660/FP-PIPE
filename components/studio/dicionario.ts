@@ -5,6 +5,11 @@ export function ehIdioma(valor: string): valor is Idioma {
   return (IDIOMAS as readonly string[]).includes(valor);
 }
 
+export const DPO = {
+  nome: "Fernando Pugliesi",
+  email: "fernandopugliesi@fppipe.com.br",
+};
+
 export const CONTATO = {
   telefone: "+33745064279",
   telefoneVisivel: "+33 7 45 06 42 79",
@@ -37,8 +42,16 @@ export type Dicionario = {
     selo: string;
     titulo: string;
     aviso: string;
+    prototipo: { etiqueta: string; setor: string; frase: string; menu: string[]; botao: string; abrir: string };
     etiqueta: string;
-    projetos: { nome: string; setor: string; frase: string; botao: string }[];
+    projetos: { nome: string; setor: string; frase: string; menu: string[]; botao: string }[];
+  };
+  cookies: { titulo: string; texto: string; aceitar: string; recusar: string; saberMais: string; gerenciar: string };
+  privacidade: {
+    titulo: string;
+    atualizado: string;
+    intro: string;
+    secoes: { titulo: string; texto?: string; itens?: string[] }[];
   };
   estudio: {
     selo: string;
@@ -70,7 +83,7 @@ export type Dicionario = {
     instagram: string;
     rgpd: string;
   };
-  rodape: { direitos: string; mentions: string };
+  rodape: { direitos: string; mentions: string; privacidade: string };
   mentions: {
     titulo: string;
     voltar: string;
@@ -159,28 +172,32 @@ const fr: Dicionario = {
   },
   conceitos: {
     selo: "Projets",
-    titulo: "Projets concept",
+    titulo: "Nos réalisations",
     aviso:
-      "Des projets imaginés pour montrer notre approche. Ce ne sont pas des clients réels.",
+      "Un prototype navigable et deux projets concept qui montrent notre approche. Les projets concept ne sont pas des clients réels.",
+    prototipo: {
+      etiqueta: "Prototype",
+      setor: "Lieu de mariage · Occitanie",
+      frase: "Dites oui au milieu des vignes.",
+      menu: ["Mariages", "Le domaine", "Hébergement", "Vins"],
+      botao: "Organiser votre mariage",
+      abrir: "Voir le prototype",
+    },
     etiqueta: "Projet concept",
     projetos: [
       {
-        nome: "Maison Lumière",
-        setor: "Boulangerie artisanale",
-        frase: "Le pain du quartier, cuit chaque matin.",
-        botao: "Commander",
+        nome: "Lucette",
+        setor: "Bistrot · Paris 11e",
+        frase: "Cuisine de marché, vins vivants.",
+        menu: ["La carte", "Le lieu", "Réserver"],
+        botao: "Réserver une table",
       },
       {
-        nome: "Moreau Avocats",
-        setor: "Cabinet d’avocats",
-        frase: "Droit des affaires, avec clarté.",
+        nome: "Studio Halde",
+        setor: "Architecture d’intérieur · Lyon",
+        frase: "Des intérieurs calmes, pensés pour durer.",
+        menu: ["Projets", "Studio", "Contact"],
         botao: "Prendre rendez-vous",
-      },
-      {
-        nome: "Atelier Nord",
-        setor: "Architecture",
-        frase: "Des espaces qui respirent.",
-        botao: "Voir les projets",
       },
     ],
   },
@@ -223,14 +240,81 @@ const fr: Dicionario = {
     instagram: "Instagram",
     rgpd: "Vos informations servent uniquement à vous répondre. Elles ne sont jamais revendues.",
   },
-  rodape: { direitos: "Tous droits réservés.", mentions: "Mentions légales" },
+  cookies: {
+    titulo: "Cookies",
+    texto:
+      "Nous utilisons uniquement les cookies indispensables au fonctionnement du site. Aucun cookie publicitaire ou de suivi n’est déposé sans votre accord.",
+    aceitar: "Accepter",
+    recusar: "Refuser",
+    saberMais: "Politique de confidentialité",
+    gerenciar: "Gérer les cookies",
+  },
+  privacidade: {
+    titulo: "Politique de confidentialité",
+    atualizado: "Dernière mise à jour : 10 novembre 2026",
+    intro:
+      "Cette politique explique quelles données personnelles nous traitons sur ce site, pourquoi, pendant combien de temps et comment exercer vos droits, conformément au Règlement général sur la protection des données (RGPD).",
+    secoes: [
+      {
+        titulo: "Responsable du traitement",
+        texto: `FP Pipe — [CNPJ à compléter]. Contact : ${DPO.email}.`,
+      },
+      {
+        titulo: "Délégué à la protection des données (DPO)",
+        texto: `${DPO.nome} — ${DPO.email}. Pour toute question sur vos données ou pour exercer vos droits, écrivez au DPO.`,
+      },
+      {
+        titulo: "Données collectées",
+        itens: [
+          "Formulaire de contact : nom, entreprise (facultatif), e-mail, téléphone (facultatif) et le message que vous écrivez.",
+          "Données techniques : adresse IP, utilisée brièvement pour protéger le formulaire contre les abus, puis supprimée automatiquement.",
+          "Choix concernant les cookies : enregistré dans votre navigateur uniquement.",
+        ],
+      },
+      {
+        titulo: "Finalités et bases légales",
+        itens: [
+          "Répondre à votre demande et préparer une proposition : mesures précontractuelles prises à votre demande (art. 6.1.b RGPD).",
+          "Sécuriser le site et éviter les envois automatisés : intérêt légitime (art. 6.1.f RGPD).",
+        ],
+      },
+      {
+        titulo: "Destinataires et sous-traitants",
+        texto:
+          "Vos données ne sont ni vendues ni louées. Elles sont accessibles uniquement à l’équipe FP Pipe et à nos prestataires techniques : Vercel (hébergement du site), Resend (envoi des e-mails du formulaire) et Supabase (base de données de sécurité).",
+      },
+      {
+        titulo: "Transferts hors de l’Union européenne",
+        texto:
+          "Ces prestataires peuvent traiter des données aux États-Unis. Ces transferts sont encadrés par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
+      },
+      {
+        titulo: "Durée de conservation",
+        itens: [
+          "Demandes de contact : 3 ans à compter du dernier échange, puis suppression.",
+          "Adresse IP de sécurité : quelques minutes.",
+          "Choix concernant les cookies : 6 mois, puis nous vous redemandons.",
+        ],
+      },
+      {
+        titulo: "Vos droits",
+        texto: `Vous pouvez demander l’accès, la rectification, l’effacement, la limitation ou la portabilité de vos données, et vous opposer à leur traitement, en écrivant à ${DPO.email}. Nous répondons dans un délai d’un mois. Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr).`,
+      },
+      {
+        titulo: "Cookies",
+        texto:
+          "Ce site ne dépose aucun cookie publicitaire ni de mesure d’audience. Seuls des éléments techniques nécessaires à son fonctionnement peuvent être utilisés ; ils ne nécessitent pas de consentement. Les polices et images sont servies depuis nos propres serveurs : votre navigateur ne se connecte pas à Google ni à d’autres services tiers. Vous pouvez modifier votre choix à tout moment via « Gérer les cookies » en bas de page.",
+      },
+    ],
+  },
+  rodape: { direitos: "Tous droits réservés.", mentions: "Mentions légales", privacidade: "Confidentialité" },
   mentions: {
     titulo: "Mentions légales",
     voltar: "Retour au site",
     secoes: [
       {
         titulo: "Éditeur",
-        texto: "FP Pipe — [CNPJ à compléter]. Contact : +33 7 45 06 42 79.",
+        texto: `FP Pipe — [CNPJ à compléter]. Directeur de la publication : ${DPO.nome}. Contact : ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Hébergement",
@@ -331,27 +415,32 @@ const en: Dicionario = {
   },
   conceitos: {
     selo: "Projects",
-    titulo: "Concept projects",
-    aviso: "Projects imagined to show our approach. They are not real clients.",
+    titulo: "Our work",
+    aviso:
+      "One clickable prototype and two concept projects that show our approach. Concept projects are not real clients.",
+    prototipo: {
+      etiqueta: "Prototype",
+      setor: "Wedding venue · Occitanie",
+      frase: "Say yes among the vines.",
+      menu: ["Weddings", "The estate", "Stay", "Wines"],
+      botao: "Plan your wedding",
+      abrir: "View the prototype",
+    },
     etiqueta: "Concept project",
     projetos: [
       {
-        nome: "Maison Lumière",
-        setor: "Artisan bakery",
-        frase: "The neighbourhood’s bread, baked every morning.",
-        botao: "Order",
+        nome: "Lucette",
+        setor: "Bistro · Paris 11th",
+        frase: "Market cooking, natural wines.",
+        menu: ["Menu", "The place", "Book"],
+        botao: "Book a table",
       },
       {
-        nome: "Moreau Avocats",
-        setor: "Law firm",
-        frase: "Business law, made clear.",
+        nome: "Studio Halde",
+        setor: "Interior architecture · Lyon",
+        frase: "Calm interiors, made to last.",
+        menu: ["Projects", "Studio", "Contact"],
         botao: "Book a meeting",
-      },
-      {
-        nome: "Atelier Nord",
-        setor: "Architecture",
-        frase: "Spaces that breathe.",
-        botao: "See projects",
       },
     ],
   },
@@ -394,14 +483,81 @@ const en: Dicionario = {
     instagram: "Instagram",
     rgpd: "Your details are only used to reply to you. They are never sold.",
   },
-  rodape: { direitos: "All rights reserved.", mentions: "Legal notice" },
+  cookies: {
+    titulo: "Cookies",
+    texto:
+      "We only use cookies that are essential for the site to work. No advertising or tracking cookies are set without your consent.",
+    aceitar: "Accept",
+    recusar: "Decline",
+    saberMais: "Privacy policy",
+    gerenciar: "Manage cookies",
+  },
+  privacidade: {
+    titulo: "Privacy policy",
+    atualizado: "Last updated: 10 November 2026",
+    intro:
+      "This policy explains which personal data we process on this site, why, for how long, and how to exercise your rights under the General Data Protection Regulation (GDPR).",
+    secoes: [
+      {
+        titulo: "Data controller",
+        texto: `FP Pipe — [CNPJ to be completed]. Contact: ${DPO.email}.`,
+      },
+      {
+        titulo: "Data Protection Officer (DPO)",
+        texto: `${DPO.nome} — ${DPO.email}. For any question about your data or to exercise your rights, write to the DPO.`,
+      },
+      {
+        titulo: "Data we collect",
+        itens: [
+          "Contact form: name, company (optional), email, phone (optional) and the message you write.",
+          "Technical data: IP address, used briefly to protect the form from abuse, then deleted automatically.",
+          "Your cookie choice: stored in your browser only.",
+        ],
+      },
+      {
+        titulo: "Purposes and legal bases",
+        itens: [
+          "Answering your request and preparing a proposal: pre-contractual steps taken at your request (Art. 6(1)(b) GDPR).",
+          "Securing the site and preventing automated submissions: legitimate interest (Art. 6(1)(f) GDPR).",
+        ],
+      },
+      {
+        titulo: "Recipients and processors",
+        texto:
+          "Your data is never sold or rented. Only the FP Pipe team and our technical providers can access it: Vercel (website hosting), Resend (sending form emails) and Supabase (security database).",
+      },
+      {
+        titulo: "Transfers outside the European Union",
+        texto:
+          "These providers may process data in the United States. Such transfers rely on the EU–US Data Privacy Framework or the European Commission’s standard contractual clauses.",
+      },
+      {
+        titulo: "Retention",
+        itens: [
+          "Contact requests: 3 years after our last exchange, then deleted.",
+          "Security IP address: a few minutes.",
+          "Your cookie choice: 6 months, after which we ask again.",
+        ],
+      },
+      {
+        titulo: "Your rights",
+        texto: `You can request access to, correction, deletion, restriction or portability of your data, and object to its processing, by writing to ${DPO.email}. We reply within one month. If you believe your rights are not respected, you can lodge a complaint with your data protection authority (in France, the CNIL — www.cnil.fr).`,
+      },
+      {
+        titulo: "Cookies",
+        texto:
+          "This site sets no advertising or audience-measurement cookies. Only technical elements needed for it to work may be used; they do not require consent. Fonts and images are served from our own servers: your browser does not connect to Google or other third-party services. You can change your choice at any time via “Manage cookies” at the bottom of the page.",
+      },
+    ],
+  },
+  rodape: { direitos: "All rights reserved.", mentions: "Legal notice", privacidade: "Privacy" },
   mentions: {
     titulo: "Legal notice",
     voltar: "Back to the site",
     secoes: [
       {
         titulo: "Publisher",
-        texto: "FP Pipe — [CNPJ to be completed]. Contact: +33 7 45 06 42 79.",
+        texto: `FP Pipe — [CNPJ to be completed]. Publication director: ${DPO.nome}. Contact: ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Hosting",
@@ -502,27 +658,32 @@ const es: Dicionario = {
   },
   conceitos: {
     selo: "Proyectos",
-    titulo: "Proyectos concepto",
-    aviso: "Proyectos imaginados para mostrar nuestro enfoque. No son clientes reales.",
+    titulo: "Nuestro trabajo",
+    aviso:
+      "Un prototipo navegable y dos proyectos concepto que muestran nuestro enfoque. Los proyectos concepto no son clientes reales.",
+    prototipo: {
+      etiqueta: "Prototipo",
+      setor: "Lugar de bodas · Occitania",
+      frase: "Di sí entre los viñedos.",
+      menu: ["Bodas", "La finca", "Alojamiento", "Vinos"],
+      botao: "Organiza tu boda",
+      abrir: "Ver el prototipo",
+    },
     etiqueta: "Proyecto concepto",
     projetos: [
       {
-        nome: "Maison Lumière",
-        setor: "Panadería artesanal",
-        frase: "El pan del barrio, horneado cada mañana.",
-        botao: "Pedir",
+        nome: "Lucette",
+        setor: "Bistró · París 11",
+        frase: "Cocina de mercado, vinos naturales.",
+        menu: ["La carta", "El local", "Reservar"],
+        botao: "Reservar mesa",
       },
       {
-        nome: "Moreau Avocats",
-        setor: "Despacho de abogados",
-        frase: "Derecho mercantil, con claridad.",
+        nome: "Studio Halde",
+        setor: "Interiorismo · Lyon",
+        frase: "Interiores serenos, pensados para durar.",
+        menu: ["Proyectos", "Estudio", "Contacto"],
         botao: "Pedir cita",
-      },
-      {
-        nome: "Atelier Nord",
-        setor: "Arquitectura",
-        frase: "Espacios que respiran.",
-        botao: "Ver proyectos",
       },
     ],
   },
@@ -565,14 +726,81 @@ const es: Dicionario = {
     instagram: "Instagram",
     rgpd: "Tus datos solo se usan para responderte. Nunca se venden.",
   },
-  rodape: { direitos: "Todos los derechos reservados.", mentions: "Aviso legal" },
+  cookies: {
+    titulo: "Cookies",
+    texto:
+      "Solo usamos las cookies imprescindibles para que el sitio funcione. No se instala ninguna cookie publicitaria o de seguimiento sin tu consentimiento.",
+    aceitar: "Aceptar",
+    recusar: "Rechazar",
+    saberMais: "Política de privacidad",
+    gerenciar: "Gestionar cookies",
+  },
+  privacidade: {
+    titulo: "Política de privacidad",
+    atualizado: "Última actualización: 10 de noviembre de 2026",
+    intro:
+      "Esta política explica qué datos personales tratamos en este sitio, por qué, durante cuánto tiempo y cómo ejercer tus derechos, conforme al Reglamento General de Protección de Datos (RGPD).",
+    secoes: [
+      {
+        titulo: "Responsable del tratamiento",
+        texto: `FP Pipe — [CNPJ por completar]. Contacto: ${DPO.email}.`,
+      },
+      {
+        titulo: "Delegado de protección de datos (DPO)",
+        texto: `${DPO.nome} — ${DPO.email}. Para cualquier pregunta sobre tus datos o para ejercer tus derechos, escribe al DPO.`,
+      },
+      {
+        titulo: "Datos que recogemos",
+        itens: [
+          "Formulario de contacto: nombre, empresa (opcional), correo, teléfono (opcional) y el mensaje que escribes.",
+          "Datos técnicos: dirección IP, usada brevemente para proteger el formulario contra abusos y después eliminada automáticamente.",
+          "Tu elección sobre cookies: guardada solo en tu navegador.",
+        ],
+      },
+      {
+        titulo: "Finalidades y bases legales",
+        itens: [
+          "Responder a tu solicitud y preparar una propuesta: medidas precontractuales a petición tuya (art. 6.1.b RGPD).",
+          "Proteger el sitio y evitar envíos automatizados: interés legítimo (art. 6.1.f RGPD).",
+        ],
+      },
+      {
+        titulo: "Destinatarios y encargados",
+        texto:
+          "Tus datos nunca se venden ni se alquilan. Solo acceden a ellos el equipo de FP Pipe y nuestros proveedores técnicos: Vercel (alojamiento del sitio), Resend (envío de los correos del formulario) y Supabase (base de datos de seguridad).",
+      },
+      {
+        titulo: "Transferencias fuera de la Unión Europea",
+        texto:
+          "Estos proveedores pueden tratar datos en Estados Unidos. Las transferencias se basan en el Marco de Privacidad de Datos UE–EE. UU. o en las cláusulas contractuales tipo de la Comisión Europea.",
+      },
+      {
+        titulo: "Plazo de conservación",
+        itens: [
+          "Solicitudes de contacto: 3 años desde el último intercambio y después se eliminan.",
+          "Dirección IP de seguridad: unos minutos.",
+          "Tu elección sobre cookies: 6 meses; después te lo volvemos a preguntar.",
+        ],
+      },
+      {
+        titulo: "Tus derechos",
+        texto: `Puedes solicitar el acceso, la rectificación, la supresión, la limitación o la portabilidad de tus datos, y oponerte a su tratamiento, escribiendo a ${DPO.email}. Respondemos en el plazo de un mes. Si consideras que tus derechos no se respetan, puedes presentar una reclamación ante tu autoridad de protección de datos (en España, la AEPD — www.aepd.es; en Francia, la CNIL — www.cnil.fr).`,
+      },
+      {
+        titulo: "Cookies",
+        texto:
+          "Este sitio no instala cookies publicitarias ni de medición de audiencia. Solo pueden usarse elementos técnicos necesarios para su funcionamiento, que no requieren consentimiento. Las fuentes y las imágenes se sirven desde nuestros propios servidores: tu navegador no se conecta a Google ni a otros servicios de terceros. Puedes cambiar tu elección en cualquier momento en «Gestionar cookies», al pie de la página.",
+      },
+    ],
+  },
+  rodape: { direitos: "Todos los derechos reservados.", mentions: "Aviso legal", privacidade: "Privacidad" },
   mentions: {
     titulo: "Aviso legal",
     voltar: "Volver al sitio",
     secoes: [
       {
         titulo: "Editor",
-        texto: "FP Pipe — [CNPJ por completar]. Contacto: +33 7 45 06 42 79.",
+        texto: `FP Pipe — [CNPJ por completar]. Director de la publicación: ${DPO.nome}. Contacto: ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Alojamiento",

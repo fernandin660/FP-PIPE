@@ -16,7 +16,7 @@ function texto(v: unknown, max: number) {
 }
 
 export async function POST(request: Request) {
-  const bloqueio = await exigirRateLimit(request, "studio-contato", 5, 600);
+  const bloqueio = await exigirRateLimit(request, "studio-contato", 3, 300);
   if (bloqueio) return bloqueio;
 
   let corpo: Record<string, unknown>;
