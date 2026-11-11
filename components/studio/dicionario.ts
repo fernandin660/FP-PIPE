@@ -257,7 +257,7 @@ const fr: Dicionario = {
     secoes: [
       {
         titulo: "Responsable du traitement",
-        texto: `FP Pipe — [CNPJ à compléter]. Contact : ${DPO.email}.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Contact : ${DPO.email}.`,
       },
       {
         titulo: "Délégué à la protection des données (DPO)",
@@ -314,7 +314,7 @@ const fr: Dicionario = {
     secoes: [
       {
         titulo: "Éditeur",
-        texto: `FP Pipe — [CNPJ à compléter]. Directeur de la publication : ${DPO.nome}. Contact : ${DPO.email} · +33 7 45 06 42 79.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Directeur de la publication : ${DPO.nome}. Contact : ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Hébergement",
@@ -500,7 +500,7 @@ const en: Dicionario = {
     secoes: [
       {
         titulo: "Data controller",
-        texto: `FP Pipe — [CNPJ to be completed]. Contact: ${DPO.email}.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Contact: ${DPO.email}.`,
       },
       {
         titulo: "Data Protection Officer (DPO)",
@@ -557,7 +557,7 @@ const en: Dicionario = {
     secoes: [
       {
         titulo: "Publisher",
-        texto: `FP Pipe — [CNPJ to be completed]. Publication director: ${DPO.nome}. Contact: ${DPO.email} · +33 7 45 06 42 79.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Publication director: ${DPO.nome}. Contact: ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Hosting",
@@ -743,7 +743,7 @@ const es: Dicionario = {
     secoes: [
       {
         titulo: "Responsable del tratamiento",
-        texto: `FP Pipe — [CNPJ por completar]. Contacto: ${DPO.email}.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Contacto: ${DPO.email}.`,
       },
       {
         titulo: "Delegado de protección de datos (DPO)",
@@ -800,7 +800,7 @@ const es: Dicionario = {
     secoes: [
       {
         titulo: "Editor",
-        texto: `FP Pipe — [CNPJ por completar]. Director de la publicación: ${DPO.nome}. Contacto: ${DPO.email} · +33 7 45 06 42 79.`,
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Director de la publicación: ${DPO.nome}. Contacto: ${DPO.email} · +33 7 45 06 42 79.`,
       },
       {
         titulo: "Alojamiento",
