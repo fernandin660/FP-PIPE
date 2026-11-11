@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { CAMINHO_PLATAFORMA, type Dicionario } from "./dicionario";
+import { caminhoPlataforma, type Dicionario, type Idioma } from "./dicionario";
 
 /*
  * Hero em 3 atos guiado pelo scroll:
@@ -191,7 +191,7 @@ function alvosRede(rede: Rede, nNormais: number, nDestaque: number, aleatorio: (
   return { normais, destaque };
 }
 
-export default function HeroParticulas({ dic }: { dic: Dicionario }) {
+export default function HeroParticulas({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
   const secaoRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const atosRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -522,7 +522,7 @@ export default function HeroParticulas({ dic }: { dic: Dicionario }) {
                 <a href="#contact" className="studio-botao" data-cursor="grande">
                   {dic.hero.ctaPrincipal}
                 </a>
-                <Link href={CAMINHO_PLATAFORMA} className="studio-botao-fantasma" data-cursor="grande">
+                <Link href={caminhoPlataforma(idioma)} className="studio-botao-fantasma" data-cursor="grande">
                   {dic.hero.ctaFpPipe} <span aria-hidden="true">↗</span>
                 </Link>
               </div>

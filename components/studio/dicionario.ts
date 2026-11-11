@@ -11,8 +11,10 @@ export function caminhoIdioma(idioma: Idioma, sub = ""): string {
   return `/${idioma}${sub}`;
 }
 
-/** Onde mora a página do software (SaaS). */
-export const CAMINHO_PLATAFORMA = "/plataforma";
+/** Onde mora a página do software (SaaS) em cada idioma. */
+export function caminhoPlataforma(idioma: Idioma): string {
+  return idioma === "pt" ? "/plataforma" : `/${idioma}/plataforma`;
+}
 
 export const DPO = {
   nome: "Fernando Pugliesi",
@@ -469,7 +471,7 @@ const fr: Dicionario = {
     texto:
       "FP Pipe trouve les entreprises qui correspondent à votre client idéal, identifie qui décide et prépare un premier message.",
     botao: "Découvrir FP Pipe",
-    nota: "Site en portugais",
+    nota: "Essai gratuit, sans carte",
   },
   contato: {
     selo: "Contact",
@@ -712,7 +714,7 @@ const en: Dicionario = {
     texto:
       "FP Pipe finds companies that match your ideal client, identifies who decides, and drafts a first message.",
     botao: "Discover FP Pipe",
-    nota: "Site in Portuguese",
+    nota: "Free trial, no card",
   },
   contato: {
     selo: "Contact",
@@ -955,7 +957,7 @@ const es: Dicionario = {
     texto:
       "FP Pipe encuentra empresas que encajan con tu cliente ideal, identifica quién decide y prepara un primer mensaje.",
     botao: "Conocer FP Pipe",
-    nota: "Sitio en portugués",
+    nota: "Prueba gratis, sin tarjeta",
   },
   contato: {
     selo: "Contacto",

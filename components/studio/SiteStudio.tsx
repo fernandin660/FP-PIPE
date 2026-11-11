@@ -5,15 +5,26 @@ import FormularioContato from "./FormularioContato";
 import Projetos from "./Projetos";
 import BannerCookies, { BotaoGerenciarCookies } from "./BannerCookies";
 import { BarraTopo, CursorStudio, Revelar } from "./Interacoes";
-import { CAMINHO_PLATAFORMA, CONTATO, DPO, IDIOMAS, caminhoIdioma, type Dicionario, type Idioma } from "./dicionario";
+import { caminhoPlataforma, CONTATO, DPO, IDIOMAS, caminhoIdioma, type Dicionario, type Idioma } from "./dicionario";
 
-export function SeletorIdioma({ idioma, rotulo, caminho = "" }: { idioma: Idioma; rotulo: string; caminho?: string }) {
+export function SeletorIdioma({
+  idioma,
+  rotulo,
+  caminho = "",
+  destino,
+}: {
+  idioma: Idioma;
+  rotulo: string;
+  caminho?: string;
+  /** Monta o endereço de cada idioma quando a regra padrão não serve. */
+  destino?: (l: Idioma) => string;
+}) {
   return (
     <nav aria-label={rotulo} className="flex items-center rounded-full border border-[#d6d4cd] p-1 text-xs font-medium">
       {IDIOMAS.map((l) => (
         <Link
           key={l}
-          href={caminhoIdioma(l, caminho)}
+          href={destino ? destino(l) : caminhoIdioma(l, caminho)}
           hrefLang={l}
           lang={l}
           aria-current={l === idioma ? "page" : undefined}
@@ -78,7 +89,7 @@ export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: I
       </BarraTopo>
 
       <main>
-        <HeroParticulas dic={dic} />
+        <HeroParticulas dic={dic} idioma={idioma} />
 
         {/* Serviços */}
         <section id="services" className="studio-secao">
@@ -178,7 +189,7 @@ export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: I
               <h2 className="studio-titulo-secao max-w-[20ch] !text-[#f4f3ef]">{dic.ponte.titulo}</h2>
               <p className="mt-6 max-w-[52ch] text-lg text-[#b9b9c0]">{dic.ponte.texto}</p>
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                <Link href={CAMINHO_PLATAFORMA} className="studio-botao">
+                <Link href={caminhoPlataforma(idioma)} className="studio-botao">
                   {dic.ponte.botao} <span aria-hidden="true">↗</span>
                 </Link>
                 <span className="text-sm text-[#9a9aa3]">{dic.ponte.nota}</span>
