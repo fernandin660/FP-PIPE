@@ -2,10 +2,9 @@ import Image from "next/image";
 import { CartaoInclinavel, Revelar } from "./Interacoes";
 import type { Dicionario, Idioma } from "./dicionario";
 
-// Nome fictício até haver autorização do domaine real para aparecer no portfólio.
 const CHATEAU = {
-  nome: "Château Valmorin",
-  dominio: "chateau-valmorin.fr",
+  nome: "Château Saint-Martin de Graves",
+  dominio: "saint-martin-estate-stories.lovable.app",
   foto: "https://saint-martin-estate-stories.lovable.app/__l5e/assets-v1/2b209a27-32e4-41bb-bb90-003b2b3c4903/csm-chateau.webp",
 };
 // Fotos Unsplash (licença Unsplash, uso livre)
@@ -41,10 +40,11 @@ function Legenda({ nome, setor, etiqueta, children }: { nome: string; setor: str
   );
 }
 
-export default function Projetos({ dic }: { dic: Dicionario; idioma: Idioma }) {
+export default function Projetos({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
   const c = dic.conceitos;
   const p = c.prototipo;
   const [lucette, halde] = c.projetos;
+  const linkPrototipo = `https://${CHATEAU.dominio}/${idioma === "fr" ? "" : "en"}`;
 
   return (
     <div className="mt-14 grid gap-14 md:mt-20 md:grid-cols-2 md:gap-x-6 md:gap-y-16">
@@ -52,7 +52,13 @@ export default function Projetos({ dic }: { dic: Dicionario; idioma: Idioma }) {
       <Revelar className="md:col-span-2">
         <figure>
           <CartaoInclinavel>
-            <div className="group block overflow-hidden rounded-[16px] border border-[#d6d4cd] bg-white" aria-hidden="true">
+            <a
+              href={linkPrototipo}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${p.abrir} — ${CHATEAU.nome}`}
+              className="group block overflow-hidden rounded-[16px] border border-[#d6d4cd] bg-white"
+            >
               <BarraNavegador endereco={CHATEAU.dominio} />
               <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[16/10] lg:aspect-[16/8.2]">
                 <Image
@@ -65,7 +71,7 @@ export default function Projetos({ dic }: { dic: Dicionario; idioma: Idioma }) {
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,14,10,0.45)_0%,rgba(18,14,10,0)_30%,rgba(18,14,10,0)_45%,rgba(18,14,10,0.62)_100%)]" />
                 <div className="absolute inset-x-0 top-0 flex items-center justify-between p-5 text-white md:p-8">
                   <span className="font-[family-name:var(--font-concept-serif)] text-[15px] uppercase tracking-[0.28em] md:text-lg">
-                    Valmorin
+                    Saint-Martin
                   </span>
                   <span className="hidden items-center gap-7 text-[13px] tracking-wide lg:flex">
                     {p.menu.map((m) => (
@@ -79,15 +85,19 @@ export default function Projetos({ dic }: { dic: Dicionario; idioma: Idioma }) {
                   </span>
                 </div>
                 <div className="absolute inset-x-0 bottom-0 p-5 text-white md:p-10">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/80 md:text-xs">Hérault · Occitanie</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/80 md:text-xs">Pézenas · Occitanie</p>
                   <p className="mt-3 max-w-[14ch] font-[family-name:var(--font-concept-serif)] text-[2.4rem] font-medium italic leading-[0.95] md:text-[4.6rem]">
                     {p.frase}
                   </p>
                 </div>
               </div>
-            </div>
+            </a>
           </CartaoInclinavel>
-          <Legenda nome={CHATEAU.nome} setor={p.setor} etiqueta={p.etiqueta} />
+          <Legenda nome={CHATEAU.nome} setor={p.setor} etiqueta={p.etiqueta}>
+            <a href={linkPrototipo} target="_blank" rel="noopener noreferrer" className="studio-link-nav text-sm font-medium">
+              {p.abrir} <span aria-hidden="true">↗</span>
+            </a>
+          </Legenda>
         </figure>
       </Revelar>
 
