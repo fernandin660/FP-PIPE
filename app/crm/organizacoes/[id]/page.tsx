@@ -150,7 +150,7 @@ export default function PaginaOrganizacao({ params }: PageProps<"/crm/organizaco
       acoes={
         o && (
           <>
-            <BotaoSecundario onClick={() => setNovaPessoa(true)}>+ Pessoa</BotaoSecundario>
+            <BotaoSecundario onClick={() => setNovaPessoa(true)}>+ Contato</BotaoSecundario>
             <BotaoPrimario onClick={() => setNovoNegocio(true)}>+ Negócio</BotaoPrimario>
           </>
         )
@@ -277,13 +277,13 @@ export default function PaginaOrganizacao({ params }: PageProps<"/crm/organizaco
             {/* Pessoas */}
             <section className="rounded-2xl border border-pipe-border bg-white">
               <h2 className="border-b border-pipe-border px-5 py-3 text-sm font-medium text-pipe-ink">
-                Pessoas <span className="text-pipe-muted">· {ficha.pessoas.length}</span>
+                Contatos <span className="text-pipe-muted">· {ficha.pessoas.length}</span>
               </h2>
               {ficha.pessoas.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-pipe-muted">
                   Ninguém cadastrado ainda.{" "}
                   <button onClick={() => setNovaPessoa(true)} className="text-pipe-blue hover:underline">
-                    Adicionar pessoa
+                    Adicionar contato
                   </button>
                 </p>
               ) : (

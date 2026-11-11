@@ -51,7 +51,7 @@ export default function PaginaPessoas() {
   const totalPaginas = dados ? Math.max(1, Math.ceil(dados.total / dados.por_pagina)) : 1;
 
   return (
-    <MolduraCrm titulo="Pessoas" acoes={<BotaoPrimario onClick={() => setNova(true)}>+ Pessoa</BotaoPrimario>}>
+    <MolduraCrm titulo="Contatos" acoes={<BotaoPrimario onClick={() => setNova(true)}>+ Contato</BotaoPrimario>}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="search"
@@ -61,10 +61,10 @@ export default function PaginaPessoas() {
             setPagina(1);
           }}
           placeholder="Buscar por nome, cargo, e-mail ou empresa"
-          aria-label="Buscar pessoas"
+          aria-label="Buscar contatos"
           className={`${classeCampo} max-w-sm`}
         />
-        {dados && <span className="text-sm text-pipe-muted">{dados.total.toLocaleString("pt-BR")} pessoas</span>}
+        {dados && <span className="text-sm text-pipe-muted">{dados.total.toLocaleString("pt-BR")} contatos</span>}
       </div>
 
       {erro && <Aviso>{erro}</Aviso>}
@@ -114,7 +114,7 @@ export default function PaginaPessoas() {
             {dados && dados.pessoas.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-pipe-muted">
-                  {busca ? "Nada encontrado para essa busca." : "Nenhuma pessoa cadastrada ainda."}
+                  {busca ? "Nada encontrado para essa busca." : "Nenhum contato cadastrado ainda."}
                 </td>
               </tr>
             )}

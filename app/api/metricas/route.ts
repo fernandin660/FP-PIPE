@@ -339,38 +339,46 @@ export async function GET(request: Request) {
       linhasPipeline
     );
 
-    // Resolve nomes/emails dos vendedores (perfil + membros da org).
-    const idsAtividade = atividades
-      .map((a) => a.usuario_id)
-      .filter(Boolean) as string[];
-    const mapaNome = new Map<string, { nome: string | null; email: string | null }>();
+    // Toda a equipe aparece (mesmo quem ainda não registrou nada), com nome
+    // do perfil ou, na falta dele, o e-mail do convite.
+    const { data: membrosOrg } = await supabase
+      .from("organizacao_membros")
+      .select("usuario_id, email_convite, status")
+      .eq("organizacao_id", orgId);
+    const membrosAtivos = ((membrosOrg ?? []) as Array<{ usuario_id: string | null; email_convite: string | null; status: string | null }>)
+      .filter((m) => m.usuario_id && (m.status ?? "ativo") === "ativo");
+    const zerado = (id: string) => ({
+      usuario_id: id,
+      atividades: 0,
+      emails: 0,
+      telefones: 0,
+      reunioes: 0,
+      cadencias: 0,
+      observacoes: 0,
+      empresas: 0,
+      contatos: 0,
+      leads: 0,
+    });
+    const jaListados = new Set(atividades.map((a) => a.usuario_id));
+    for (const m of membrosAtivos) {
+      if (!jaListados.has(m.usuario_id!)) atividades.push(zerado(m.usuario_id!));
+    }
+
+    const idsAtividade = atividades.map((a) => a.usuario_id).filter(Boolean) as string[];
+    const mapaEmail = new Map<string, string | null>(membrosAtivos.map((m) => [m.usuario_id!, m.email_convite]));
+    const mapaNome = new Map<string, string | null>();
     if (idsAtividade.length > 0) {
-      const [{ data: perfis }, { data: membros }] = await Promise.all([
-        supabase
-          .from("perfil")
-          .select("usuario_id, nome_usuario")
-          .in("usuario_id", idsAtividade),
-        supabase
-          .from("organizacao_membros")
-          .select("usuario_id, email_convite")
-          .eq("organizacao_id", orgId)
-          .in("usuario_id", idsAtividade),
-      ]);
-      const mapaEmail = new Map<string, string | null>();
-      for (const m of (membros ?? []) as Array<{ usuario_id: string; email_convite: string | null }>) {
-        mapaEmail.set(m.usuario_id, m.email_convite);
-      }
+      const { data: perfis } = await supabase
+        .from("perfil")
+        .select("usuario_id, nome_usuario")
+        .in("usuario_id", idsAtividade);
       for (const p of (perfis ?? []) as Array<{ usuario_id: string; nome_usuario: string | null }>) {
-        mapaNome.set(p.usuario_id, {
-          nome: p.nome_usuario,
-          email: mapaEmail.get(p.usuario_id) ?? null,
-        });
+        mapaNome.set(p.usuario_id, p.nome_usuario?.trim() || null);
       }
-      for (const a of atividades) {
-        const info = mapaNome.get(a.usuario_id) ?? { nome: null, email: null };
-        (a as unknown as { nome: string | null }).nome = info.nome;
-        (a as unknown as { email: string | null }).email = info.email;
-      }
+    }
+    for (const a of atividades) {
+      (a as unknown as { nome: string | null }).nome = mapaNome.get(a.usuario_id) ?? null;
+      (a as unknown as { email: string | null }).email = mapaEmail.get(a.usuario_id) ?? null;
     }
 
     // ---- Geração: empresas por origem ----

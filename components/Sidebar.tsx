@@ -282,27 +282,33 @@ export default function Sidebar({
             <IconeEquipe className="w-4 h-4 shrink-0" />,
             pathname === "/crm" || pathname.startsWith("/crm/")
           )}
-          {crmResumo && crmResumo.total > 0 && (
-            <div className="ml-4 py-1.5 px-4 bg-pipe-dark/60 border border-pipe-border/60 rounded-lg mb-1.5">
-              <Link
-                href="/crm"
-                className="flex items-center justify-between text-[11px] font-semibold text-pipe-blue hover:text-pipe-ink transition"
-              >
-                <span>Pipeline</span>
-                <span className="text-pipe-ink">{crmResumo.total} lead(s)</span>
-              </Link>
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {crmResumo.porEstagio.slice(0, 4).map((s) => (
-                  <span
-                    key={s.id}
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-pipe-card border border-pipe-border text-pipe-ink-soft"
-                  >
-                    {s.nome}: {s.total}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Atalhos do CRM */}
+          <div className="ml-6 flex flex-col border-l border-pipe-border pl-2">
+            {(
+              [
+                ["/crm", "Negócios", crmResumo?.total ?? null],
+                ["/crm/organizacoes", "Organizações", null],
+                ["/crm/pessoas", "Contatos", null],
+              ] as const
+            ).map(([href, rotulo, total]) => {
+              const ativo = href === "/crm" ? pathname === "/crm" : pathname === href || pathname.startsWith(`${href}/`);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={ativo ? "page" : undefined}
+                  className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition ${
+                    ativo ? "font-medium text-pipe-ink bg-pipe-dark" : "text-pipe-muted hover:text-pipe-ink hover:bg-pipe-dark/60"
+                  }`}
+                >
+                  {rotulo}
+                  {typeof total === "number" && total > 0 && (
+                    <span className="text-[11px] tabular-nums text-pipe-muted">{total}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
           {temBuscador === false ? (
             <button
               key="/disparos"

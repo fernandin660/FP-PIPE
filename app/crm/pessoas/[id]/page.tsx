@@ -108,10 +108,10 @@ export default function PaginaPessoa({ params }: PageProps<"/crm/pessoas/[id]">)
   );
 
   return (
-    <MolduraCrm titulo={p?.nome ?? "Pessoa"} largura="max-w-5xl">
+    <MolduraCrm titulo={p?.nome ?? "Contato"} largura="max-w-5xl">
       <p className="-mt-4 mb-6 text-sm text-pipe-muted">
         <Link href="/crm/pessoas" className="hover:text-pipe-ink">
-          ← Pessoas
+          ← Contatos
         </Link>
       </p>
       {erro && <Aviso>{erro}</Aviso>}
@@ -121,7 +121,7 @@ export default function PaginaPessoa({ params }: PageProps<"/crm/pessoas/[id]">)
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           <section className="h-fit rounded-2xl border border-pipe-border bg-white p-5">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-pipe-ink">Dados da pessoa</h2>
+              <h2 className="text-sm font-medium text-pipe-ink">Dados do contato</h2>
               {!editando && (
                 <button onClick={abrirEdicao} className="text-sm text-pipe-blue hover:underline">
                   Editar
@@ -150,7 +150,7 @@ export default function PaginaPessoa({ params }: PageProps<"/crm/pessoas/[id]">)
                 )}
                 <div className="flex justify-between gap-2 pt-2">
                   <button onClick={() => setConfirmarExclusao(true)} className="text-sm text-red-700 hover:underline">
-                    Excluir pessoa
+                    Excluir contato
                   </button>
                   <div className="flex gap-2">
                     <BotaoSecundario onClick={() => setEditando(false)}>Cancelar</BotaoSecundario>
@@ -204,7 +204,7 @@ export default function PaginaPessoa({ params }: PageProps<"/crm/pessoas/[id]">)
             </h2>
             {ficha.negocios.length === 0 ? (
               <p className="px-5 py-6 text-sm text-pipe-muted">
-                Nenhum negócio ainda. Escolha esta pessoa como contato no painel do negócio, no funil.
+                Nenhum negócio ainda. Escolha este contato no painel do negócio, no funil.
               </p>
             ) : (
               <ul className="divide-y divide-pipe-border/60">
@@ -228,9 +228,9 @@ export default function PaginaPessoa({ params }: PageProps<"/crm/pessoas/[id]">)
         </div>
       )}
 
-      <Janela aberta={confirmarExclusao} titulo="Excluir esta pessoa?" aoFechar={() => setConfirmarExclusao(false)} largura="max-w-md">
+      <Janela aberta={confirmarExclusao} titulo="Excluir este contato?" aoFechar={() => setConfirmarExclusao(false)} largura="max-w-md">
         <p className="text-sm text-pipe-ink-soft">
-          Os dados de contato dela serão apagados de vez, inclusive os que vieram do buscador de contatos. Os negócios continuam, só sem esta pessoa.
+          Os dados de contato dela serão apagados de vez, inclusive os que vieram do buscador de contatos. Os negócios continuam, só sem este contato.
         </p>
         <div className="mt-6 flex justify-end gap-2">
           <BotaoSecundario onClick={() => setConfirmarExclusao(false)}>Cancelar</BotaoSecundario>

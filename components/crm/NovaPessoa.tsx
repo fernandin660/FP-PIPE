@@ -46,7 +46,7 @@ export default function NovaPessoa({
   }
 
   return (
-    <Janela aberta={aberta} titulo="Nova pessoa" aoFechar={aoFechar}>
+    <Janela aberta={aberta} titulo="Novo contato" aoFechar={aoFechar}>
       <form onSubmit={salvar} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">

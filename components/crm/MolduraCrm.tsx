@@ -10,7 +10,7 @@ import ModalPerfil, { type PerfilVendedor } from "../ModalPerfil";
 const ABAS = [
   { href: "/crm", rotulo: "Negócios" },
   { href: "/crm/organizacoes", rotulo: "Organizações" },
-  { href: "/crm/pessoas", rotulo: "Pessoas" },
+  { href: "/crm/pessoas", rotulo: "Contatos" },
   { href: "/hoje", rotulo: "Atividades" },
   { href: "/crm/configuracoes", rotulo: "Configurações" },
 ];
