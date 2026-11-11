@@ -7,10 +7,16 @@ import { criarClienteSupabaseAdmin } from "./supabase/admin";
  *
  * O destino é a organização do dono (Fernando). Pode ser trocado pelas
  * variáveis STUDIO_CRM_ORG_ID / STUDIO_CRM_USUARIO_ID sem mexer no código.
+ *
+ * Responsável pelos pedidos: Larissa (STUDIO_CRM_RESPONSAVEL_ID). Ela vê a
+ * atividade de contato imediato no "Hoje" e no calendário; o dono, como
+ * administrador, também vê tudo. Se ela deixar de ser membro ativo, os
+ * pedidos voltam para o dono.
  */
 
 const ORG_ID = process.env.STUDIO_CRM_ORG_ID ?? "6f1241d5-579c-46d7-8a00-9cf28b14865e";
 const USUARIO_ID = process.env.STUDIO_CRM_USUARIO_ID ?? "f395a6b1-9d16-4b80-b97a-8dfdf13ededa";
+const RESPONSAVEL_ID = process.env.STUDIO_CRM_RESPONSAVEL_ID ?? "a41543fd-d8e9-43c3-9b8c-0ac72e300eaf";
 
 export type PedidoSite = {
   nome: string;
@@ -28,6 +34,16 @@ export async function registrarPedidoNoCrm(
   if (!admin) return { ok: false, motivo: "sem_admin" };
 
   const email = pedido.email.toLowerCase();
+
+  // Responsável só se ainda for membro ativo da organização.
+  const { data: membro } = await admin
+    .from("organizacao_membros")
+    .select("usuario_id")
+    .eq("organizacao_id", ORG_ID)
+    .eq("usuario_id", RESPONSAVEL_ID)
+    .eq("status", "ativo")
+    .maybeSingle();
+  const responsavel = (membro?.usuario_id as string | undefined) ?? USUARIO_ID;
   const nomeEmpresa = pedido.empresa || pedido.nome;
   const idioma = pedido.idioma.toUpperCase();
 
@@ -76,7 +92,7 @@ export async function registrarPedidoNoCrm(
     const { data: nova, error } = await admin
       .from("companies")
       .insert({
-        usuario_id: USUARIO_ID,
+        usuario_id: responsavel,
         organizacao_id: ORG_ID,
         nome_fantasia: nomeEmpresa,
         razao_social: nomeEmpresa,
@@ -97,7 +113,7 @@ export async function registrarPedidoNoCrm(
     companyId = nova.id as string;
 
     const { data: pessoa } = await admin.from("contatos").insert({
-      usuario_id: USUARIO_ID,
+      usuario_id: responsavel,
       organizacao_id: ORG_ID,
       company_id: companyId,
       nome: pedido.nome,
@@ -132,7 +148,7 @@ export async function registrarPedidoNoCrm(
         organizacao_id: ORG_ID,
         company_id: companyId,
         stage_id: estagio.id,
-        responsavel_id: USUARIO_ID,
+        responsavel_id: responsavel,
         ordenacao: count ?? 0,
         produto: "Site",
         titulo: `Site — ${nomeEmpresa}`.slice(0, 160),
@@ -155,7 +171,7 @@ export async function registrarPedidoNoCrm(
       usuario_id: null,
       tipo_evento: "lead_adicionado",
       stage_destino_id: estagio.id,
-      dados: { responsavel_id: USUARIO_ID, origem: "site", idioma },
+      dados: { responsavel_id: responsavel, origem: "site", idioma },
     });
   } else {
     // Negócio já existia (a pessoa escreveu de novo): acende o alerta outra vez.
@@ -171,7 +187,9 @@ export async function registrarPedidoNoCrm(
     organizacao_id: ORG_ID,
     lead_pipeline_id: lead.id,
     company_id: companyId,
-    usuario_id: USUARIO_ID,
+    // Sem autor: criada automaticamente pelo site. Quem a vê e conclui é o
+    // responsável do negócio (e os administradores).
+    usuario_id: null,
     tipo_evento: "atividade",
     dados: {
       tipo_atividade: pedido.telefone ? "telefone" : "email",
