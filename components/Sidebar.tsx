@@ -286,12 +286,13 @@ export default function Sidebar({
           <div className="ml-6 flex flex-col border-l border-pipe-border pl-2">
             {(
               [
+                ["/crm/leads", "Caixa de entrada", null],
                 ["/crm", "Negócios", crmResumo?.total ?? null],
                 ["/crm/organizacoes", "Organizações", null],
                 ["/crm/pessoas", "Contatos", null],
               ] as const
             ).map(([href, rotulo, total]) => {
-              const ativo = href === "/crm" ? pathname === "/crm" : pathname === href || pathname.startsWith(`${href}/`);
+              const ativo = href === "/crm" ? pathname === "/crm" || pathname === "/crm/lista" : pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
                   key={href}

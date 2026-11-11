@@ -18,7 +18,7 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 import { LeadCard } from "../../components/LeadCard";
-import { AbasCrm } from "../../components/crm/MolduraCrm";
+import { AbasCrm, AlternarVisao } from "../../components/crm/MolduraCrm";
 import NovoNegocio from "../../components/crm/NovoNegocio";
 import { BlocoCampos } from "../../components/crm/ui";
 import type { CampoPersonalizado } from "../../lib/crm-campos";
@@ -1612,6 +1612,12 @@ return (
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <AlternarVisao
+                opcoes={[
+                  { href: "/crm", rotulo: "Kanban", ativa: true },
+                  { href: "/crm/lista", rotulo: "Lista", ativa: false },
+                ]}
+              />
               <button
                 onClick={modoMassa ? sairModoMassa : entrarModoMassa}
                 className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition ${

@@ -79,15 +79,22 @@ export async function GET(request: Request) {
     // entram quando são tarefas ou têm data futura (agendadas). O período
     // `de`/`ate` filtra pela data/hora da atividade (para não exibir a
     // cadência inteira de uma vez no Dashboard).
+    // `todas=1` (calendário): inclui concluídas e atividades já passadas,
+    // desde que tenham data.
+    const todas = url.searchParams.get("todas") === "1";
+
     const candidatas = eventos.filter((ev) => {
       const dados = (ev.dados ?? {}) as Record<string, unknown>;
       if (dados.cancelada === true) return false;
-      if (dados.concluida === true) return false;
+      if (dados.concluida === true && !todas) return false;
 
       const dtStr = texto(dados.data_hora_atividade);
       const dt = dtStr ? new Date(dtStr).getTime() : null;
+      if (todas && dt === null) return false;
+      // Notas soltas do histórico não são compromissos de agenda.
+      if (todas && ev.tipo_evento === "atividade" && texto(dados.tipo_atividade) === "observacao") return false;
 
-      if (ev.tipo_evento === "atividade") {
+      if (ev.tipo_evento === "atividade" && !todas) {
         const tipo = texto(dados.tipo_atividade);
         if (tipo !== "tarefa") {
           if (dt === null || dt < agora) return false;
@@ -200,8 +207,11 @@ export async function GET(request: Request) {
         titulo: texto(dados.titulo) || "Atividade",
         observacao: texto(dados.observacao),
         data_hora_atividade: dataHora || null,
-        concluida: false,
-        atrasada: dt !== null && dt < agora,
+        concluida: dados.concluida === true,
+        atrasada: dados.concluida !== true && dt !== null && dt < agora,
+        lead_pipeline_id: ev.lead_pipeline_id,
+        responsavel_id: lead?.responsavel_id ?? null,
+        usuario_id: ev.usuario_id,
         company_id: ev.company_id,
         empresa: lead ? mapaEmpresa.get(lead.company_id) ?? "Empresa" : "Empresa",
         stage_nome: lead ? mapaStageNome.get(lead.stage_id ?? "") ?? null : null,

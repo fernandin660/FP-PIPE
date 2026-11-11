@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { criarClienteSupabase } from "../../lib/supabase/client";
 import Sidebar from "../Sidebar";
-import { AbasCrm } from "../crm/MolduraCrm";
+import { AbasCrm, AlternarVisao } from "../crm/MolduraCrm";
 import ModalPerfil, { type PerfilVendedor } from "../ModalPerfil";
 import { IconeCalendario, IconeEmail, IconeEnviar, IconeEquipe, IconeEscrever, IconeTelefone } from "../Icones";
 
@@ -262,8 +262,18 @@ export default function TelaHoje() {
       <main className="min-h-screen bg-pipe-bg px-5 pb-10 pt-8 sm:px-8 lg:pl-72 lg:pr-10">
         <div className="mx-auto max-w-4xl">
           <AbasCrm />
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-pipe-blue">{dataTitulo}</p>
-          <h1 className="mt-3 text-4xl font-medium tracking-[-0.03em] text-pipe-ink md:text-5xl">O que fazer hoje</h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-pipe-blue">{dataTitulo}</p>
+              <h1 className="mt-3 text-4xl font-medium tracking-[-0.03em] text-pipe-ink md:text-5xl">O que fazer hoje</h1>
+            </div>
+            <AlternarVisao
+              opcoes={[
+                { href: "/hoje", rotulo: "Lista", ativa: true },
+                { href: "/crm/calendario", rotulo: "Calendário", ativa: false },
+              ]}
+            />
+          </div>
 
           <div className="mt-6 flex flex-wrap gap-2 text-sm">
             <span className={`rounded-full border px-3 py-1.5 ${contagem.atrasadas ? "border-red-600/30 bg-red-50 text-red-700" : "border-pipe-border text-pipe-muted"}`}>

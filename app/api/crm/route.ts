@@ -34,6 +34,7 @@ type EstaQuint = {
 
 type Empresa = {
   id: string;
+  campos?: Record<string, unknown> | null;
   razao_social: string | null;
   nome_fantasia: string | null;
   cnpj: string | null;
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
     const { data } = await supabase
       .from("companies")
       .select(
-        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, aprovador_email, aprovador_telefone, cargo_prioritario, porte, capital_social, data_abertura, confirmado, endereco"
+        "id, razao_social, nome_fantasia, cnpj, segmento_icp, municipio, uf, score, score_motivo, email, telefone, linkedin, origem, decisor_nome, decisor_cargo, campeao_nome, campeao_cargo, campeao_email, campeao_telefone, aprovador_email, aprovador_telefone, cargo_prioritario, porte, capital_social, data_abertura, confirmado, endereco, campos"
       )
       // Escopo por organização: o CRM só resolve empresas da org atual.
       // Isso impede vazar dados cross-org e esconde empresas legadas (org NULL).

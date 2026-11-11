@@ -68,6 +68,9 @@ export default function AdicionarAoCrmModal({
   const [stageId, setStageId] = useState("");
   const [funilId, setFunilId] = useState("");
   const [responsavelId, setResponsavelId] = useState("");
+  // Funil de vendas (negócio) ou caixa de entrada (lead ainda não qualificado).
+  const [destino, setDestino] = useState<"funil" | "caixa">("funil");
+  const [resultadoCaixa, setResultadoCaixa] = useState<{ adicionadas: number; jaExistem: number } | null>(null);
 
   // Snapshot dos alvos no momento em que o modal abre, para que o precheck
   // rode apenas quando o modal transiciona de fechado -> aberto (e não a
@@ -130,15 +133,19 @@ export default function AdicionarAoCrmModal({
     const alvosAlvo = alvosRef.current ?? alvos;
     setEnviando(true);
     try {
-      const resposta = await fetch("/api/crm/bulk", {
+      const resposta = await fetch(destino === "caixa" ? "/api/crm/leads" : "/api/crm/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payload: alvosAlvo,
-          stage_id: stageId || undefined,
-          responsavel_id: responsavelId || undefined,
-          origem,
-        }),
+        body: JSON.stringify(
+          destino === "caixa"
+            ? { payload: alvosAlvo, responsavel_id: responsavelId || undefined, origem }
+            : {
+                payload: alvosAlvo,
+                stage_id: stageId || undefined,
+                responsavel_id: responsavelId || undefined,
+                origem,
+              }
+        ),
       });
       const dados = await resposta.json();
       if (!resposta.ok) {
@@ -146,6 +153,9 @@ export default function AdicionarAoCrmModal({
         setEtapa("erro");
         return;
       }
+      setResultadoCaixa(
+        destino === "caixa" ? { adicionadas: dados.adicionadas ?? 0, jaExistem: (dados.jaExistem ?? []).length } : null
+      );
       setEtapa("sucesso");
       aoConcluido?.({
         adicionadas: dados.adicionadas ?? 0,
@@ -200,8 +210,15 @@ export default function AdicionarAoCrmModal({
       <div className="space-y-4">
         <div className="text-center py-3">
           <IconeVerificado tamanho={40} className="mx-auto mb-2 text-pipe-lime" />
-          <p className="text-pipe-ink font-semibold">Adicionadas ao CRM.</p>
-          {precheck && (
+          <p className="text-pipe-ink font-semibold">
+            {resultadoCaixa ? "Enviadas para a caixa de entrada." : "Adicionadas ao CRM."}
+          </p>
+          {resultadoCaixa ? (
+            <p className="text-sm text-pipe-muted mt-1">
+              {resultadoCaixa.adicionadas} novas
+              {resultadoCaixa.jaExistem > 0 ? ` · ${resultadoCaixa.jaExistem} já estavam lá` : ""}
+            </p>
+          ) : precheck && (
             <p className="text-sm text-pipe-muted mt-1">
               {precheck.novas} novas {precheck.jaExistem.length > 0
                 ? `· ${precheck.jaExistem.length} já existiam`
@@ -217,10 +234,10 @@ export default function AdicionarAoCrmModal({
             Fechar
           </button>
           <a
-            href="/crm"
+            href={resultadoCaixa ? "/crm/leads" : "/crm"}
             className="text-xs font-semibold px-3 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition"
           >
-            Ver no CRM
+            {resultadoCaixa ? "Ver caixa de entrada" : "Ver no CRM"}
           </a>
         </div>
       </div>
@@ -242,7 +259,34 @@ export default function AdicionarAoCrmModal({
           <p className="text-sm text-pipe-muted leading-relaxed">{descricao}</p>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div role="radiogroup" aria-label="Destino" className="grid grid-cols-2 gap-1 rounded-full border border-pipe-border p-1 text-sm">
+          {(
+            [
+              ["funil", "Funil de vendas"],
+              ["caixa", "Caixa de entrada"],
+            ] as const
+          ).map(([v, r]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={destino === v}
+              onClick={() => setDestino(v)}
+              className={`rounded-full px-3 py-1.5 transition-colors ${
+                destino === v ? "bg-pipe-ink font-medium text-white" : "text-pipe-muted hover:text-pipe-ink"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+        {destino === "caixa" && (
+          <p className="text-sm text-pipe-muted leading-relaxed">
+            {precheck?.selecionadas ?? 0} empresa(s) entram como leads para qualificar antes de virar negócio. As que já estão na caixa de entrada são ignoradas.
+          </p>
+        )}
+
+        {destino === "funil" && <div className="grid grid-cols-2 gap-3">
           <div className="bg-pipe-dark border border-pipe-border rounded-xl p-4">
             <p className="text-[11px] uppercase tracking-widest text-pipe-muted font-semibold">
               Novas no CRM
@@ -257,9 +301,9 @@ export default function AdicionarAoCrmModal({
               {jaExistentes}
             </p>
           </div>
-        </div>
+        </div>}
 
-        {(precheck?.funis?.length ?? 0) > 1 && (
+        {destino === "funil" && (precheck?.funis?.length ?? 0) > 1 && (
           <div>
             <label className="block text-xs text-pipe-muted font-semibold mb-1.5">
               Funil
@@ -282,7 +326,7 @@ export default function AdicionarAoCrmModal({
           </div>
         )}
 
-        <div>
+        <div hidden={destino !== "funil"}>
           <label className="block text-xs text-pipe-muted font-semibold mb-1.5">
             Estágio inicial
           </label>
@@ -326,12 +370,14 @@ export default function AdicionarAoCrmModal({
           </button>
           <button
             onClick={() => void confirmar()}
-            disabled={enviando || novas === 0}
+            disabled={enviando || (destino === "caixa" ? (precheck?.selecionadas ?? 0) === 0 : novas === 0)}
             className="text-xs font-semibold px-4 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition disabled:opacity-50"
           >
             {enviando
               ? "Adicionando…"
-              : novas === 0
+              : destino === "caixa"
+                ? `Mandar ${precheck?.selecionadas ?? 0} para a caixa de entrada`
+                : novas === 0
                 ? "Nada novo para adicionar"
                 : `Adicionar ${novas} ao CRM`}
           </button>

@@ -7,11 +7,12 @@ import { criarClienteSupabase } from "../../lib/supabase/client";
 import Sidebar from "../Sidebar";
 import ModalPerfil, { type PerfilVendedor } from "../ModalPerfil";
 
-const ABAS = [
+const ABAS: { href: string; rotulo: string; tambem?: string[] }[] = [
+  { href: "/crm/leads", rotulo: "Caixa de entrada" },
   { href: "/crm", rotulo: "Negócios" },
   { href: "/crm/organizacoes", rotulo: "Organizações" },
   { href: "/crm/pessoas", rotulo: "Contatos" },
-  { href: "/hoje", rotulo: "Atividades" },
+  { href: "/hoje", rotulo: "Atividades", tambem: ["/crm/calendario"] },
   { href: "/crm/configuracoes", rotulo: "Configurações" },
 ];
 
@@ -86,16 +87,18 @@ export default function MolduraCrm({
 export function AbasCrm() {
   const pathname = usePathname();
   const ativa = (href: string) =>
-    href === "/crm" ? pathname === "/crm" : pathname === href || pathname.startsWith(`${href}/`);
+    href === "/crm"
+      ? pathname === "/crm" || pathname === "/crm/lista"
+      : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <nav aria-label="Seções do CRM" className="-mx-1 mb-6 flex gap-1 overflow-x-auto border-b border-pipe-border">
       {ABAS.map((a) => (
         <Link
           key={a.href}
           href={a.href}
-          aria-current={ativa(a.href) ? "page" : undefined}
+          aria-current={ativa(a.href) || a.tambem?.includes(pathname) ? "page" : undefined}
           className={`-mb-px shrink-0 border-b-2 px-3 py-2.5 text-sm transition-colors ${
-            ativa(a.href)
+            ativa(a.href) || a.tambem?.includes(pathname)
               ? "border-pipe-ink font-medium text-pipe-ink"
               : "border-transparent text-pipe-muted hover:text-pipe-ink"
           }`}
@@ -104,5 +107,25 @@ export function AbasCrm() {
         </Link>
       ))}
     </nav>
+  );
+}
+
+/** Alternância entre duas visões da mesma tela (ex.: Kanban | Lista). */
+export function AlternarVisao({ opcoes }: { opcoes: { href: string; rotulo: string; ativa: boolean }[] }) {
+  return (
+    <div role="group" aria-label="Visão" className="inline-flex rounded-full border border-pipe-border bg-white p-0.5 text-sm">
+      {opcoes.map((o) => (
+        <Link
+          key={o.href}
+          href={o.href}
+          aria-current={o.ativa ? "page" : undefined}
+          className={`rounded-full px-3.5 py-1.5 transition-colors ${
+            o.ativa ? "bg-pipe-ink font-medium text-white" : "text-pipe-muted hover:text-pipe-ink"
+          }`}
+        >
+          {o.rotulo}
+        </Link>
+      ))}
+    </div>
   );
 }
