@@ -2,6 +2,33 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
 import { iniciarCadenciaLead } from "../../../../lib/crm-cadencia";
+import { cancelarProgramadasPendentes } from "../../../../lib/crm";
+import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+
+type EtapaEntrada = {
+  tipo_atividade?: unknown;
+  titulo?: unknown;
+  atraso_dias?: unknown;
+  script?: unknown;
+};
+
+const TIPOS_ETAPA = new Set(["email", "telefone", "whatsapp", "linkedin", "reuniao", "tarefa"]);
+
+function montarEtapas(cadenciaId: string, etapas: unknown[]) {
+  return etapas.slice(0, 30).map((et, i) => {
+    const e = (et ?? {}) as EtapaEntrada;
+    const tipo = texto(e.tipo_atividade);
+    const atraso = Number(e.atraso_dias);
+    return {
+      cadencia_id: cadenciaId,
+      ordem: i,
+      tipo_atividade: TIPOS_ETAPA.has(tipo) ? tipo : "tarefa",
+      titulo: texto(e.titulo).slice(0, 200) || `Etapa ${i + 1}`,
+      atraso_dias: Number.isFinite(atraso) ? Math.min(365, Math.max(0, Math.round(atraso))) : 0,
+      script: texto(e.script).slice(0, 4000),
+    };
+  });
+}
 
 function texto(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
@@ -45,7 +72,24 @@ export async function GET(request: Request) {
       );
     }
 
-    const semEtapas = (cadencias ?? []).map((c) => ({ ...c, etapas: [] }));
+    let listaCadencias = cadencias ?? [];
+
+    // Organização nova, ainda sem modelos: cria os modelos padrão.
+    if (listaCadencias.length === 0) {
+      const admin = criarClienteSupabaseAdmin();
+      if (admin) {
+        await admin.rpc("_crm_seed_cadencia_padrao", { org_id: orgId });
+        await admin.rpc("_crm_seed_cadencia_extra", { org_id: orgId });
+        const { data: semeadas } = await supabase
+          .from("cadencia")
+          .select("id, nome, descricao, criado_em")
+          .eq("organizacao_id", orgId)
+          .order("criado_em", { ascending: true });
+        listaCadencias = semeadas ?? [];
+      }
+    }
+
+    const semEtapas = listaCadencias.map((c) => ({ ...c, etapas: [] }));
 
     if (semEtapas.length === 0) {
       return NextResponse.json({ cadencias: semEtapas, cadenciaAtiva: null });
@@ -111,6 +155,190 @@ export async function POST(request: Request) {
       return NextResponse.json({ erro: "JSON inválido." }, { status: 400 });
     }
 
+    // ---- Ações sobre MODELOS (não dependem de um lead) ----
+    // "criar": cria um novo modelo de cadência com suas etapas.
+    if (acao === "criar") {
+      const nome = texto(body.nome);
+      const descricao = texto(body.descricao);
+      const etapas = Array.isArray(body.etapas) ? body.etapas : [];
+      if (!nome) {
+        return NextResponse.json(
+          { erro: "Nome da cadência é obrigatório." },
+          { status: 400 }
+        );
+      }
+      if (etapas.length === 0) {
+        return NextResponse.json(
+          { erro: "A cadência precisa de pelo menos uma etapa." },
+          { status: 400 }
+        );
+      }
+
+      const { data: novaCadencia, error: erroCriar } = await supabase
+        .from("cadencia")
+        .insert({
+          organizacao_id: orgId,
+          nome,
+          descricao,
+          criado_por: usuarioId,
+        })
+        .select("id, nome, descricao, criado_em")
+        .single();
+
+      if (erroCriar || !novaCadencia) {
+        if ((erroCriar?.message ?? "").toLowerCase().includes("duplicate")) {
+          return NextResponse.json(
+            { erro: "Já existe uma cadência com esse nome." },
+            { status: 409 }
+          );
+        }
+        return NextResponse.json(
+          { erro: "Não foi possível criar a cadência." },
+          { status: 500 }
+        );
+      }
+
+      const { error: erroEtapas } = await supabase
+        .from("cadencia_etapas")
+        .insert(montarEtapas(novaCadencia.id, etapas));
+      if (erroEtapas) {
+        // Não deixa um modelo vazio para trás.
+        await supabase.from("cadencia").delete().eq("id", novaCadencia.id).eq("organizacao_id", orgId);
+        return NextResponse.json(
+          { erro: "Não foi possível salvar as etapas da cadência." },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ ok: true, id: novaCadencia.id });
+    }
+
+    // "atualizar": edita um modelo existente (reecria as etapas).
+    if (acao === "atualizar") {
+      const cadenciaId = texto(body.cadencia_id);
+      const nome = texto(body.nome);
+      const descricao = texto(body.descricao);
+      const etapas = Array.isArray(body.etapas) ? body.etapas : [];
+      if (!cadenciaId) {
+        return NextResponse.json(
+          { erro: "Cadência não informada." },
+          { status: 400 }
+        );
+      }
+      if (!nome) {
+        return NextResponse.json(
+          { erro: "Nome da cadência é obrigatório." },
+          { status: 400 }
+        );
+      }
+      if (etapas.length === 0) {
+        return NextResponse.json(
+          { erro: "A cadência precisa de pelo menos uma etapa." },
+          { status: 400 }
+        );
+      }
+
+      // Confirma que o modelo é desta organização antes de mexer nas etapas.
+      const { data: existente } = await supabase
+        .from("cadencia")
+        .select("id")
+        .eq("id", cadenciaId)
+        .eq("organizacao_id", orgId)
+        .maybeSingle();
+      if (!existente) {
+        return NextResponse.json(
+          { erro: "Cadência não encontrada nesta organização." },
+          { status: 404 }
+        );
+      }
+
+      const { error: erroUpd } = await supabase
+        .from("cadencia")
+        .update({ nome, descricao })
+        .eq("id", cadenciaId)
+        .eq("organizacao_id", orgId);
+
+      if (erroUpd) {
+        if ((erroUpd.message ?? "").toLowerCase().includes("duplicate")) {
+          return NextResponse.json(
+            { erro: "Já existe uma cadência com esse nome." },
+            { status: 409 }
+          );
+        }
+        return NextResponse.json(
+          { erro: "Não foi possível atualizar a cadência." },
+          { status: 500 }
+        );
+      }
+
+      // Remove as etapas antigas e insere as novas (reescrita simples).
+      await supabase
+        .from("cadencia_etapas")
+        .delete()
+        .eq("cadencia_id", cadenciaId);
+
+      const { error: erroEtapas } = await supabase
+        .from("cadencia_etapas")
+        .insert(montarEtapas(cadenciaId, etapas));
+      if (erroEtapas) {
+        return NextResponse.json(
+          { erro: "Não foi possível salvar as etapas da cadência." },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // "excluir": remove um modelo de cadência (cascata nas etapas e vínculos).
+    if (acao === "excluir") {
+      const cadenciaId = texto(body.cadencia_id);
+      if (!cadenciaId) {
+        return NextResponse.json(
+          { erro: "Cadência não informada." },
+          { status: 400 }
+        );
+      }
+
+      // Sair dos leads que estão usando este modelo para não deixar órfãos.
+      const { data: vinculados } = await supabase
+        .from("lead_cadencia")
+        .select("id, company_id")
+        .eq("organizacao_id", orgId)
+        .eq("cadencia_id", cadenciaId);
+
+      // As atividades já agendadas por este modelo deixam de valer.
+      await cancelarProgramadasPendentes(
+        supabase,
+        orgId,
+        (vinculados ?? []).map((v) => v.company_id as string)
+      );
+
+      for (const v of vinculados ?? []) {
+        await supabase
+          .from("lead_cadencia")
+          .delete()
+          .eq("id", v.id)
+          .eq("organizacao_id", orgId);
+      }
+
+      const { error: erroDel } = await supabase
+        .from("cadencia")
+        .delete()
+        .eq("id", cadenciaId)
+        .eq("organizacao_id", orgId);
+
+      if (erroDel) {
+        return NextResponse.json(
+          { erro: "Não foi possível excluir a cadência." },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- Ações sobre um LEAD (entrar / sair) ----
     const companyId = texto(body.company_id);
     if (!companyId) {
       return NextResponse.json(
@@ -156,206 +384,7 @@ export async function POST(request: Request) {
         }
       }
 
-      // Cancela atividades programadas pendentes deste lead (preservando dados).
-      const { data: programadas } = await supabase
-        .from("pipeline_historico")
-        .select("id, dados")
-        .eq("company_id", companyId)
-        .eq("organizacao_id", orgId)
-        .eq("tipo_evento", "atividade_programada");
-
-      for (const p of programadas ?? []) {
-        const dados = (p.dados as Record<string, unknown>) ?? {};
-        if (dados.cancelada === true) continue;
-        await supabase
-          .from("pipeline_historico")
-          .update({ dados: { ...dados, cancelada: true } })
-          .eq("id", p.id)
-          .eq("organizacao_id", orgId);
-      }
-
-      return NextResponse.json({ ok: true });
-    }
-
-    // "criar": cria um novo modelo de cadência com suas etapas.
-    if (acao === "criar") {
-      const nome = texto(body.nome);
-      const descricao = texto(body.descricao);
-      const etapas = Array.isArray(body.etapas) ? body.etapas : [];
-      if (!nome) {
-        return NextResponse.json(
-          { erro: "Nome da cadência é obrigatório." },
-          { status: 400 }
-        );
-      }
-      if (etapas.length === 0) {
-        return NextResponse.json(
-          { erro: "A cadência precisa de pelo menos uma etapa." },
-          { status: 400 }
-        );
-      }
-
-      const { data: novaCadencia, error: erroCriar } = await supabase
-        .from("cadencia")
-        .insert({
-          organizacao_id: orgId,
-          nome,
-          descricao,
-          criado_por: usuarioId,
-        })
-        .select("id, nome, descricao, criado_em")
-        .single();
-
-      if (erroCriar || !novaCadencia) {
-        if ((erroCriar?.message ?? "").toLowerCase().includes("duplicate")) {
-          return NextResponse.json(
-            { erro: "Já existe uma cadência com esse nome." },
-            { status: 409 }
-          );
-        }
-        return NextResponse.json(
-          { erro: "Não foi possível criar a cadência." },
-          { status: 500 }
-        );
-      }
-
-      const linhasEtapas = etapas.map((et, i) => {
-        const e = et as {
-          tipo_atividade?: unknown;
-          titulo?: unknown;
-          atraso_dias?: unknown;
-          script?: unknown;
-        };
-        return {
-          cadencia_id: novaCadencia.id,
-          ordem: i,
-          tipo_atividade: texto(e.tipo_atividade) || "tarefa",
-          titulo: texto(e.titulo) || `Etapa ${i + 1}`,
-          atraso_dias:
-            typeof e.atraso_dias === "number" && Number.isFinite(e.atraso_dias)
-              ? Math.max(0, Math.round(e.atraso_dias))
-              : 0,
-          script: texto(e.script),
-        };
-      });
-
-      await supabase.from("cadencia_etapas").insert(linhasEtapas);
-
-      return NextResponse.json({ ok: true, id: novaCadencia.id });
-    }
-
-    // "atualizar": edita um modelo existente (reecria as etapas).
-    if (acao === "atualizar") {
-      const cadenciaId = texto(body.cadencia_id);
-      const nome = texto(body.nome);
-      const descricao = texto(body.descricao);
-      const etapas = Array.isArray(body.etapas) ? body.etapas : [];
-      if (!cadenciaId) {
-        return NextResponse.json(
-          { erro: "Cadência não informada." },
-          { status: 400 }
-        );
-      }
-      if (!nome) {
-        return NextResponse.json(
-          { erro: "Nome da cadência é obrigatório." },
-          { status: 400 }
-        );
-      }
-      if (etapas.length === 0) {
-        return NextResponse.json(
-          { erro: "A cadência precisa de pelo menos uma etapa." },
-          { status: 400 }
-        );
-      }
-
-      const { error: erroUpd } = await supabase
-        .from("cadencia")
-        .update({ nome, descricao })
-        .eq("id", cadenciaId)
-        .eq("organizacao_id", orgId);
-
-      if (erroUpd) {
-        if ((erroUpd.message ?? "").toLowerCase().includes("duplicate")) {
-          return NextResponse.json(
-            { erro: "Já existe uma cadência com esse nome." },
-            { status: 409 }
-          );
-        }
-        return NextResponse.json(
-          { erro: "Não foi possível atualizar a cadência." },
-          { status: 500 }
-        );
-      }
-
-      // Remove as etapas antigas e insere as novas (reescrita simples).
-      await supabase
-        .from("cadencia_etapas")
-        .delete()
-        .eq("cadencia_id", cadenciaId);
-
-      const linhasEtapas = etapas.map((et, i) => {
-        const e = et as {
-          tipo_atividade?: unknown;
-          titulo?: unknown;
-          atraso_dias?: unknown;
-          script?: unknown;
-        };
-        return {
-          cadencia_id: cadenciaId,
-          ordem: i,
-          tipo_atividade: texto(e.tipo_atividade) || "tarefa",
-          titulo: texto(e.titulo) || `Etapa ${i + 1}`,
-          atraso_dias:
-            typeof e.atraso_dias === "number" && Number.isFinite(e.atraso_dias)
-              ? Math.max(0, Math.round(e.atraso_dias))
-              : 0,
-          script: texto(e.script),
-        };
-      });
-
-      await supabase.from("cadencia_etapas").insert(linhasEtapas);
-
-      return NextResponse.json({ ok: true });
-    }
-
-    // "excluir": remove um modelo de cadência (cascata nas etapas e vínculos).
-    if (acao === "excluir") {
-      const cadenciaId = texto(body.cadencia_id);
-      if (!cadenciaId) {
-        return NextResponse.json(
-          { erro: "Cadência não informada." },
-          { status: 400 }
-        );
-      }
-
-      // Sair dos leads que estão usando este modelo para não deixar órfãos.
-      const { data: vinculados } = await supabase
-        .from("lead_cadencia")
-        .select("id")
-        .eq("organizacao_id", orgId)
-        .eq("cadencia_id", cadenciaId);
-
-      for (const v of vinculados ?? []) {
-        await supabase
-          .from("lead_cadencia")
-          .delete()
-          .eq("id", v.id)
-          .eq("organizacao_id", orgId);
-      }
-
-      const { error: erroDel } = await supabase
-        .from("cadencia")
-        .delete()
-        .eq("id", cadenciaId)
-        .eq("organizacao_id", orgId);
-
-      if (erroDel) {
-        return NextResponse.json(
-          { erro: "Não foi possível excluir a cadência." },
-          { status: 500 }
-        );
-      }
+      await cancelarProgramadasPendentes(supabase, orgId, [companyId]);
 
       return NextResponse.json({ ok: true });
     }

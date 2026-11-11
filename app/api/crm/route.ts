@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { calcularPrioridade } from "../../../lib/prioridade";
+import { limitesDeHojeBrasilia } from "../../../lib/crm";
 
 type Estagio = {
   id: string;
@@ -74,15 +75,11 @@ type EventoHistorico = {
 
 // Status da próxima atividade de um lead (dado o timestamp da data/hora).
 function statusDeAtividade(ts: number): "sem" | "atrasada" | "hoje" | "futura" {
-  const agora = new Date();
-  const inicioHoje = new Date(
-    agora.getFullYear(),
-    agora.getMonth(),
-    agora.getDate()
-  ).getTime();
-  const fimHoje = inicioHoje + 86400000 - 1;
-  if (ts < inicioHoje) return "atrasada";
-  if (ts <= fimHoje) return "hoje";
+  // O servidor roda em UTC: "hoje" é calculado no horário de Brasília,
+  // senão atividades da noite apareciam como "futura"/"atrasada" erradas.
+  const { inicio, fim } = limitesDeHojeBrasilia();
+  if (ts < inicio) return "atrasada";
+  if (ts <= fim) return "hoje";
   return "futura";
 }
 
@@ -206,7 +203,7 @@ export async function GET() {
         leadsArr.map((l) => l.company_id)
       )
       .order("criado_em", { ascending: false })
-      .limit(600);
+      .limit(1000);
 
     for (const ev of (eventos ?? []) as Array<{
       id: string;
@@ -412,6 +409,7 @@ export async function POST(req: Request) {
     .from("companies")
     .select("id")
     .eq("id", companyId)
+    .eq("organizacao_id", orgId)
     .single();
 
   if (erroEmpresa || !empresa) {
@@ -457,6 +455,7 @@ export async function POST(req: Request) {
   const { count } = await supabase
     .from("lead_pipeline")
     .select("id", { count: "exact", head: true })
+    .eq("organizacao_id", orgId)
     .eq("stage_id", stageId);
 
   const ordenacao = count ?? 0;

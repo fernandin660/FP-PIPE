@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { cancelarProgramadasPendentes, ehMembroAtivo } from "../../../../lib/crm";
 
 export async function PATCH(
   req: Request,
@@ -61,7 +62,7 @@ export async function PATCH(
   const normalizarValor = (v: unknown): number | null | undefined => {
     if (v === undefined || v === null || v === "") return undefined;
     const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
   };
 
   const mudaValor = body.valor_oportunidade !== undefined;
@@ -101,10 +102,18 @@ export async function PATCH(
   }
 
   if (mudouResponsavel) {
-    atualizacao.responsavel_id =
+    const novoResp =
       body.responsavel_id === null || body.responsavel_id === ""
         ? null
         : body.responsavel_id;
+    // O responsável precisa ser membro ativo desta organização.
+    if (novoResp && !(await ehMembroAtivo(supabase, orgId, novoResp))) {
+      return NextResponse.json(
+        { erro: "Responsável não faz parte desta organização." },
+        { status: 400 }
+      );
+    }
+    atualizacao.responsavel_id = novoResp;
   }
 
   if (mudouOrdenacao && typeof body.ordenacao === "number") {
@@ -157,8 +166,8 @@ export async function PATCH(
     eventos.push({
       tipo_evento: "oportunidade_atualizada",
       dados: {
-        valor: atualizacao.valor_oportunidade ?? null,
-        produto: atualizacao.produto ?? null,
+        valor: atualizado.valor_oportunidade ?? null,
+        produto: atualizado.produto ?? null,
       },
     });
   }
@@ -218,9 +227,13 @@ export async function DELETE(
     );
   }
 
+  // O lead saiu do funil: cancela a cadência pendente e registra a saída.
+  // (lead_pipeline_id fica nulo: o lead não existe mais; o histórico
+  // continua ligado à empresa.)
+  await cancelarProgramadasPendentes(supabase, orgId, [lead.company_id]);
   await supabase.from("pipeline_historico").insert({
     organizacao_id: orgId,
-    lead_pipeline_id: id,
+    lead_pipeline_id: null,
     company_id: lead.company_id,
     usuario_id: usuarioId,
     tipo_evento: "lead_removido",

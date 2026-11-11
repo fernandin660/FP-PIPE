@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
+import { dataIsoValida } from "../../../../lib/crm";
 
 const TIPOS_ATIVIDADE = new Set([
   "email",
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
       .eq("organizacao_id", orgId)
       .in("tipo_evento", ["atividade_programada", "atividade"])
       .order("criado_em", { ascending: false })
-      .limit(500);
+      .limit(1000);
 
     if (erroEv) {
       return NextResponse.json(
@@ -68,8 +69,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const de = url.searchParams.get("de"); // YYYY-MM-DD
     const ate = url.searchParams.get("ate"); // YYYY-MM-DD
-    const tsDe = de ? new Date(`${de}T00:00:00`).getTime() : null;
-    const tsAte = ate ? new Date(`${ate}T23:59:59.999`).getTime() : null;
+    // Datas do filtro no horário de Brasília (o servidor roda em UTC).
+    const dia = /^\d{4}-\d{2}-\d{2}$/;
+    const tsDe = de && dia.test(de) ? new Date(`${de}T00:00:00-03:00`).getTime() : null;
+    const tsAte = ate && dia.test(ate) ? new Date(`${ate}T23:59:59.999-03:00`).getTime() : null;
 
     // "Pendentes": não canceladas e não concluídas. Atividades manuais só
     // entram quando são tarefas ou têm data futura (agendadas). O período
@@ -252,7 +255,11 @@ export async function POST(request: Request) {
     const tipoAtividade = texto(body.tipo_atividade);
     const titulo = texto(body.titulo);
     const observacao = texto(body.observacao);
-    const dataHoraAtividade = texto(body.data_hora_atividade);
+    const dataBruta = texto(body.data_hora_atividade);
+    const dataHoraAtividade = dataIsoValida(dataBruta);
+    if (dataBruta && !dataHoraAtividade) {
+      return NextResponse.json({ erro: "Data da atividade inválida." }, { status: 400 });
+    }
 
     if (!companyId || !titulo) {
       return NextResponse.json(
@@ -278,8 +285,8 @@ export async function POST(request: Request) {
 
     const dados: Record<string, unknown> = {
       tipo_atividade: TIPOS_ATIVIDADE.has(tipoAtividade) ? tipoAtividade : "observacao",
-      titulo,
-      observacao,
+      titulo: titulo.slice(0, 300),
+      observacao: observacao.slice(0, 5000),
       data_hora_atividade: dataHoraAtividade || new Date().toISOString(),
     };
 
@@ -394,14 +401,24 @@ export async function PATCH(request: Request) {
     const tipoAtividade = texto(body.tipo_atividade);
     const dataHora = texto(body.data_hora_atividade);
 
-    if (body.titulo !== undefined) novosDados.titulo = titulo;
-    if (body.observacao !== undefined) novosDados.observacao = observacao;
+    if (body.titulo !== undefined) {
+      if (!titulo) {
+        return NextResponse.json({ erro: "O título não pode ficar vazio." }, { status: 400 });
+      }
+      novosDados.titulo = titulo.slice(0, 300);
+    }
+    if (body.observacao !== undefined) novosDados.observacao = observacao.slice(0, 5000);
     if (body.tipo_atividade !== undefined)
       novosDados.tipo_atividade = TIPOS_ATIVIDADE.has(tipoAtividade)
         ? tipoAtividade
         : "observacao";
-    if (body.data_hora_atividade !== undefined)
-      novosDados.data_hora_atividade = dataHora;
+    if (body.data_hora_atividade !== undefined) {
+      const iso = dataIsoValida(dataHora);
+      if (!iso) {
+        return NextResponse.json({ erro: "Data da atividade inválida." }, { status: 400 });
+      }
+      novosDados.data_hora_atividade = iso;
+    }
     if (body.concluida !== undefined) {
       const concluida = body.concluida === true || body.concluida === "true";
       novosDados.concluida = concluida;
@@ -441,7 +458,7 @@ export async function DELETE(request: Request) {
   try {
     const { ctx, resposta } = await exigirAcesso();
     if (resposta) return resposta;
-    const { supabase, orgId } = ctx!;
+    const { supabase, orgId, usuarioId, papel } = ctx!;
 
     let body: { atividade_id?: unknown };
     try {
@@ -460,7 +477,7 @@ export async function DELETE(request: Request) {
 
     const { data: atual } = await supabase
       .from("pipeline_historico")
-      .select("id, tipo_evento")
+      .select("id, tipo_evento, usuario_id, lead_pipeline_id")
       .eq("id", atividadeId)
       .eq("organizacao_id", orgId)
       .single();
@@ -472,13 +489,33 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { error: erroDelete } = await supabase
+    // Mesma regra da edição: membro só remove o que é dele.
+    if (papel !== "admin") {
+      let ehMeu = atual.usuario_id === usuarioId;
+      if (!ehMeu && atual.lead_pipeline_id) {
+        const { data: l } = await supabase
+          .from("lead_pipeline")
+          .select("responsavel_id")
+          .eq("id", atual.lead_pipeline_id)
+          .maybeSingle();
+        if (l?.responsavel_id === usuarioId) ehMeu = true;
+      }
+      if (!ehMeu) {
+        return NextResponse.json(
+          { erro: "Você não pode remover esta atividade." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const { data: apagadas, error: erroDelete } = await supabase
       .from("pipeline_historico")
       .delete()
       .eq("id", atividadeId)
-      .eq("organizacao_id", orgId);
+      .eq("organizacao_id", orgId)
+      .select("id");
 
-    if (erroDelete) {
+    if (erroDelete || (apagadas ?? []).length === 0) {
       return NextResponse.json(
         { erro: "Não foi possível remover a atividade." },
         { status: 500 }

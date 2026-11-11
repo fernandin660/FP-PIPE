@@ -6,6 +6,7 @@ import {
   deduplicar,
   listarEstagios,
   listarMembros,
+  ehMembroAtivo,
   type PayloadAlvos,
 } from "../../../../lib/crm";
 
@@ -54,6 +55,13 @@ export async function POST(request: Request) {
         ? body.origem
         : null;
 
+    if (responsavelId && !(await ehMembroAtivo(supabase, orgId, responsavelId))) {
+      return NextResponse.json(
+        { erro: "Responsável não faz parte desta organização." },
+        { status: 400 }
+      );
+    }
+
     const alvos = deduplicar(await resolverAlvos(supabase, orgId, payload));
     if (alvos.length === 0) {
       return NextResponse.json(
@@ -96,6 +104,7 @@ export async function POST(request: Request) {
       const { count } = await supabase
         .from("lead_pipeline")
         .select("id", { count: "exact", head: true })
+        .eq("organizacao_id", orgId)
         .eq("stage_id", stageFinal.id);
       let ordenacao = count ?? 0;
 

@@ -202,3 +202,62 @@ export function deduplicar<T extends { company_id: string }>(
   }
   return unicos;
 }
+
+/** O usuário informado é membro ativo da organização? (valida responsável) */
+export async function ehMembroAtivo(
+  supabase: ClienteServidor,
+  orgId: string,
+  usuarioId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("organizacao_membros")
+    .select("usuario_id")
+    .eq("organizacao_id", orgId)
+    .eq("usuario_id", usuarioId)
+    .eq("status", "ativo")
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/**
+ * Cancela as atividades programadas (cadência) ainda pendentes de uma ou
+ * mais empresas. Preserva os dados: só marca `cancelada`.
+ */
+export async function cancelarProgramadasPendentes(
+  supabase: ClienteServidor,
+  orgId: string,
+  companyIds: string[]
+): Promise<void> {
+  if (companyIds.length === 0) return;
+  const { data: programadas } = await supabase
+    .from("pipeline_historico")
+    .select("id, dados")
+    .eq("organizacao_id", orgId)
+    .eq("tipo_evento", "atividade_programada")
+    .in("company_id", companyIds);
+
+  for (const p of programadas ?? []) {
+    const dados = (p.dados as Record<string, unknown>) ?? {};
+    if (dados.cancelada === true || dados.concluida === true) continue;
+    await supabase
+      .from("pipeline_historico")
+      .update({ dados: { ...dados, cancelada: true } })
+      .eq("id", p.id)
+      .eq("organizacao_id", orgId);
+  }
+}
+
+/** Início e fim do dia de hoje no horário de Brasília (UTC-3), em ms. */
+export function limitesDeHojeBrasilia(): { inicio: number; fim: number } {
+  const DESLOC = 3 * 3600 * 1000;
+  const DIA = 86400000;
+  const inicio = Math.floor((Date.now() - DESLOC) / DIA) * DIA + DESLOC;
+  return { inicio, fim: inicio + DIA - 1 };
+}
+
+/** Data ISO válida (ou vazio). Evita gravar datas que quebram a ordenação. */
+export function dataIsoValida(valor: string): string {
+  if (!valor) return "";
+  const t = new Date(valor).getTime();
+  return Number.isFinite(t) ? new Date(t).toISOString() : "";
+}

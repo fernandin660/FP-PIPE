@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
+import { registrarPedidoNoCrm } from "../../../../lib/studio-crm";
 
 /**
  * Formulário de contato do site do estúdio (/fr, /en, /es).
  * Público (sem login): limitado por IP, com armadilha para robôs.
- * Envia o pedido por e-mail para o dono, com "responder para" = cliente.
+ * Cria o lead no CRM da FP Pipe e avisa o dono por e-mail
+ * (com "responder para" = cliente).
  */
 
 const DESTINO = process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
@@ -40,11 +42,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "campos" }, { status: 400 });
   }
 
-  if (!CHAVE_RESEND) {
-    console.error("Studio contato: RESEND_API_KEY ausente.");
-    return NextResponse.json({ erro: "indisponivel" }, { status: 503 });
-  }
-
   const linhas = [
     `Novo pedido pelo site do estúdio (${idioma.toUpperCase()})`,
     "",
@@ -57,6 +54,28 @@ export async function POST(request: Request) {
     mensagem,
   ];
 
+  // Dois caminhos independentes: lead no CRM e aviso por e-mail.
+  // O pedido só é dado como perdido se os DOIS falharem.
+  const [crm, emailEnviado] = await Promise.all([
+    registrarPedidoNoCrm({ nome, empresa, email, telefone, mensagem, idioma }).catch((e) => {
+      console.error("Studio → CRM: erro inesperado:", e);
+      return { ok: false as const };
+    }),
+    enviarEmail(linhas.join("\n"), email, `Site ${idioma.toUpperCase()} — novo pedido de ${nome}${empresa ? ` (${empresa})` : ""}`),
+  ]);
+
+  if (!crm.ok && !emailEnviado) {
+    return NextResponse.json({ erro: "envio" }, { status: 502 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+async function enviarEmail(texto: string, responderPara: string, assunto: string): Promise<boolean> {
+  if (!CHAVE_RESEND) {
+    console.error("Studio contato: RESEND_API_KEY ausente.");
+    return false;
+  }
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -67,19 +86,15 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: "FP Pipe Studio <avisos@fppipe.com.br>",
         to: [DESTINO],
-        reply_to: email,
-        subject: `Site ${idioma.toUpperCase()} — novo pedido de ${nome}${empresa ? ` (${empresa})` : ""}`,
-        text: linhas.join("\n"),
+        reply_to: responderPara,
+        subject: assunto,
+        text: texto,
       }),
       signal: AbortSignal.timeout(10000),
     });
-    if (!r.ok) {
-      console.error("Studio contato: Resend respondeu", r.status);
-      return NextResponse.json({ erro: "envio" }, { status: 502 });
-    }
+    if (!r.ok) console.error("Studio contato: Resend respondeu", r.status);
+    return r.ok;
   } catch {
-    return NextResponse.json({ erro: "envio" }, { status: 502 });
+    return false;
   }
-
-  return NextResponse.json({ ok: true });
 }

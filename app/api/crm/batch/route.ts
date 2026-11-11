@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import { iniciarCadenciaLead } from "../../../../lib/crm-cadencia";
+import { cancelarProgramadasPendentes } from "../../../../lib/crm";
 
 type OperacaoMover = {
   tipo: "mover";
@@ -66,11 +67,15 @@ export async function POST(request: Request) {
   );
   const { data: leadsValidos } = await supabase
     .from("lead_pipeline")
-    .select("id")
+    .select("id, company_id, stage_id")
     .eq("organizacao_id", orgId)
     .in("id", leadIds);
 
   const validosSet = new Set((leadsValidos ?? []).map((l) => l.id));
+  const infoLead = new Map<string, { company_id: string; stage_id: string }>();
+  for (const l of (leadsValidos ?? []) as Array<{ id: string; company_id: string; stage_id: string }>) {
+    infoLead.set(l.id, { company_id: l.company_id, stage_id: l.stage_id });
+  }
   const operacoesValidas = operacoes.filter((op) => {
     const id = op.tipo === "cadencia" ? op.leadPipelineId : op.leadId;
     return validosSet.has(id);
@@ -150,17 +155,22 @@ export async function POST(request: Request) {
           });
         }
       } else {
-        // Insere histórico para cada movido
-        const historico = ops.map((op) => ({
-          organizacao_id: orgId,
-          lead_pipeline_id: op.leadId,
-          company_id: null, // será preenchido pelo trigger ou buscado
-          usuario_id: usuarioId,
-          tipo_evento: "mudanca_estagio",
-          stage_destino_id: op.stageId,
-          dados: { ordenacao: op.ordenacao },
-        }));
-        await admin.from("pipeline_historico").insert(historico);
+        // Histórico: só de quem realmente mudou de estágio.
+        const historico = ops
+          .filter((op) => infoLead.get(op.leadId)?.stage_id !== op.stageId)
+          .map((op) => ({
+            organizacao_id: orgId,
+            lead_pipeline_id: op.leadId,
+            company_id: infoLead.get(op.leadId)!.company_id,
+            usuario_id: usuarioId,
+            tipo_evento: "mudanca_estagio",
+            stage_origem_id: infoLead.get(op.leadId)!.stage_id,
+            stage_destino_id: op.stageId,
+            dados: { em_lote: true },
+          }));
+        if (historico.length > 0) {
+          await admin.from("pipeline_historico").insert(historico);
+        }
 
         for (const op of ops) {
           resultados.push({ operacao: op, sucesso: true });
@@ -200,16 +210,26 @@ export async function POST(request: Request) {
         });
       }
     } else {
-      // Insere histórico
-      const historico = excluirOps.map((op) => ({
-        organizacao_id: orgId,
-        lead_pipeline_id: op.leadId,
-        company_id: companyIdPorLead.get(op.leadId) ?? null,
-        usuario_id: usuarioId,
-        tipo_evento: "lead_removido",
-        dados: {},
-      }));
-      await admin.from("pipeline_historico").insert(historico);
+      // Cancela a cadência pendente e registra a saída (o lead não existe
+      // mais, então lead_pipeline_id fica nulo).
+      const empresasRemovidas = excluirOps
+        .map((op) => companyIdPorLead.get(op.leadId))
+        .filter((c): c is string => Boolean(c));
+      await cancelarProgramadasPendentes(supabase, orgId, empresasRemovidas);
+      const historico = excluirOps
+        .filter((op) => companyIdPorLead.has(op.leadId))
+        .map((op) => ({
+          organizacao_id: orgId,
+          lead_pipeline_id: null,
+          company_id: companyIdPorLead.get(op.leadId)!,
+          usuario_id: usuarioId,
+          tipo_evento: "lead_removido",
+          stage_origem_id: infoLead.get(op.leadId)?.stage_id ?? null,
+          dados: { em_lote: true },
+        }));
+      if (historico.length > 0) {
+        await admin.from("pipeline_historico").insert(historico);
+      }
 
       for (const op of excluirOps) {
         resultados.push({ operacao: op, sucesso: true });

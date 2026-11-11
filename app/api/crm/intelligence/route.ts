@@ -98,15 +98,21 @@ function papelDeCargo(cargo?: string | null): {
   papel: "decisor" | "aprovador" | "influenciador" | "contato";
   inferido: boolean;
 } {
-  const c = (cargo ?? "").toLowerCase();
+  // Sem acentos e por palavra inteira: "Sócio" e "Jurídico" passam a casar,
+  // e "Coordenador" deixa de virar decisor por conter "coo".
+  const c = (cargo ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   if (!c) return { papel: "contato", inferido: false };
   const decisor =
-    /diretor|presidente|ceo|dono|socio|proprietario|fundador|executivo|ciso|cfo|coo/.test(c);
+    /\b(diretor\w*|president\w*|ceo|don[oa]|soci[oa]\w*|proprietari[oa]|fundador\w*|founder|executiv[oa]|ciso|cfo|coo|cto|cmo|owner)\b/.test(c);
   if (decisor) return { papel: "decisor", inferido: true };
-  const aprovador = /controller|financeiro|administrativo|legal|juridico|compras|rh/.test(c);
+  const aprovador =
+    /\b(controller|financeir[oa]|administrativ[oa]|legal|juridic[oa]|compras|rh|recursos humanos)\b/.test(c);
   if (aprovador) return { papel: "aprovador", inferido: true };
   const influenciador =
-    /gerente|coord|supervisor|lider|head|chefe|consultor|analista/.test(c);
+    /\b(gerente|coord\w*|supervisor\w*|lider|head|chefe|consultor\w*|analista)\b/.test(c);
   if (influenciador) return { papel: "influenciador", inferido: true };
   return { papel: "contato", inferido: false };
 }
@@ -423,7 +429,11 @@ export async function POST(request: Request) {
       if (!descricao) {
         return NextResponse.json({ erro: "Descreva o sinal." }, { status: 400 });
       }
-      const data = texto(body.data) || null;
+      const dataBruta = texto(body.data);
+      if (dataBruta && !/^\d{4}-\d{2}-\d{2}$/.test(dataBruta)) {
+        return NextResponse.json({ erro: "Data do sinal inválida." }, { status: 400 });
+      }
+      const data = dataBruta || null;
       const fonte = texto(body.fonte) || "manual";
       const confianca = numero(body.confianca, 0, 100) ?? 50;
       const relevancia = numero(body.relevancia, 0, 100) ?? 50;
@@ -434,9 +444,9 @@ export async function POST(request: Request) {
           organizacao_id: orgId,
           company_id: companyId,
           tipo,
-          descricao,
+          descricao: descricao.slice(0, 2000),
           data: data || null,
-          fonte,
+          fonte: fonte.slice(0, 200),
           confianca,
           relevancia,
           criado_por: usuarioId,

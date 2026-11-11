@@ -424,7 +424,9 @@ export default function PaginaCrm() {
   }
 
   function selecionarTodos() {
-    setSelecionados(leads.map((l) => l.id));
+    // Só o que está visível com os filtros atuais (evita ação em massa
+    // sobre leads que a pessoa não está vendo).
+    setSelecionados(leadsFiltrados.map((l) => l.id));
   }
 
   const alvosSelecionados = () => leads.filter((l) => selecionados.includes(l.id));
@@ -452,7 +454,7 @@ export default function PaginaCrm() {
         body: JSON.stringify({ operacoes }),
       });
       const dados = await res.json();
-      if (!res.ok || !dados.ok) {
+      if (!res.ok) {
         throw new Error(dados?.erro ?? "Falha ao mover leads.");
       }
       const falhas: string[] = [];
@@ -465,6 +467,7 @@ export default function PaginaCrm() {
       if (falhas.length > 0) {
         const falhasStr = falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "");
         setErro(`Não movidos: ${falhas.length} (${falhasStr}).`);
+        await carregarCrm();
       } else {
         setLeads((atual) =>
           atual.map((x) => {
@@ -517,7 +520,7 @@ export default function PaginaCrm() {
         body: JSON.stringify({ operacoes }),
       });
       const dados = await res.json();
-      if (!res.ok || !dados.ok) {
+      if (!res.ok) {
         throw new Error(dados?.erro ?? "Falha ao aplicar cadência em lote.");
       }
       const falhas: string[] = [];
@@ -531,6 +534,8 @@ export default function PaginaCrm() {
         const falhasStr = falhas.slice(0, 3).join(", ") + (falhas.length > 3 ? "…" : "");
         setErro(`Cadência não aplicada em ${falhas.length} (${falhasStr}).`);
       }
+      // Atualiza a "próxima atividade" dos cards.
+      await carregarCrm();
     } catch {
       setErro("Erro ao aplicar cadência em lote.");
     }
@@ -569,7 +574,7 @@ export default function PaginaCrm() {
         body: JSON.stringify({ operacoes }),
       });
       const dados = await res.json();
-      if (!res.ok || !dados.ok) {
+      if (!res.ok) {
         throw new Error(dados?.erro ?? "Falha ao remover leads em lote.");
       }
 
@@ -909,6 +914,7 @@ export default function PaginaCrm() {
       });
       const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
       if (lead) void buscarHistorico(lead);
+      void carregarCrm();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao registrar atividade.";
       alert(msg);
@@ -928,7 +934,7 @@ export default function PaginaCrm() {
         const pad = (n: number) => String(n).padStart(2, "0");
         dataHora = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
           d.getDate()
-        )}T${d.getHours()}:${pad(d.getMinutes())}`;
+        )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
     }
     setFormAtividade({
@@ -973,6 +979,7 @@ export default function PaginaCrm() {
       });
       const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
       if (lead) void buscarHistorico(lead);
+      void carregarCrm();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao editar atividade.";
       alert(msg);
@@ -995,6 +1002,7 @@ export default function PaginaCrm() {
       }
       const lead = leads.find((l) => l.id === (leadDetalhe?.id ?? ""));
       if (lead) void buscarHistorico(lead);
+      void carregarCrm();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao remover atividade.";
       alert(msg);

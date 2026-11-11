@@ -281,7 +281,7 @@ const fr: Dicionario = {
       {
         titulo: "Destinataires et sous-traitants",
         texto:
-          "Vos données ne sont ni vendues ni louées. Elles sont accessibles uniquement à l’équipe FP Pipe et à nos prestataires techniques : Vercel (hébergement du site), Resend (envoi des e-mails du formulaire) et Supabase (base de données de sécurité).",
+          "Vos données ne sont ni vendues ni louées. Elles sont accessibles uniquement à l’équipe FP Pipe et à nos prestataires techniques : Vercel (hébergement du site), Resend (envoi des e-mails du formulaire) et Supabase (base de données : suivi de votre demande et sécurité).",
       },
       {
         titulo: "Transferts hors de l’Union européenne",
@@ -524,7 +524,7 @@ const en: Dicionario = {
       {
         titulo: "Recipients and processors",
         texto:
-          "Your data is never sold or rented. Only the FP Pipe team and our technical providers can access it: Vercel (website hosting), Resend (sending form emails) and Supabase (security database).",
+          "Your data is never sold or rented. Only the FP Pipe team and our technical providers can access it: Vercel (website hosting), Resend (sending form emails) and Supabase (database: follow-up of your request and security).",
       },
       {
         titulo: "Transfers outside the European Union",
@@ -767,7 +767,7 @@ const es: Dicionario = {
       {
         titulo: "Destinatarios y encargados",
         texto:
-          "Tus datos nunca se venden ni se alquilan. Solo acceden a ellos el equipo de FP Pipe y nuestros proveedores técnicos: Vercel (alojamiento del sitio), Resend (envío de los correos del formulario) y Supabase (base de datos de seguridad).",
+          "Tus datos nunca se venden ni se alquilan. Solo acceden a ellos el equipo de FP Pipe y nuestros proveedores técnicos: Vercel (alojamiento del sitio), Resend (envío de los correos del formulario) y Supabase (base de datos: seguimiento de tu solicitud y seguridad).",
       },
       {
         titulo: "Transferencias fuera de la Unión Europea",
