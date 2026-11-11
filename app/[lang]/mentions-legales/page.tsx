@@ -7,7 +7,7 @@ import { DICIONARIOS, ehIdioma } from "../../../components/studio/dicionario";
 export async function generateMetadata({ params }: PageProps<"/[lang]/mentions-legales">): Promise<Metadata> {
   const { lang } = await params;
   if (!ehIdioma(lang)) return {};
-  return { title: `${DICIONARIOS[lang].mentions.titulo} — FP Pipe Studio`, robots: { index: false } };
+  return { title: `${DICIONARIOS[lang].mentions.titulo} — FP Pipe Studio`, description: DICIONARIOS[lang].meta.descricao, robots: { index: false } };
 }
 
 export default async function MentionsLegales({ params }: PageProps<"/[lang]/mentions-legales">) {

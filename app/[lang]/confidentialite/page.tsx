@@ -7,7 +7,7 @@ import { DICIONARIOS, ehIdioma } from "../../../components/studio/dicionario";
 export async function generateMetadata({ params }: PageProps<"/[lang]/confidentialite">): Promise<Metadata> {
   const { lang } = await params;
   if (!ehIdioma(lang)) return {};
-  return { title: `${DICIONARIOS[lang].privacidade.titulo} — FP Pipe Studio` };
+  return { title: `${DICIONARIOS[lang].privacidade.titulo} — FP Pipe Studio`, description: DICIONARIOS[lang].meta.descricao };
 }
 
 export default async function Confidentialite({ params }: PageProps<"/[lang]/confidentialite">) {
