@@ -5,12 +5,39 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { criarClienteSupabase } from "../lib/supabase/client";
 import { validarSenhaForca, senhaFoiVazada, MENSAGEM_SENHA_VAZADA } from "../lib/senhas";
-import { IconeEnviar, IconeVerificado } from "./Icones";
+import Envelope from "./studio/Envelope";
+import ParticulasProspeccao from "./entrada/ParticulasProspeccao";
 
-export default function TelaEntrada() {
+type Modo = "entrar" | "criar" | "recuperar";
+
+const FASES = [
+  { titulo: "Ligue para quem decide", texto: "Telefone e e-mail do decisor de cada empresa, verificados." },
+  { titulo: "Mande a primeira mensagem", texto: "Uma abordagem escrita para cada empresa. Você revisa e envia." },
+  { titulo: "Feche no funil", texto: "Cada oportunidade acompanhada no CRM, da lista até o contrato." },
+];
+
+const TITULOS: Record<Modo, { selo: string; titulo: string; texto: string }> = {
+  entrar: {
+    selo: "Bem-vindo de volta",
+    titulo: "Entrar na FP Pipe",
+    texto: "Suas listas e o seu funil estão esperando.",
+  },
+  criar: {
+    selo: "Teste grátis",
+    titulo: "Crie sua conta",
+    texto: "1 lista com até 25 empresas e o CRM incluído. Sem cartão.",
+  },
+  recuperar: {
+    selo: "Recuperar acesso",
+    titulo: "Esqueceu a senha?",
+    texto: "Informe seu e-mail e enviamos um link para criar uma nova.",
+  },
+};
+
+export default function TelaEntrada({ modoInicial = "criar" }: { modoInicial?: Modo }) {
   const router = useRouter();
 
-  const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("criar");
+  const [modo, setModo] = useState<Modo>(modoInicial);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -130,225 +157,155 @@ setMensagem(
     }
   }
 
+  function trocarModo(novo: Modo) {
+    setModo(novo);
+    setErro("");
+    setMensagem("");
+  }
+
+  const cabecalho = TITULOS[modo];
+
   return (
-    <div className="min-h-screen bg-pipe-bg grid lg:grid-cols-2">
-      {/* ================= LADO ESQUERDO — PITCH ================= */}
-      <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-pipe-dark via-pipe-bg to-pipe-card border-r border-pipe-border overflow-hidden">
-        <div>
-          <p className="font-display text-4xl text-white">
-            FP <span className="text-pipe-lime">Pipe</span>
-          </p>
-
-          <h1 className="font-display text-5xl leading-tight text-white mt-14">
-            Descubra quem está{" "}
-            <span className="text-pipe-lime">pronto pra comprar</span>{" "}
-            de você.
-          </h1>
-
-          <p className="text-pipe-muted mt-6 max-w-md text-lg">
-            Nosso sistema monta seu cliente ideal, encontra empresas reais com
-            CNPJ, pontua cada uma e entrega quem decide a compra — com nome e
-            cargo.
-          </p>
-
-          <ul className="mt-8 space-y-3 text-gray-300">
-            {[
-              "Perfil de cliente ideal (ICP) completo em menos de 1 minuto",
-              "Empresas reais com score de aderência 0-100",
-              "Decisor certo: aprovador e influenciador da venda",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <IconeVerificado className="w-4 h-4 text-pipe-lime mt-0.5 shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Visual: agendamento de reunião */}
-        <div className="relative h-64 mt-10">
-          <div className="absolute left-0 top-4 w-80 bg-pipe-card border border-pipe-border rounded-xl p-5 shadow-2xl -rotate-2">
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-white font-semibold text-sm">
-                  Reunião agendada
-                </p>
-                <p className="text-pipe-muted text-xs">
-                  Terça, 14h · via Teams
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              <span className="text-xs bg-lime-500/15 text-lime-400 px-2 py-1 rounded-full font-semibold">
-                Confirmado
-              </span>
-              <span className="text-xs text-pipe-muted">
-                Diretor de TI · Logística
-              </span>
-            </div>
-          </div>
-
-          <div className="absolute right-0 bottom-0 w-72 bg-pipe-card border border-pipe-border rounded-xl p-5 shadow-2xl rotate-2">
-            <div className="flex items-center gap-3">
-              <span className="w-11 h-11 rounded-lg bg-lime-500/15 flex items-center justify-center font-bold text-pipe-lime text-lg">
-                87
-              </span>
-              <div>
-                <p className="text-white font-semibold text-sm">
-                  Transportadora LTDA
-                </p>
-                <p className="text-pipe-muted text-xs">Campinas/SP</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-300 mt-3">
-              Fale com:{" "}
-              <span className="text-pipe-lime">Gerente Comercial</span>
-            </p>
-          </div>
-
-          <span className="absolute left-40 bottom-24 animate-bounce">
-            <IconeEnviar tamanho={32} className="text-pipe-lime" />
-          </span>
-        </div>
-
-        <p className="text-pipe-muted/60 text-xs mt-8">
-          © FP Pipe — Inteligência comercial para quem vende B2B.{" "}
-          <Link href="/plataforma" className="hover:text-pipe-blue transition">
-            Conheça os diferenciais
+    <Envelope idioma="pt-BR">
+      <div className="grid min-h-[100svh] lg:grid-cols-[1.15fr_1fr]">
+        {/* ANIMAÇÃO */}
+        <section className="relative h-[320px] border-b border-[#d6d4cd] sm:h-[420px] lg:sticky lg:top-0 lg:h-[100svh] lg:border-b-0 lg:border-r">
+          <ParticulasProspeccao fases={FASES} rotulo="Etapas da prospecção" />
+          <Link
+            href="/plataforma"
+            aria-label="FP Pipe — página inicial"
+            className="absolute left-6 top-6 z-10 flex items-center gap-2 text-[15px] font-semibold tracking-tight md:left-12 md:top-10"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" />
+            </svg>
+            FP Pipe
           </Link>
-        </p>
-      </div>
+        </section>
 
-      {/* ================= LADO DIREITO — LOGIN ================= */}
-      <div className="flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden mb-10">
-            <p className="font-display text-3xl text-white">
-              FP <span className="text-pipe-lime">Pipe</span>
-            </p>
-          </div>
-
-          <h2 className="font-display text-4xl text-white">
-            Bem-vindo à{" "}
-            <span className="text-pipe-lime">FP Pipe</span>
-          </h2>
-
-          <p className="text-pipe-muted text-sm mt-2">
-            Crie sua conta grátis: 1 lista com até 25 empresas pra testar de verdade.{" "}
-            <a
-              href="/planos"
-              className="text-pipe-blue hover:underline font-medium"
-            >
-              Ver planos
-            </a>
-          </p>
-
-          <div className="flex gap-2 mt-8 bg-pipe-dark rounded-lg p-1">
-            <button
-              onClick={() => setModo("entrar")}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${
-                modo === "entrar"
-                  ? "bg-pipe-blue text-black"
-                  : "text-pipe-muted hover:text-white"
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              onClick={() => setModo("criar")}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${
-                modo === "criar"
-                  ? "bg-pipe-blue text-black"
-                  : "text-pipe-muted hover:text-white"
-              }`}
-            >
-              Criar conta
-            </button>
-          </div>
-
-          {modo === "recuperar" && (
-            <p className="text-sm text-pipe-blue font-semibold mt-6">
-              Recuperar acesso
-            </p>
-          )}
-
-          <form onSubmit={submeter} className="space-y-4 mt-6">
-            <input
-              type="email"
-              required
-              placeholder="Seu e-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
-            />
+        {/* FORMULÁRIO */}
+        <main className="flex items-center justify-center bg-[#fbfaf7] px-6 py-14 md:px-12 lg:py-20">
+          <div className="w-full max-w-[420px]">
+            <p className="studio-selo mb-5">{cabecalho.selo}</p>
+            <h1 className="text-[2.5rem] font-medium leading-[1.05] tracking-[-0.035em] md:text-5xl">
+              {cabecalho.titulo}
+            </h1>
+            <p className="mt-4 text-[#4b4b53]">{cabecalho.texto}</p>
 
             {modo !== "recuperar" && (
-              <input
-                type="password"
-                required
-                autoComplete={
-                  modo === "entrar" ? "current-password" : "new-password"
-                }
-                placeholder={
-                  modo === "entrar"
-                    ? "Sua senha"
-                    : "Crie uma senha: 8+ carac., com maiúscula, minúscula, número e símbolo"
-                }
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
-              />
-            )}
-
-            {erro && <p className="text-red-400 text-sm">{erro}</p>}
-
-            {mensagem && (
-              <p className="text-pipe-lime text-sm">{mensagem}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={carregando}
-              className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
-            >
-              {carregando
-                ? "Aguarde..."
-                : modo === "entrar"
-                  ? "Entrar"
-                  : modo === "recuperar"
-                    ? "Enviar link de redefinição"
-                    : "Criar conta grátis"}
-            </button>
-          </form>
-
-          <div className="mt-4 text-center">
-            {modo === "recuperar" ? (
-              <button
-                onClick={() => {
-                  setModo("entrar");
-                  setErro("");
-                  setMensagem("");
-                }}
-                className="text-xs text-pipe-muted hover:text-white transition"
+              <div
+                role="tablist"
+                aria-label="Entrar ou criar conta"
+                className="mt-9 grid grid-cols-2 rounded-full border border-[#d6d4cd] p-1 text-sm font-medium"
               >
-                Voltar para o login
+                {(["entrar", "criar"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={modo === m}
+                    onClick={() => trocarModo(m)}
+                    className={`min-h-[44px] rounded-full transition-colors ${
+                      modo === m ? "bg-[#111114] text-[#f4f3ef]" : "text-[#4b4b53] hover:text-[#111114]"
+                    }`}
+                  >
+                    {m === "entrar" ? "Entrar" : "Criar conta"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={submeter} className="mt-8 space-y-7">
+              <div>
+                <label htmlFor="entrada-email" className="studio-rotulo">
+                  E-mail
+                </label>
+                <input
+                  id="entrada-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="studio-campo"
+                />
+              </div>
+
+              {modo !== "recuperar" && (
+                <div>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <label htmlFor="entrada-senha" className="studio-rotulo">
+                      Senha
+                    </label>
+                    {modo === "entrar" && (
+                      <button
+                        type="button"
+                        onClick={() => trocarModo("recuperar")}
+                        className="text-sm text-[#4b4b53] underline-offset-4 hover:text-[#2442e5] hover:underline"
+                      >
+                        Esqueceu?
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="entrada-senha"
+                    type="password"
+                    required
+                    autoComplete={modo === "entrar" ? "current-password" : "new-password"}
+                    aria-describedby={modo === "criar" ? "entrada-senha-dica" : undefined}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    className="studio-campo"
+                  />
+                  {modo === "criar" && (
+                    <p id="entrada-senha-dica" className="mt-2 text-sm text-[#5e5e66]">
+                      8 ou mais caracteres, com maiúscula, minúscula, número e símbolo.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {erro && (
+                <p role="alert" className="border-l-2 border-[#b42318] pl-3 text-sm text-[#b42318]">
+                  {erro}
+                </p>
+              )}
+              {mensagem && (
+                <p role="status" className="border-l-2 border-[#2442e5] pl-3 text-sm text-[#1a33bd]">
+                  {mensagem}
+                </p>
+              )}
+
+              <button type="submit" disabled={carregando} className="studio-botao w-full justify-center disabled:opacity-60">
+                {carregando
+                  ? "Aguarde…"
+                  : modo === "entrar"
+                    ? "Entrar"
+                    : modo === "recuperar"
+                      ? "Enviar link de redefinição"
+                      : "Criar conta grátis"}
+                {!carregando && <span aria-hidden="true">→</span>}
               </button>
-            ) : (
+            </form>
+
+            {modo === "recuperar" && (
               <button
-                onClick={() => {
-                  setModo("recuperar");
-                  setErro("");
-                  setMensagem("");
-                }}
-                className="text-xs text-pipe-muted hover:text-pipe-blue transition"
+                type="button"
+                onClick={() => trocarModo("entrar")}
+                className="mt-6 text-sm text-[#4b4b53] underline-offset-4 hover:text-[#111114] hover:underline"
               >
-                Esqueceu a senha?
+                ← Voltar para o login
               </button>
             )}
+
+            <div className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#d6d4cd] pt-6 text-sm text-[#5e5e66]">
+              <Link href="/planos" className="studio-link-nav">Ver planos</Link>
+              <Link href="/termos" className="studio-link-nav">Termos</Link>
+              <Link href="/privacidade" className="studio-link-nav">Privacidade</Link>
+            </div>
           </div>
-
-        </div>
+        </main>
       </div>
-    </div>
+    </Envelope>
   );
 }

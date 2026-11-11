@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function PaginaLogin() {
-  return <TelaEntrada />;
+  return <TelaEntrada modoInicial="entrar" />;
 }
