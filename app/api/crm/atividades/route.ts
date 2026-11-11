@@ -457,6 +457,15 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Contato do pedido do site feito: apaga o alerta do card.
+    if (body.concluida === true && dadosAtuais.origem === "site" && atual.lead_pipeline_id) {
+      await supabase
+        .from("lead_pipeline")
+        .update({ alerta: null, alerta_em: null })
+        .eq("id", atual.lead_pipeline_id as string)
+        .eq("organizacao_id", orgId);
+    }
+
     // Etapa de cadência concluída/reaberta/reagendada: avança o andamento.
     if (
       atual.tipo_evento === "atividade_programada" &&

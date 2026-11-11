@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { registrarPedidoNoCrm } from "../../../../lib/studio-crm";
+import { escaparHtml, layoutEmail, paragrafo, tabelaDados } from "../../../../lib/email-layout";
 
 /**
  * Formulário de contato do site do estúdio (/fr, /en, /es).
@@ -11,6 +12,7 @@ import { registrarPedidoNoCrm } from "../../../../lib/studio-crm";
 
 const DESTINO = process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
 const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
+const URL_APP = process.env.NEXT_PUBLIC_APP_URL ?? "https://fppipe.com.br";
 const EMAIL_VALIDO = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
 
 function texto(v: unknown, max: number) {
@@ -55,14 +57,42 @@ export async function POST(request: Request) {
   ];
 
   // Dois caminhos independentes: lead no CRM e aviso por e-mail.
-  // O pedido só é dado como perdido se os DOIS falharem.
-  const [crm, emailEnviado] = await Promise.all([
-    registrarPedidoNoCrm({ nome, empresa, email, telefone, mensagem, idioma }).catch((e) => {
+  // O CRM vem primeiro para o e-mail já levar o link do negócio; se o CRM
+  // falhar, o e-mail sai mesmo assim. O pedido só é dado como perdido se
+  // os DOIS falharem.
+  const crm: { ok: boolean; companyId?: string } = await registrarPedidoNoCrm({ nome, empresa, email, telefone, mensagem, idioma }).catch(
+    (e) => {
       console.error("Studio → CRM: erro inesperado:", e);
-      return { ok: false as const };
-    }),
-    enviarEmail(linhas.join("\n"), email, `Site ${idioma.toUpperCase()} — novo pedido de ${nome}${empresa ? ` (${empresa})` : ""}`),
-  ]);
+      return { ok: false };
+    }
+  );
+  const linkCrm = crm.ok && crm.companyId ? `${URL_APP}/crm?empresa=${crm.companyId}` : `${URL_APP}/crm`;
+  const html = layoutEmail({
+    titulo: `Novo pedido pelo site: ${escaparHtml(nome)}`,
+    selo: `Site ${idioma.toUpperCase()} · responder agora`,
+    corpo:
+      paragrafo(
+        crm.ok
+          ? "O pedido já está no kanban com o alerta vermelho e uma atividade de contato imediato."
+          : "Não conseguimos registrar este pedido no CRM. Responda direto por este e-mail."
+      ) +
+      tabelaDados([
+        ["Nome", escaparHtml(nome)],
+        ["Empresa", escaparHtml(empresa || "-")],
+        ["E-mail", escaparHtml(email)],
+        ["Telefone", escaparHtml(telefone || "-")],
+      ]) +
+      paragrafo(`<br/>${escaparHtml(mensagem).replace(/\n/g, "<br/>")}`),
+    cta: { texto: "Abrir no CRM", url: linkCrm },
+    rodape: "Responder a este e-mail escreve direto para o cliente.",
+    urlApp: URL_APP,
+  });
+  const emailEnviado = await enviarEmail(
+    [...linhas, "", `Abrir no CRM: ${linkCrm}`].join("\n"),
+    html,
+    email,
+    `🔴 Site ${idioma.toUpperCase()} — novo pedido de ${nome}${empresa ? ` (${empresa})` : ""}`
+  );
 
   if (!crm.ok && !emailEnviado) {
     return NextResponse.json({ erro: "envio" }, { status: 502 });
@@ -71,7 +101,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-async function enviarEmail(texto: string, responderPara: string, assunto: string): Promise<boolean> {
+async function enviarEmail(texto: string, html: string, responderPara: string, assunto: string): Promise<boolean> {
   if (!CHAVE_RESEND) {
     console.error("Studio contato: RESEND_API_KEY ausente.");
     return false;
@@ -89,6 +119,7 @@ async function enviarEmail(texto: string, responderPara: string, assunto: string
         reply_to: responderPara,
         subject: assunto,
         text: texto,
+        html,
       }),
       signal: AbortSignal.timeout(10000),
     });

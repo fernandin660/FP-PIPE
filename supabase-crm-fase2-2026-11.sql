@@ -59,3 +59,7 @@ create policy "crm_leads_update" on public.crm_leads for update
   using (public._usuario_membro(organizacao_id)) with check (public._usuario_membro(organizacao_id));
 create policy "crm_leads_delete_admin" on public.crm_leads for delete
   using (public._usuario_admin(organizacao_id));
+
+-- Sinal de alerta no card (pedido do site aguardando contato) -----------
+alter table public.lead_pipeline add column if not exists alerta text;
+alter table public.lead_pipeline add column if not exists alerta_em timestamptz;

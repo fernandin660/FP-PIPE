@@ -30,6 +30,8 @@ type EstaQuint = {
   pessoa_id: string | null;
   data_prevista: string | null;
   campos: Record<string, unknown> | null;
+  alerta?: string | null;
+  alerta_em?: string | null;
 };
 
 type Empresa = {
@@ -129,7 +131,7 @@ export async function GET(request: Request) {
       .order("ordem_estagio", { ascending: true }),
     supabase
       .from("lead_pipeline")
-      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, pipeline_id, titulo, pessoa_id, data_prevista, campos, criado_em, atualizado_em")
+      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, pipeline_id, titulo, pessoa_id, data_prevista, campos, alerta, alerta_em, criado_em, atualizado_em")
       .eq("organizacao_id", orgId)
       .eq("pipeline_id", funil.id),
     supabase
@@ -378,6 +380,8 @@ export async function GET(request: Request) {
       pessoa: l.pessoa_id ? mapaPessoa.get(l.pessoa_id) ?? null : null,
       data_prevista: l.data_prevista,
       campos: l.campos ?? {},
+      alerta: l.alerta ?? null,
+      alerta_em: l.alerta_em ?? null,
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
       company: c ?? null,

@@ -109,6 +109,8 @@ export type LeadCrm = {
   pessoa?: { id: string; nome: string | null; cargo: string | null; email: string | null; telefone: string | null } | null;
   data_prevista?: string | null;
   campos?: Record<string, unknown>;
+  alerta?: string | null;
+  alerta_em?: string | null;
   criado_em: string;
   atualizado_em: string;
   company: EmpresaCrm | null;

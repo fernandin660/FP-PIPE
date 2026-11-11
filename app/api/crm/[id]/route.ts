@@ -51,6 +51,8 @@ export async function PATCH(
   }
 
   const atualizacao: {
+    alerta?: string | null;
+    alerta_em?: string | null;
     stage_id?: string;
     responsavel_id?: string | null;
     ordenacao?: number;
@@ -173,6 +175,11 @@ export async function PATCH(
   }
 
   const stageOrigemId = mudouStage ? lead.stage_id : null;
+  // Mudou de etapa: alguém já está tratando o negócio, o alerta sai do card.
+  if (mudouStage) {
+    atualizacao.alerta = null;
+    atualizacao.alerta_em = null;
+  }
 
   const { data: atualizado, error: erroUpdate } = await supabase
     .from("lead_pipeline")

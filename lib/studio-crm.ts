@@ -23,7 +23,7 @@ export type PedidoSite = {
 
 export async function registrarPedidoNoCrm(
   pedido: PedidoSite
-): Promise<{ ok: boolean; leadId?: string; motivo?: string }> {
+): Promise<{ ok: boolean; leadId?: string; companyId?: string; motivo?: string }> {
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return { ok: false, motivo: "sem_admin" };
 
@@ -70,6 +70,7 @@ export async function registrarPedidoNoCrm(
     .maybeSingle();
 
   let companyId = existente?.id as string | undefined;
+  let pessoaId: string | null = null;
 
   if (!companyId) {
     const { data: nova, error } = await admin
@@ -95,7 +96,7 @@ export async function registrarPedidoNoCrm(
     }
     companyId = nova.id as string;
 
-    await admin.from("contatos").insert({
+    const { data: pessoa } = await admin.from("contatos").insert({
       usuario_id: USUARIO_ID,
       organizacao_id: ORG_ID,
       company_id: companyId,
@@ -105,7 +106,8 @@ export async function registrarPedidoNoCrm(
       emails: [email],
       telefones: pedido.telefone ? [pedido.telefone] : [],
       origem: "site",
-    });
+    }).select("id").single();
+    pessoaId = (pessoa?.id as string | undefined) ?? null;
   }
 
   // Lead no funil (se já existir, só acrescenta a nova tarefa).
@@ -133,6 +135,10 @@ export async function registrarPedidoNoCrm(
         responsavel_id: USUARIO_ID,
         ordenacao: count ?? 0,
         produto: "Site",
+        titulo: `Site — ${nomeEmpresa}`.slice(0, 160),
+        pessoa_id: pessoaId,
+        alerta: "pedido_site",
+        alerta_em: new Date().toISOString(),
       })
       .select("id")
       .single();
@@ -151,9 +157,16 @@ export async function registrarPedidoNoCrm(
       stage_destino_id: estagio.id,
       dados: { responsavel_id: USUARIO_ID, origem: "site", idioma },
     });
+  } else {
+    // Negócio já existia (a pessoa escreveu de novo): acende o alerta outra vez.
+    await admin
+      .from("lead_pipeline")
+      .update({ alerta: "pedido_site", alerta_em: new Date().toISOString() })
+      .eq("id", lead.id);
   }
 
-  // Tarefa para hoje: aparece no card do lead e nas pendências do painel.
+  // Contato imediato: vence agora, aparece no card, no "Hoje" e no calendário.
+  // Concluir esta atividade apaga o alerta do card.
   await admin.from("pipeline_historico").insert({
     organizacao_id: ORG_ID,
     lead_pipeline_id: lead.id,
@@ -161,8 +174,8 @@ export async function registrarPedidoNoCrm(
     usuario_id: USUARIO_ID,
     tipo_evento: "atividade",
     dados: {
-      tipo_atividade: "tarefa",
-      titulo: `Responder pedido do site (${idioma}) — ${pedido.nome}`,
+      tipo_atividade: pedido.telefone ? "telefone" : "email",
+      titulo: `Contato imediato: pedido do site (${idioma}) — ${pedido.nome}`,
       observacao: [
         pedido.mensagem,
         "",
@@ -176,5 +189,5 @@ export async function registrarPedidoNoCrm(
     },
   });
 
-  return { ok: true, leadId: lead.id as string };
+  return { ok: true, leadId: lead.id as string, companyId };
 }

@@ -22,6 +22,7 @@ type Negocio = {
   pessoa?: { id: string; nome: string | null; cargo: string | null; email: string | null; telefone: string | null } | null;
   data_prevista?: string | null;
   campos?: Record<string, unknown>;
+  alerta?: string | null;
   criado_em: string;
   atualizado_em: string;
   company: {
@@ -105,7 +106,22 @@ const COR_ATIVIDADE: Record<Negocio["atividade_status"], string> = {
 
 function colunasBase(): Coluna[] {
   return [
-    { chave: "titulo", rotulo: "Título", grupo: "Negócio", valor: (n) => n.titulo?.trim() || nomeEmpresa(n) },
+    {
+      chave: "titulo",
+      rotulo: "Título",
+      grupo: "Negócio",
+      valor: (n) => n.titulo?.trim() || nomeEmpresa(n),
+      exibir: (n) => (
+        <>
+          {n.alerta === "pedido_site" && (
+            <span className="mr-1.5 inline-block rounded-full bg-red-600 px-1.5 py-0.5 align-[1px] text-[10px] font-semibold text-white" title="Pedido do site: entrar em contato agora">
+              Pedido do site
+            </span>
+          )}
+          {n.titulo?.trim() || nomeEmpresa(n)}
+        </>
+      ),
+    },
     { chave: "organizacao", rotulo: "Organização", grupo: "Organização", valor: (n) => nomeEmpresa(n) },
     { chave: "pessoa", rotulo: "Pessoa de contato", grupo: "Pessoa", valor: (n) => n.pessoa?.nome ?? n.company?.decisor_nome ?? null },
     { chave: "cargo", rotulo: "Cargo", grupo: "Pessoa", valor: (n) => n.pessoa?.cargo ?? null },

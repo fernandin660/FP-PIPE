@@ -149,9 +149,23 @@ function LeadCardComponent({
           ? "border-pipe-lime ring-2 ring-pipe-lime/50"
           : sobreLeadId === lead.id
           ? "border-pipe-lime ring-2 ring-pipe-lime/40"
+          : lead.alerta === "pedido_site"
+          ? "border-red-600/60 hover:border-red-600"
           : "border-pipe-border hover:border-pipe-blue/50"
       }`}
     >
+      {lead.alerta === "pedido_site" && (
+        <p
+          className="-mx-3 -mt-3 mb-2.5 flex items-center gap-1.5 rounded-t-xl bg-red-600 px-3 py-1.5 text-[11px] font-semibold text-white"
+          title="Pedido que chegou pelo site. Conclua a atividade de contato ou mova o negócio de etapa para apagar o alerta."
+        >
+          <span className="relative flex h-2 w-2" aria-hidden="true">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75 motion-reduce:hidden" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+          </span>
+          Pedido do site · entrar em contato agora
+        </p>
+      )}
       <div className="flex items-start justify-between gap-2">
         {modoMassa && (
           <span
