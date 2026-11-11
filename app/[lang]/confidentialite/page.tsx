@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Marca, Rodape } from "../../../components/studio/SiteStudio";
-import { DICIONARIOS, ehIdioma } from "../../../components/studio/dicionario";
+import { DICIONARIOS, caminhoIdioma, ehIdioma } from "../../../components/studio/dicionario";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/confidentialite">): Promise<Metadata> {
   const { lang } = await params;
@@ -19,10 +19,10 @@ export default async function Confidentialite({ params }: PageProps<"/[lang]/con
   return (
     <>
       <header className="studio-container flex h-20 items-center justify-between">
-        <Link href={`/${lang}`} aria-label="FP Pipe Studio">
+        <Link href={caminhoIdioma(lang)} aria-label="FP Pipe Studio">
           <Marca />
         </Link>
-        <Link href={`/${lang}`} className="studio-link-nav text-sm">
+        <Link href={caminhoIdioma(lang)} className="studio-link-nav text-sm">
           ← {dic.mentions.voltar}
         </Link>
       </header>

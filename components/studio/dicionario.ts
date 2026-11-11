@@ -1,9 +1,18 @@
-export const IDIOMAS = ["fr", "en", "es"] as const;
+export const IDIOMAS = ["pt", "fr", "en", "es"] as const;
 export type Idioma = (typeof IDIOMAS)[number];
 
 export function ehIdioma(valor: string): valor is Idioma {
   return (IDIOMAS as readonly string[]).includes(valor);
 }
+
+/** Endereço de cada idioma: o português é a página inicial do domínio. */
+export function caminhoIdioma(idioma: Idioma, sub = ""): string {
+  if (idioma === "pt" && !sub) return "/";
+  return `/${idioma}${sub}`;
+}
+
+/** Onde mora a página do software (SaaS). */
+export const CAMINHO_PLATAFORMA = "/plataforma";
 
 export const DPO = {
   nome: "Fernando Pugliesi",
@@ -13,6 +22,8 @@ export const DPO = {
 export const CONTATO = {
   telefone: "+33745064279",
   telefoneVisivel: "+33 7 45 06 42 79",
+  // WhatsApp comercial no Brasil (o mesmo do botão "Fale com um consultor").
+  whatsappBrasil: "5516997700593",
   // Preencher com o @ da página (ex.: "https://www.instagram.com/fppipe").
   instagram: "https://www.instagram.com/fppipe/",
 };
@@ -89,6 +100,249 @@ export type Dicionario = {
     voltar: string;
     secoes: { titulo: string; texto: string }[];
   };
+};
+
+const pt: Dicionario = {
+  meta: {
+    titulo: "FP Pipe — Sites para empresas e prospecção B2B",
+    descricao:
+      "Criamos sites sob medida, rápidos e pensados para o celular — e temos nosso próprio software de prospecção B2B para transformar visitas em clientes.",
+  },
+  nav: {
+    servicos: "Serviços",
+    metodo: "Método",
+    projetos: "Projetos",
+    estudio: "Estúdio",
+    contato: "Contato",
+    idioma: "Idioma",
+  },
+  hero: {
+    selo: "Estúdio web — Brasil · França",
+    atos: [
+      {
+        titulo: "Na internet, todo mundo faz barulho.",
+        texto: "Sua empresa merece ser notada.",
+      },
+      {
+        titulo: "Criamos sites que se destacam.",
+        texto: "Sob medida, rápidos e pensados primeiro para o celular.",
+      },
+      {
+        titulo: "E que trazem clientes.",
+        texto:
+          "Com o FP Pipe, nosso software de prospecção, seu site vira o começo de uma relação comercial.",
+      },
+    ],
+    rolar: "Role a página",
+    ctaPrincipal: "Vamos falar do seu projeto",
+    ctaFpPipe: "Conhecer o FP Pipe",
+  },
+  servicos: {
+    selo: "Serviços",
+    titulo: "O que criamos",
+    itens: [
+      {
+        titulo: "Site institucional",
+        texto: "Apresente sua empresa com clareza e dê vontade de entrar em contato.",
+      },
+      {
+        titulo: "Landing page",
+        texto: "Uma página, uma oferta e uma única ação: converter.",
+      },
+      {
+        titulo: "Redesenho de site",
+        texto: "Seu site existe, mas não parece mais com você? Refazemos do zero.",
+      },
+      {
+        titulo: "Site em vários idiomas",
+        texto: "Português, inglês, espanhol, francês: fale com o cliente na língua dele.",
+      },
+    ],
+  },
+  metodo: {
+    selo: "Método",
+    titulo: "Como funciona",
+    passos: [
+      {
+        titulo: "Conversa",
+        texto: "Entendemos seu negócio, seus clientes e o que o site precisa entregar.",
+      },
+      {
+        titulo: "Maquete",
+        texto: "Você vê o site antes de ele ser construído, e ajustamos juntos.",
+      },
+      {
+        titulo: "Desenvolvimento",
+        texto: "Um site rápido, que funciona em qualquer tela e está pronto para o Google.",
+      },
+      {
+        titulo: "Publicação",
+        texto: "Colocamos no ar, ensinamos a usar se precisar e seguimos por perto.",
+      },
+    ],
+  },
+  conceitos: {
+    selo: "Projetos",
+    titulo: "Nosso trabalho",
+    aviso:
+      "Um protótipo navegável e dois projetos-conceito que mostram como trabalhamos. Os projetos-conceito não são clientes reais.",
+    prototipo: {
+      etiqueta: "Protótipo",
+      setor: "Espaço para casamentos · França",
+      frase: "Diga sim no meio dos vinhedos.",
+      menu: ["Casamentos", "A propriedade", "Hospedagem", "Vinhos"],
+      botao: "Planejar o casamento",
+      abrir: "Ver o protótipo",
+    },
+    etiqueta: "Projeto-conceito",
+    projetos: [
+      {
+        nome: "Lucette",
+        setor: "Bistrô · Paris",
+        frase: "Cozinha de mercado, vinhos naturais.",
+        menu: ["Cardápio", "O lugar", "Reservar"],
+        botao: "Reservar mesa",
+      },
+      {
+        nome: "Studio Halde",
+        setor: "Arquitetura de interiores · Lyon",
+        frase: "Interiores calmos, feitos para durar.",
+        menu: ["Projetos", "Estúdio", "Contato"],
+        botao: "Agendar conversa",
+      },
+    ],
+  },
+  estudio: {
+    selo: "Estúdio",
+    titulo: "Um estúdio entre o Brasil e a França.",
+    paragrafos: [
+      "Somos Fernando e Larissa. Fernando desenha e desenvolve os sites, do Brasil; Larissa, na França, atende os clientes europeus.",
+      "Também desenvolvemos o FP Pipe, nosso próprio software de prospecção B2B, já usado por empresas brasileiras. Sabemos fazer um site bonito — e sabemos o que é preciso para ele dar retorno.",
+    ],
+    legendaFoto: "Fernando e Larissa, em Paris.",
+  },
+  ponte: {
+    titulo: "O site é o começo. Os clientes vêm depois.",
+    texto:
+      "O FP Pipe encontra as empresas com o perfil do seu cliente ideal, mostra quem decide a compra e deixa a primeira abordagem escrita.",
+    botao: "Conhecer o FP Pipe",
+    nota: "Teste grátis, sem cartão",
+  },
+  contato: {
+    selo: "Contato",
+    titulo: "Vamos falar do seu projeto.",
+    texto: "Conte em poucas linhas. Respondemos rápido.",
+    campos: {
+      nome: "Nome",
+      empresa: "Empresa",
+      email: "E-mail",
+      telefone: "Telefone / WhatsApp",
+      mensagem: "Seu projeto",
+      opcional: "opcional",
+    },
+    enviar: "Enviar",
+    enviando: "Enviando…",
+    sucesso: "Obrigado! Sua mensagem chegou. Voltamos a falar com você em breve.",
+    erro: "Não foi possível enviar. Tente de novo ou chame no WhatsApp.",
+    direto: "Prefere falar direto?",
+    sms: "Chamar no WhatsApp",
+    smsTexto: "Olá! Vim pelo site da FP Pipe e gostaria de falar sobre um projeto de site.",
+    ligar: "Enviar e-mail",
+    instagram: "Instagram",
+    rgpd: "Seus dados servem apenas para responder ao seu pedido. Nunca são vendidos.",
+  },
+  cookies: {
+    titulo: "Cookies",
+    texto:
+      "Usamos apenas os cookies indispensáveis para o site funcionar. Nenhum cookie de publicidade ou rastreamento é instalado sem o seu consentimento.",
+    aceitar: "Aceitar",
+    recusar: "Recusar",
+    saberMais: "Política de privacidade",
+    gerenciar: "Gerenciar cookies",
+  },
+  privacidade: {
+    titulo: "Política de privacidade",
+    atualizado: "Última atualização: 10 de novembro de 2026",
+    intro:
+      "Esta política explica quais dados pessoais tratamos neste site, por quê, por quanto tempo e como exercer seus direitos, conforme a Lei Geral de Proteção de Dados (LGPD) e, para visitantes da Europa, o Regulamento Geral sobre a Proteção de Dados (RGPD).",
+    secoes: [
+      {
+        titulo: "Controlador",
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Contato: ${DPO.email}.`,
+      },
+      {
+        titulo: "Encarregado de dados (DPO)",
+        texto: `${DPO.nome} — ${DPO.email}. Para qualquer dúvida sobre seus dados ou para exercer seus direitos, escreva ao encarregado.`,
+      },
+      {
+        titulo: "Dados que coletamos",
+        itens: [
+          "Formulário de contato: nome, empresa (opcional), e-mail, telefone (opcional) e a mensagem que você escreve.",
+          "Dados técnicos: endereço IP, usado por alguns minutos para proteger o formulário contra abusos e depois apagado automaticamente.",
+          "Sua escolha sobre cookies: guardada apenas no seu navegador.",
+        ],
+      },
+      {
+        titulo: "Finalidades e bases legais",
+        itens: [
+          "Responder ao seu pedido e preparar uma proposta: procedimentos preliminares a contrato, a seu pedido (art. 7º, V da LGPD; art. 6.1.b do RGPD).",
+          "Proteger o site e evitar envios automatizados: legítimo interesse (art. 7º, IX da LGPD; art. 6.1.f do RGPD).",
+        ],
+      },
+      {
+        titulo: "Com quem compartilhamos",
+        texto:
+          "Seus dados nunca são vendidos nem alugados. Só têm acesso a equipe da FP Pipe e nossos fornecedores técnicos: Vercel (hospedagem do site), Resend (envio dos e-mails do formulário) e Supabase (banco de dados: acompanhamento do seu pedido e segurança).",
+      },
+      {
+        titulo: "Transferência internacional",
+        texto:
+          "Esses fornecedores podem tratar dados nos Estados Unidos, com as salvaguardas contratuais previstas na LGPD e no RGPD (cláusulas-padrão contratuais e Data Privacy Framework UE–EUA).",
+      },
+      {
+        titulo: "Por quanto tempo guardamos",
+        itens: [
+          "Pedidos de contato: 3 anos após a última conversa; depois são apagados.",
+          "Endereço IP de segurança: alguns minutos.",
+          "Sua escolha sobre cookies: 6 meses; depois perguntamos de novo.",
+        ],
+      },
+      {
+        titulo: "Seus direitos",
+        texto: `Você pode pedir confirmação, acesso, correção, eliminação, portabilidade ou limitação do tratamento dos seus dados, e se opor a ele, escrevendo para ${DPO.email}. Respondemos em até 15 dias. Se entender que seus direitos não foram respeitados, você pode reclamar à ANPD (www.gov.br/anpd) ou, na França, à CNIL (www.cnil.fr).`,
+      },
+      {
+        titulo: "Cookies",
+        texto:
+          "Este site não instala cookies de publicidade nem de medição de audiência. Só podem ser usados elementos técnicos necessários ao funcionamento, que não exigem consentimento. Fontes e imagens são servidas pelos nossos próprios servidores: seu navegador não se conecta ao Google nem a outros serviços de terceiros. Você pode mudar sua escolha quando quiser em “Gerenciar cookies”, no rodapé.",
+      },
+    ],
+  },
+  rodape: { direitos: "Todos os direitos reservados.", mentions: "Informações legais", privacidade: "Privacidade" },
+  mentions: {
+    titulo: "Informações legais",
+    voltar: "Voltar ao site",
+    secoes: [
+      {
+        titulo: "Responsável pelo site",
+        texto: `FP Pipe — CNPJ 69.462.179/0001-03. Responsável pela publicação: ${DPO.nome}. Contato: ${DPO.email}.`,
+      },
+      {
+        titulo: "Hospedagem",
+        texto: "Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, Estados Unidos.",
+      },
+      {
+        titulo: "Dados pessoais",
+        texto:
+          "As informações enviadas pelo formulário servem apenas para responder ao seu pedido e nunca são vendidas. Você pode pedir a consulta ou a exclusão a qualquer momento, entrando em contato.",
+      },
+      {
+        titulo: "Cookies",
+        texto:
+          "Este site não usa cookies de publicidade nem de rastreamento. Só podem ser usados cookies técnicos necessários ao funcionamento.",
+      },
+    ],
+  },
 };
 
 const fr: Dicionario = {
@@ -820,4 +1074,4 @@ const es: Dicionario = {
   },
 };
 
-export const DICIONARIOS: Record<Idioma, Dicionario> = { fr, en, es };
+export const DICIONARIOS: Record<Idioma, Dicionario> = { pt, fr, en, es };

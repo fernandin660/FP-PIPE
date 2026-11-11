@@ -213,7 +213,7 @@ setMensagem(
 
         <p className="text-pipe-muted/60 text-xs mt-8">
           © FP Pipe — Inteligência comercial para quem vende B2B.{" "}
-          <Link href="/" className="hover:text-pipe-blue transition">
+          <Link href="/plataforma" className="hover:text-pipe-blue transition">
             Conheça os diferenciais
           </Link>
         </p>

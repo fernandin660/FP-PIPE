@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import type { Dicionario } from "./dicionario";
+import { CAMINHO_PLATAFORMA, type Dicionario } from "./dicionario";
 
 /*
  * Hero em 3 atos guiado pelo scroll:
@@ -522,7 +522,7 @@ export default function HeroParticulas({ dic }: { dic: Dicionario }) {
                 <a href="#contact" className="studio-botao" data-cursor="grande">
                   {dic.hero.ctaPrincipal}
                 </a>
-                <Link href="/" className="studio-botao-fantasma" data-cursor="grande">
+                <Link href={CAMINHO_PLATAFORMA} className="studio-botao-fantasma" data-cursor="grande">
                   {dic.hero.ctaFpPipe} <span aria-hidden="true">↗</span>
                 </Link>
               </div>

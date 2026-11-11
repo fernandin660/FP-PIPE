@@ -44,7 +44,7 @@ export default function Projetos({ dic, idioma }: { dic: Dicionario; idioma: Idi
   const c = dic.conceitos;
   const p = c.prototipo;
   const [lucette, halde] = c.projetos;
-  const linkPrototipo = `https://${CHATEAU.dominio}/${idioma === "fr" ? "" : "en"}`;
+  const linkPrototipo = `https://${CHATEAU.dominio}/${idioma === "fr" || idioma === "pt" ? "" : "en"}`;
 
   return (
     <div className="mt-14 grid gap-14 md:mt-20 md:grid-cols-2 md:gap-x-6 md:gap-y-16">

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const email = texto(corpo.email, 200);
   const telefone = texto(corpo.telefone, 60);
   const mensagem = texto(corpo.mensagem, 3000);
-  const idioma = ["fr", "en", "es"].includes(String(corpo.idioma)) ? String(corpo.idioma) : "fr";
+  const idioma = ["pt", "fr", "en", "es"].includes(String(corpo.idioma)) ? String(corpo.idioma) : "fr";
 
   if (!nome || !mensagem || !EMAIL_VALIDO.test(email)) {
     return NextResponse.json({ erro: "campos" }, { status: 400 });

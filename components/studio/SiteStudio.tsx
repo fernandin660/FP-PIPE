@@ -5,7 +5,7 @@ import FormularioContato from "./FormularioContato";
 import Projetos from "./Projetos";
 import BannerCookies, { BotaoGerenciarCookies } from "./BannerCookies";
 import { BarraTopo, CursorStudio, Revelar } from "./Interacoes";
-import { CONTATO, IDIOMAS, type Dicionario, type Idioma } from "./dicionario";
+import { CAMINHO_PLATAFORMA, CONTATO, DPO, IDIOMAS, caminhoIdioma, type Dicionario, type Idioma } from "./dicionario";
 
 export function SeletorIdioma({ idioma, rotulo, caminho = "" }: { idioma: Idioma; rotulo: string; caminho?: string }) {
   return (
@@ -13,7 +13,7 @@ export function SeletorIdioma({ idioma, rotulo, caminho = "" }: { idioma: Idioma
       {IDIOMAS.map((l) => (
         <Link
           key={l}
-          href={`/${l}${caminho}`}
+          href={caminhoIdioma(l, caminho)}
           hrefLang={l}
           lang={l}
           aria-current={l === idioma ? "page" : undefined}
@@ -178,7 +178,7 @@ export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: I
               <h2 className="studio-titulo-secao max-w-[20ch] !text-[#f4f3ef]">{dic.ponte.titulo}</h2>
               <p className="mt-6 max-w-[52ch] text-lg text-[#b9b9c0]">{dic.ponte.texto}</p>
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                <Link href="/" className="studio-botao">
+                <Link href={CAMINHO_PLATAFORMA} className="studio-botao">
                   {dic.ponte.botao} <span aria-hidden="true">↗</span>
                 </Link>
                 <span className="text-sm text-[#9a9aa3]">{dic.ponte.nota}</span>
@@ -196,15 +196,36 @@ export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: I
               <p className="mt-5 max-w-[36ch] text-lg text-[#4b4b53]">{dic.contato.texto}</p>
               <div className="mt-10 border-t border-[#d6d4cd] pt-6">
                 <p className="text-sm text-[#5e5e66]">{dic.contato.direto}</p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <a href={sms} className="studio-botao-fantasma">
-                    {dic.contato.sms}
-                  </a>
-                  <a href={`tel:${CONTATO.telefone}`} className="studio-botao-fantasma">
-                    {dic.contato.ligar}
-                  </a>
-                </div>
-                <p className="mt-4 text-sm tabular-nums text-[#4b4b53]">Larissa · {CONTATO.telefoneVisivel}</p>
+                {idioma === "pt" ? (
+                  <>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <a
+                        href={`https://wa.me/${CONTATO.whatsappBrasil}?text=${encodeURIComponent(dic.contato.smsTexto)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="studio-botao-fantasma"
+                      >
+                        {dic.contato.sms}
+                      </a>
+                      <a href={`mailto:${DPO.email}`} className="studio-botao-fantasma">
+                        {dic.contato.ligar}
+                      </a>
+                    </div>
+                    <p className="mt-4 text-sm text-[#4b4b53]">{DPO.email}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <a href={sms} className="studio-botao-fantasma">
+                        {dic.contato.sms}
+                      </a>
+                      <a href={`tel:${CONTATO.telefone}`} className="studio-botao-fantasma">
+                        {dic.contato.ligar}
+                      </a>
+                    </div>
+                    <p className="mt-4 text-sm tabular-nums text-[#4b4b53]">Larissa · {CONTATO.telefoneVisivel}</p>
+                  </>
+                )}
               </div>
             </Revelar>
             <Revelar atraso={120}>
@@ -236,10 +257,10 @@ export function Rodape({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
               {dic.contato.instagram} <span aria-hidden="true">↗</span>
             </a>
           )}
-          <Link href={`/${idioma}/mentions-legales`} className="studio-link-nav">
+          <Link href={caminhoIdioma(idioma, "/mentions-legales")} className="studio-link-nav">
             {dic.rodape.mentions}
           </Link>
-          <Link href={`/${idioma}/confidentialite`} className="studio-link-nav">
+          <Link href={caminhoIdioma(idioma, "/confidentialite")} className="studio-link-nav">
             {dic.rodape.privacidade}
           </Link>
           <BotaoGerenciarCookies rotulo={dic.cookies.gerenciar} />

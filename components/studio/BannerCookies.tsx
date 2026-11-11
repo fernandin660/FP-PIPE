@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Dicionario, Idioma } from "./dicionario";
+import { caminhoIdioma, type Dicionario, type Idioma } from "./dicionario";
 
 /*
  * Banner de cookies (RGPD / recomendações da CNIL):
@@ -87,7 +87,7 @@ export default function BannerCookies({ dic, idioma }: { dic: Dicionario; idioma
       </p>
       <p className="mt-2 text-sm leading-relaxed text-[#4b4b53]">
         {c.texto}{" "}
-        <Link href={`/${idioma}/confidentialite`} className="underline underline-offset-2 hover:text-[#111114]">
+        <Link href={caminhoIdioma(idioma, "/confidentialite")} className="underline underline-offset-2 hover:text-[#111114]">
           {c.saberMais}
         </Link>
       </p>

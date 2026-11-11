@@ -11,7 +11,7 @@ export default function PaginaTermos() {
     <main className="min-h-screen bg-pipe-bg text-gray-200">
       <div className="max-w-3xl mx-auto px-6 py-14">
         <Link
-          href="/"
+          href="/plataforma"
           className="text-pipe-muted text-sm hover:text-white transition"
         >
           ← Voltar

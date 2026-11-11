@@ -358,7 +358,7 @@ export default function Planos() {
       <header className="sticky top-0 z-40 backdrop-blur bg-pipe-bg/85 border-b border-pipe-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
-            href="/"
+            href="/plataforma"
             className="font-display text-2xl text-white hover:opacity-90 transition"
           >
             FP <span className="text-pipe-lime">Pipe</span>
@@ -366,7 +366,7 @@ export default function Planos() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href="/plataforma"
               className="text-sm text-pipe-muted hover:text-white transition hidden sm:block"
             >
               ← Voltar
@@ -566,7 +566,7 @@ export default function Planos() {
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-pipe-muted/60">
           <p>© FP Pipe — Inteligência comercial para quem vende B2B.</p>
           <div className="flex items-center gap-6">
-            <Link href="/" className="hover:text-white transition">
+            <Link href="/plataforma" className="hover:text-white transition">
               Início
             </Link>
             <Link href="/login" className="hover:text-white transition">
