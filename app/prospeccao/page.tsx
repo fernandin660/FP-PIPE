@@ -117,9 +117,55 @@ const paisesAmericas = [
   { sigla: "BS", nome: "Bahamas" },
 ];
 
+// Países da Europa disponíveis na busca internacional (OpenStreetMap).
+const paisesEuropa = [
+  { sigla: "AL", nome: "Albânia" },
+  { sigla: "DE", nome: "Alemanha" },
+  { sigla: "AD", nome: "Andorra" },
+  { sigla: "BG", nome: "Bulgária" },
+  { sigla: "BE", nome: "Bélgica" },
+  { sigla: "BA", nome: "Bósnia e Herzegovina" },
+  { sigla: "CY", nome: "Chipre" },
+  { sigla: "HR", nome: "Croácia" },
+  { sigla: "DK", nome: "Dinamarca" },
+  { sigla: "SK", nome: "Eslováquia" },
+  { sigla: "SI", nome: "Eslovênia" },
+  { sigla: "ES", nome: "Espanha" },
+  { sigla: "EE", nome: "Estônia" },
+  { sigla: "FI", nome: "Finlândia" },
+  { sigla: "FR", nome: "França" },
+  { sigla: "GR", nome: "Grécia" },
+  { sigla: "HU", nome: "Hungria" },
+  { sigla: "IE", nome: "Irlanda" },
+  { sigla: "IS", nome: "Islândia" },
+  { sigla: "IT", nome: "Itália" },
+  { sigla: "LV", nome: "Letônia" },
+  { sigla: "LI", nome: "Liechtenstein" },
+  { sigla: "LT", nome: "Lituânia" },
+  { sigla: "LU", nome: "Luxemburgo" },
+  { sigla: "MK", nome: "Macedônia do Norte" },
+  { sigla: "MT", nome: "Malta" },
+  { sigla: "MD", nome: "Moldávia" },
+  { sigla: "ME", nome: "Montenegro" },
+  { sigla: "MC", nome: "Mônaco" },
+  { sigla: "NO", nome: "Noruega" },
+  { sigla: "NL", nome: "Países Baixos" },
+  { sigla: "PL", nome: "Polônia" },
+  { sigla: "PT", nome: "Portugal" },
+  { sigla: "GB", nome: "Reino Unido" },
+  { sigla: "CZ", nome: "República Tcheca" },
+  { sigla: "RO", nome: "Romênia" },
+  { sigla: "SE", nome: "Suécia" },
+  { sigla: "CH", nome: "Suíça" },
+  { sigla: "RS", nome: "Sérvia" },
+  { sigla: "UA", nome: "Ucrânia" },
+  { sigla: "AT", nome: "Áustria" },
+];
+
 function nomePais(sigla: string): string {
   return (
-    paisesAmericas.find((p) => p.sigla === sigla)?.nome ?? sigla.toUpperCase()
+    [...paisesAmericas, ...paisesEuropa].find((p) => p.sigla === sigla)?.nome ??
+    sigla.toUpperCase()
   );
 }
 
@@ -2565,7 +2611,7 @@ porteEmpresa,
                       { chave: "brasil", rotulo: "Brasil" },
                       {
                         chave: "internacional",
-                        rotulo: "Internacional (Américas)",
+                        rotulo: "Internacional (Américas e Europa)",
                       },
                     ] as const
                   ).map((modo) => (
@@ -2680,7 +2726,7 @@ porteEmpresa,
                 <div className="mb-8 space-y-4">
                   <p className="text-pipe-muted text-sm">
                     Buscamos empresas públicas no mapa (OpenStreetMap) de
-                    qualquer país das Américas: nome, segmento, endereço,
+                    países das Américas e da Europa: nome, segmento, endereço,
                     telefone* e site. *Conforme disponibilidade dos dados.
                   </p>
 
@@ -2694,11 +2740,20 @@ porteEmpresa,
                       onChange={(e) => setPaisIntl(e.target.value)}
                       className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none"
                     >
-                      {paisesAmericas.map((pais) => (
-                        <option key={pais.sigla} value={pais.sigla}>
-                          {pais.nome}
-                        </option>
+                      <optgroup label="Américas">
+                        {paisesAmericas.map((pais) => (
+                          <option key={pais.sigla} value={pais.sigla}>
+                            {pais.nome}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Europa">
+                        {paisesEuropa.map((pais) => (
+                          <option key={pais.sigla} value={pais.sigla}>
+                            {pais.nome}
+                          </option>
                       ))}
+                      </optgroup>
                     </select>
                   </div>
 

@@ -33,6 +33,7 @@ type Resumo = {
   winRate: number;
   valorPipeline: number;
   valorAberto: number;
+  valorPonderado?: number;
   empresasPeriodo: number;
   contatosPeriodo: number;
   listasPeriodo: number;
@@ -48,6 +49,10 @@ type FunilItem = {
   valorAtual: number;
   aderidosPeriodo: number;
   totDias: number;
+  alcancaram?: number;
+  probabilidade?: number;
+  valorPonderado?: number;
+  perdido?: boolean;
 };
 
 type PontoSerie = {
@@ -108,6 +113,7 @@ type AtividadePendente = {
 type PayloadMetricas = {
   resumo: Resumo;
   funil: FunilItem[];
+  motivosPerda?: Array<{ motivo: string; total: number }>;
   serie: PontoSerie[];
   produtos: Produto[];
   atividade: AtividadeVendedor[];
@@ -542,30 +548,22 @@ function PaginaMetricas() {
 
   const cards = dados
     ? [
-        { rotulo: "Leads no pipeline", valor: num(dados.resumo.leadsPipeline), cor: "text-pipe-blue" },
+        { rotulo: "Leads no funil", valor: num(dados.resumo.leadsPipeline), cor: "text-pipe-ink" },
+        { rotulo: "Em negociação", valor: brl(dados.resumo.valorAberto), cor: "text-pipe-ink" },
         {
-          rotulo: "Oportunidades abertas",
-          valor: num(dados.resumo.oportunidadesAbertas),
-          cor: "text-pipe-lime",
-        },
-        { rotulo: "Win rate", valor: `${dados.resumo.winRate.toFixed(1)}%`, cor: "text-pipe-lime" },
-        {
-          rotulo: "Valor de pipeline",
-          valor: brl(dados.resumo.valorPipeline),
-          cor: "text-pipe-ink",
-        },
-        {
-          rotulo: "Novos leads (período)",
-          valor: num(dados.resumo.adicionadosPeriodo),
+          rotulo: "Previsão ponderada",
+          valor: brl(dados.resumo.valorPonderado ?? 0),
           cor: "text-pipe-blue",
+        },
+        { rotulo: "Taxa de ganho", valor: `${dados.resumo.winRate.toFixed(0)}%`, cor: "text-pipe-ink" },
+        {
+          rotulo: "Novos leads no período",
+          valor: num(dados.resumo.adicionadosPeriodo),
+          cor: "text-pipe-ink",
         },
       ]
     : [];
 
-  const maxOrdem = useMemo(
-    () => (dados ? Math.max(...dados.funil.map((f) => f.atual), 1) : 1),
-    [dados]
-  );
 
   return (
     <>
@@ -674,10 +672,10 @@ function PaginaMetricas() {
                     key={c.rotulo}
                     className="bg-pipe-card border border-pipe-border rounded-2xl p-4"
                   >
-                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted">
+                    <p className="text-xs text-pipe-muted">
                       {c.rotulo}
                     </p>
-                    <p className={`text-2xl font-display font-semibold mt-1 ${c.cor}`}>
+                    <p className={`text-2xl font-medium tracking-[-0.02em] tabular-nums mt-1 ${c.cor}`}>
                       {c.valor}
                     </p>
                   </div>
@@ -687,7 +685,7 @@ function PaginaMetricas() {
               {/* Atividades pendentes / a fazer */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                  <h2 className="font-display text-lg text-pipe-ink">
+                  <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink">
                     Atividades pendentes
                   </h2>
                   <div className="flex flex-wrap items-center gap-2">
@@ -810,61 +808,160 @@ function PaginaMetricas() {
               </section>
 
               {/* Funil de conversão */}
-              <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-pipe-ink mb-4">
-                  Funil de conversão
-                </h2>
-                <div className="space-y-3">
-                  {dados.funil.map((f) => (
-                    <div key={f.id}>
-                      <div className="flex flex-wrap items-center justify-between text-xs mb-1 gap-2">
-                        <span className="font-semibold text-pipe-ink flex items-center gap-2">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ background: f.cor }}
-                          />
-                          {f.nome}
-                        </span>
-                        <span className="text-pipe-muted">
-                          {num(f.atual)} atual{ f.atual === 1 ? "" : "is"} · {num(f.aderidosPeriodo)} aderidos · {f.totDias.toFixed(1)}d médio · {brl(f.valorAtual)}
-                        </span>
-                      </div>
-                      <div className="h-2.5 bg-pipe-bg rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${(f.atual / maxOrdem) * 100}%`,
-                            background: f.cor,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+              <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5 sm:p-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+                  <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink">Funil de conversão</h2>
+                  <p className="text-xs text-pipe-muted">Empresas que chegaram a cada etapa</p>
                 </div>
+                <p className="text-sm text-pipe-muted mb-5">
+                  A porcentagem entre as barras mostra quantas avançaram para a etapa seguinte.
+                </p>
+                {(() => {
+                  const etapas = dados.funil.filter((f) => !f.perdido);
+                  const topo = Math.max(...etapas.map((f) => f.alcancaram ?? f.atual), 1);
+                  return (
+                    <ol className="space-y-1">
+                      {etapas.map((f, i) => {
+                        const chegaram = f.alcancaram ?? f.atual;
+                        const proxima = etapas[i + 1];
+                        const taxa =
+                          proxima && chegaram > 0
+                            ? Math.round(((proxima.alcancaram ?? proxima.atual) / chegaram) * 100)
+                            : null;
+                        return (
+                          <li key={f.id}>
+                            <div className="grid grid-cols-[minmax(110px,170px)_1fr_auto] items-center gap-3">
+                              <span className="truncate text-sm text-pipe-ink-soft">
+                                {f.nome.charAt(0) + f.nome.slice(1).toLowerCase()}
+                              </span>
+                              <div className="h-7 rounded-md bg-pipe-bg">
+                                <div
+                                  className="h-full rounded-md bg-pipe-blue transition-all"
+                                  style={{ width: `${Math.max((chegaram / topo) * 100, chegaram ? 2 : 0)}%`, opacity: 0.35 + 0.65 * (1 - i / Math.max(etapas.length, 1)) }}
+                                />
+                              </div>
+                              <span className="w-24 text-right text-sm tabular-nums text-pipe-ink">
+                                {num(chegaram)}
+                                <span className="ml-1 text-xs text-pipe-muted">· {num(f.atual)} agora</span>
+                              </span>
+                            </div>
+                            {taxa !== null && (
+                              <p className="grid grid-cols-[minmax(110px,170px)_1fr_auto] gap-3 py-0.5 text-[11px] text-pipe-muted">
+                                <span />
+                                <span>↓ {taxa}% avançam</span>
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  );
+                })()}
               </section>
+
+              <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+                {/* Previsão por etapa */}
+                <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5 sm:p-6">
+                  <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink">Dinheiro por etapa</h2>
+                  <p className="text-sm text-pipe-muted mb-5">
+                    Valor em negociação e quanto dele deve fechar, pela chance de cada etapa.
+                  </p>
+                  {(() => {
+                    const etapas = dados.funil.filter((f) => !f.perdido && f.valorAtual > 0 && f.nome.trim().toUpperCase() !== "GANHO");
+                    const topo = Math.max(...etapas.map((f) => f.valorAtual), 1);
+                    if (etapas.length === 0)
+                      return (
+                        <p className="text-sm text-pipe-muted">
+                          Preencha o valor da oportunidade nos leads do CRM para ver a previsão.
+                        </p>
+                      );
+                    return (
+                      <ul className="space-y-4">
+                        {etapas.map((f) => (
+                          <li key={f.id}>
+                            <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+                              <span className="text-pipe-ink-soft">
+                                {f.nome.charAt(0) + f.nome.slice(1).toLowerCase()}
+                                <span className="ml-1.5 text-xs text-pipe-muted">{f.probabilidade ?? 0}%</span>
+                              </span>
+                              <span className="tabular-nums text-pipe-ink">
+                                {brl(f.valorPonderado ?? 0)}
+                                <span className="ml-1 text-xs text-pipe-muted">de {brl(f.valorAtual)}</span>
+                              </span>
+                            </div>
+                            <div className="relative h-2.5 rounded-full bg-pipe-bg">
+                              <div
+                                className="absolute inset-y-0 left-0 rounded-full bg-[#d6d4cd]"
+                                style={{ width: `${(f.valorAtual / topo) * 100}%` }}
+                              />
+                              <div
+                                className="absolute inset-y-0 left-0 rounded-full bg-pipe-blue"
+                                style={{ width: `${((f.valorPonderado ?? 0) / topo) * 100}%` }}
+                              />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                  <div className="mt-5 flex gap-4 text-xs text-pipe-muted">
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-pipe-blue" /> Previsto</span>
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#d6d4cd]" /> Em negociação</span>
+                  </div>
+                </section>
+
+                {/* Motivos de perda */}
+                <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5 sm:p-6">
+                  <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink">Por que perdemos</h2>
+                  <p className="text-sm text-pipe-muted mb-5">Motivos informados ao mover leads para Perdido.</p>
+                  {(dados.motivosPerda ?? []).length === 0 ? (
+                    <p className="text-sm text-pipe-muted">Nenhuma venda perdida com motivo registrado ainda.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {(() => {
+                        const lista = dados.motivosPerda ?? [];
+                        const total = lista.reduce((t, m) => t + m.total, 0) || 1;
+                        return lista.map((m) => (
+                          <li key={m.motivo}>
+                            <div className="mb-1 flex justify-between text-sm">
+                              <span className="text-pipe-ink-soft">{m.motivo}</span>
+                              <span className="tabular-nums text-pipe-ink">{Math.round((m.total / total) * 100)}%</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-pipe-bg">
+                              <div className="h-full rounded-full bg-pipe-ink/80" style={{ width: `${(m.total / total) * 100}%` }} />
+                            </div>
+                          </li>
+                        ));
+                      })()}
+                    </ul>
+                  )}
+                </section>
+              </div>
 
               {/* Série temporal */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-pipe-ink mb-4">
+                <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink mb-4">
                   Evolução no período
                 </h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={dados.serie} margin={CARTESIAN_MARGIN}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="rotulo" stroke="#9ca3af" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} allowDecimals={false} />
+                      <CartesianGrid vertical={false} stroke="#e9e7e1" />
+                      <XAxis dataKey="rotulo" stroke="#8a8a92" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#8a8a92" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
                       <Tooltip
+                        cursor={{ fill: "rgba(17,17,20,0.04)" }}
                         contentStyle={{
-                          background: "#0a0f14",
-                          border: "1px solid #1f2937",
-                          borderRadius: 8,
+                          background: "#ffffff",
+                          border: "1px solid #dedbd3",
+                          borderRadius: 10,
+                          fontSize: 12,
                         }}
-                        labelStyle={{ color: "#fff" }}
+                        labelStyle={{ color: "#111114", fontWeight: 500 }}
                       />
-                      <Legend />
-                      <Bar dataKey="adicionados" name="Leads adicionados" fill="#a2ff40" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="empresas" name="Empresas geradas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#4b4b53" }} />
+                      <Bar dataKey="adicionados" name="Leads adicionados" fill="#2442e5" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="empresas" name="Empresas geradas" fill="#c9c6bd" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -872,7 +969,7 @@ function PaginaMetricas() {
 
               {/* Resultado por produto */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-pipe-ink mb-1">
+                <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink mb-1">
                   Resultado por produto
                 </h2>
                 <p className="text-xs text-pipe-muted mb-4">
@@ -914,7 +1011,7 @@ function PaginaMetricas() {
 
               {/* Atividade por vendedor */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-pipe-ink mb-4">
+                <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink mb-4">
                   Atividade dos vendedores
                 </h2>
                 <div className="overflow-x-auto">
@@ -966,7 +1063,7 @@ function PaginaMetricas() {
 
               {/* Geração por origem */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-pipe-ink mb-4">
+                <h2 className="text-lg font-medium tracking-[-0.01em] text-pipe-ink mb-4">
                   Empresas geradas por origem
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

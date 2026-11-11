@@ -24,6 +24,13 @@ const PAISES_AMERICAS = new Set([
   "mf", "ms", "pm", "sx", "tc", "vg", "vi",
 ]);
 
+// Países da Europa aceitos na busca internacional (ISO 3166-1 alpha-2).
+const PAISES_EUROPA = new Set([
+  "al", "de", "ad", "bg", "be", "ba", "cy", "hr", "dk", "sk", "si", "es", "ee", "fi", "fr", "gr", "hu", "ie", "is", "it", "lv", "li", "lt", "lu", "mk", "mt", "md", "me", "mc", "no", "nl", "pl", "pt", "gb", "cz", "ro", "se", "ch", "rs", "ua", "at",
+]);
+
+const PAISES_ACEITOS = new Set([...PAISES_AMERICAS, ...PAISES_EUROPA]);
+
 const TERMOS_GENERICOS_SEGMENTO = new Set([
   "empresa", "empresas", "servicos", "servico", "comercio", "vendas",
   "solucoes", "solucao", "consultoria", "negocios", "produtos", "produto",
@@ -225,11 +232,11 @@ export async function POST(request: Request) {
         : "";
 
     const pais = paisBruto.slice(0, 2);
-    if (!PAISES_AMERICAS.has(pais)) {
+    if (!PAISES_ACEITOS.has(pais)) {
       return NextResponse.json(
         {
           erro:
-            "Escolha um país das Américas disponível na busca internacional.",
+            "Escolha um país das Américas ou da Europa disponível na busca internacional.",
         },
         { status: 400 }
       );

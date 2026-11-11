@@ -98,7 +98,7 @@ const planos: Array<{
     grupo: "internacional",
     itens: [
       "Tudo do Silver, mais:",
-      "Empresas em qualquer país das Américas",
+      "Empresas em países das Américas e da Europa",
       "Nome, segmento, endereço e telefone*",
       "Site da empresa para abordagem direta",
       "Listas persistentes + exportação CSV",
@@ -143,7 +143,7 @@ const faq = [
   {
     pergunta: "O que o teste grátis inclui?",
     resposta:
-      "Você cria a conta sem cartão e ganha 1 lista com até 25 empresas para explorar a plataforma — no Brasil e nos países das Américas: gera a lista, abre as fichas e testa abordagens escritas por IA. Para produzir mais listas ou enviar campanhas, escolha um plano.",
+      "Você cria a conta sem cartão e ganha 1 lista com até 25 empresas para explorar a plataforma — no Brasil e em países das Américas e da Europa: gera a lista, abre as fichas e testa abordagens escritas por IA. Para produzir mais listas ou enviar campanhas, escolha um plano.",
   },
   {
     pergunta: "Quem pode disparar e-mails em massa?",

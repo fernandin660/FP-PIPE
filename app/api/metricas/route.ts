@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
+import { probabilidadeDoEstagio } from "../../../lib/crm-previsao";
 
 const LIMITE_HISTORICO = 8000;
 
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     // Lista de estágios (ordem/pipeline).
     const { data: stages } = await supabase
       .from("pipeline_stages")
-      .select("id, nome, cor, ordem_estagio")
+      .select("id, nome, cor, ordem_estagio, probabilidade")
       .eq("organizacao_id", orgId)
       .order("ordem_estagio", { ascending: true });
 
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
       nome: string;
       cor: string;
       ordem_estagio: number;
+      probabilidade: number | null;
     }>;
 
     // Filtro temporal aplicado a criado_em nas tabelas de eventos.
@@ -54,7 +56,7 @@ export async function GET(request: Request) {
       supabase
         .from("lead_pipeline")
         .select(
-          "stage_id, responsavel_id, valor_oportunidade, produto, criado_em"
+          "company_id, stage_id, responsavel_id, valor_oportunidade, produto, motivo_perda, criado_em"
         )
         .eq("organizacao_id", orgId),
       supabase
@@ -80,6 +82,8 @@ export async function GET(request: Request) {
     ]);
 
     const pipelines = (pipeLinhas ?? []) as Array<{
+      company_id: string;
+      motivo_perda: string | null;
       stage_id: string;
       responsavel_id: string | null;
       valor_oportunidade: number | null;
@@ -159,6 +163,44 @@ export async function GET(request: Request) {
         valorPipeline += v;
         if (!ehStage(nome, "GANHO")) valorAberto += v;
       }
+    }
+
+    // ---- Conversão entre etapas: quantas empresas chegaram a cada etapa ----
+    // (a etapa mais avançada que cada empresa já alcançou, pelo histórico e
+    // pela posição atual; "Perdido" não conta como avanço).
+    const idxPerdido = listaStages.findIndex((s) => ehStage(s.nome, "PERDIDO"));
+    const maiorEtapa = new Map<string, number>();
+    const registrar = (company: string, stageId: string | null) => {
+      if (!stageId) return;
+      const i = mapaIndiceStage.get(stageId);
+      if (i === undefined || i === idxPerdido) return;
+      maiorEtapa.set(company, Math.max(maiorEtapa.get(company) ?? -1, i));
+    };
+    const empresasDoRecorte = new Set(linhasPipeline.map((p) => p.company_id));
+    for (const ev of (histLinhas ?? []) as Array<{ company_id: string; tipo_evento: string; stage_destino_id: string | null }>) {
+      if (ev.tipo_evento === "mudanca_estagio" && empresasDoRecorte.has(ev.company_id)) registrar(ev.company_id, ev.stage_destino_id);
+    }
+    for (const p of linhasPipeline) registrar(p.company_id, p.stage_id);
+    const alcancaram = listaStages.map((_, i) =>
+      i === idxPerdido ? 0 : [...maiorEtapa.values()].filter((m) => m >= i).length
+    );
+
+    // ---- Previsão ponderada e motivos de perda ----
+    let valorPonderado = 0;
+    const ponderadoPorStage = new Map<string, number>();
+    const motivosPerda = new Map<string, number>();
+    for (const p of linhasPipeline) {
+      const st = listaStages.find((s) => s.id === p.stage_id);
+      if (!st) continue;
+      if (ehStage(st.nome, "PERDIDO")) {
+        const m = p.motivo_perda?.trim() || "Sem motivo informado";
+        motivosPerda.set(m, (motivosPerda.get(m) ?? 0) + 1);
+        continue;
+      }
+      if (ehStage(st.nome, "GANHO")) continue;
+      const pond = ((p.valor_oportunidade ?? 0) * probabilidadeDoEstagio(st)) / 100;
+      valorPonderado += pond;
+      ponderadoPorStage.set(st.id, (ponderadoPorStage.get(st.id) ?? 0) + pond);
     }
 
     const winRate =
@@ -369,6 +411,7 @@ export async function GET(request: Request) {
         winRate,
         valorPipeline,
         valorAberto,
+        valorPonderado,
         empresasPeriodo,
         contatosPeriodo,
         listasPeriodo,
@@ -378,7 +421,14 @@ export async function GET(request: Request) {
         ...f,
         aderidosPeriodo: aderidosPeriodo.get(f.id) ?? 0,
         totDias: totDias[i]?.dias ?? 0,
+        alcancaram: alcancaram[i] ?? 0,
+        probabilidade: probabilidadeDoEstagio(listaStages[i]),
+        valorPonderado: ponderadoPorStage.get(f.id) ?? 0,
+        perdido: i === idxPerdido,
       })),
+      motivosPerda: [...motivosPerda.entries()]
+        .map(([motivo, total]) => ({ motivo, total }))
+        .sort((a, b) => b.total - a.total),
       serie,
       produtos,
       atividade: atividades,
