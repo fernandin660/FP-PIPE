@@ -21,6 +21,7 @@ type EstagioOpcao = {
   nome: string;
   cor: string;
   ordem_estagio: number;
+  pipeline_id?: string;
 };
 
 type MembroOpcao = {
@@ -33,6 +34,8 @@ type Precheck = {
   selecionadas: number;
   novas: number;
   jaExistem: string[];
+  jaExistemPorFunil?: Record<string, string[]>;
+  funis?: { id: string; nome: string }[];
   estagios: EstagioOpcao[];
   membros: MembroOpcao[];
 };
@@ -63,6 +66,7 @@ export default function AdicionarAoCrmModal({
   );
   const [mensagemErro, setMensagemErro] = useState("");
   const [stageId, setStageId] = useState("");
+  const [funilId, setFunilId] = useState("");
   const [responsavelId, setResponsavelId] = useState("");
 
   // Snapshot dos alvos no momento em que o modal abre, para que o precheck
@@ -99,7 +103,13 @@ export default function AdicionarAoCrmModal({
           return;
         }
         setPrecheck(dados);
-        setStageId(dados.estagios?.[0]?.id ?? "");
+        const primeiroFunil: string = dados.funis?.[0]?.id ?? "";
+        setFunilId(primeiroFunil);
+        setStageId(
+          (dados.estagios as EstagioOpcao[] | undefined)?.find(
+            (e) => !primeiroFunil || e.pipeline_id === primeiroFunil
+          )?.id ?? ""
+        );
         setResponsavelId("");
         setEtapa("form");
       } catch {
@@ -216,8 +226,16 @@ export default function AdicionarAoCrmModal({
       </div>
     );
   } else {
-    const jaExistentes = precheck?.jaExistem.length ?? 0;
-    const novas = precheck?.novas ?? 0;
+    // Duplicidade conta só no funil escolhido.
+    const jaNoFunil =
+      funilId && precheck?.jaExistemPorFunil
+        ? precheck.jaExistemPorFunil[funilId] ?? []
+        : precheck?.jaExistem ?? [];
+    const jaExistentes = jaNoFunil.length;
+    const novas = Math.max(0, (precheck?.selecionadas ?? 0) - jaExistentes);
+    const etapasDoFunil = (precheck?.estagios ?? []).filter(
+      (e) => !funilId || !e.pipeline_id || e.pipeline_id === funilId
+    );
     conteudo = (
       <div className="space-y-4">
         {descricao && (
@@ -241,6 +259,29 @@ export default function AdicionarAoCrmModal({
           </div>
         </div>
 
+        {(precheck?.funis?.length ?? 0) > 1 && (
+          <div>
+            <label className="block text-xs text-pipe-muted font-semibold mb-1.5">
+              Funil
+            </label>
+            <select
+              value={funilId}
+              onChange={(e) => {
+                const novo = e.target.value;
+                setFunilId(novo);
+                setStageId(precheck?.estagios.find((s) => s.pipeline_id === novo)?.id ?? "");
+              }}
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
+            >
+              {precheck?.funis?.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
           <label className="block text-xs text-pipe-muted font-semibold mb-1.5">
             Estágio inicial
@@ -250,7 +291,7 @@ export default function AdicionarAoCrmModal({
             onChange={(e) => setStageId(e.target.value)}
             className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
           >
-            {precheck?.estagios.map((s) => (
+            {etapasDoFunil.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.nome}
               </option>

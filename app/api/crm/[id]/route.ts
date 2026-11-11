@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { exigirAcesso } from "../../../../lib/gate";
 import { cancelarProgramadasPendentes, ehMembroAtivo } from "../../../../lib/crm";
 import { ehEstagioPerdido } from "../../../../lib/crm-previsao";
+import { validarCampos } from "../../../../lib/crm-campos";
 
 export async function PATCH(
   req: Request,
@@ -22,6 +23,10 @@ export async function PATCH(
     valor_oportunidade?: number | null;
     produto?: string | null;
     motivo_perda?: string | null;
+    titulo?: string | null;
+    pessoa_id?: string | null;
+    data_prevista?: string | null;
+    campos?: Record<string, unknown>;
   };
   try {
     body = await req.json();
@@ -52,6 +57,10 @@ export async function PATCH(
     valor_oportunidade?: number | null;
     produto?: string | null;
     motivo_perda?: string | null;
+    titulo?: string | null;
+    pessoa_id?: string | null;
+    data_prevista?: string | null;
+    campos?: Record<string, unknown>;
   } = {};
 
   const mudouStage =
@@ -80,6 +89,38 @@ export async function PATCH(
   const mudouProduto =
     mudaProduto && (novoProduto ?? null) !== (lead.produto ?? null);
   if (mudouProduto) atualizacao.produto = novoProduto === "" ? null : novoProduto;
+
+  if (body.titulo !== undefined) {
+    atualizacao.titulo =
+      typeof body.titulo === "string" ? body.titulo.trim().slice(0, 160) || null : null;
+  }
+  if (body.data_prevista !== undefined) {
+    atualizacao.data_prevista =
+      typeof body.data_prevista === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.data_prevista)
+        ? body.data_prevista
+        : null;
+  }
+  if (body.pessoa_id !== undefined) {
+    if (body.pessoa_id) {
+      const { data: pessoa } = await supabase
+        .from("contatos")
+        .select("id")
+        .eq("id", body.pessoa_id)
+        .eq("organizacao_id", orgId)
+        .maybeSingle();
+      if (!pessoa) {
+        return NextResponse.json({ erro: "Pessoa não encontrada nesta organização." }, { status: 400 });
+      }
+      atualizacao.pessoa_id = pessoa.id;
+    } else {
+      atualizacao.pessoa_id = null;
+    }
+  }
+  if (body.campos !== undefined) {
+    const limpos = await validarCampos(supabase, orgId, "negocio", body.campos);
+    if (!limpos.ok) return NextResponse.json({ erro: limpos.erro }, { status: 400 });
+    atualizacao.campos = limpos.valores;
+  }
 
   if (mudouStage) {
     // Valida que o estágio de destino pertence à org

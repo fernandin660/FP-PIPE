@@ -168,8 +168,16 @@ function LeadCardComponent({
             {selecionado ? "✓" : ""}
           </span>
         )}
-        <p className="text-sm font-semibold text-pipe-ink leading-snug line-clamp-2 flex-1">
-          {lead.company_inconsistente ? "Dados da empresa indisponíveis" : nomeEmpresa(c)}
+        <p className="text-sm font-semibold text-pipe-ink leading-snug flex-1 min-w-0">
+          <span className="line-clamp-2">
+            {lead.titulo || (lead.company_inconsistente ? "Dados da empresa indisponíveis" : nomeEmpresa(c))}
+          </span>
+          {lead.titulo && !lead.company_inconsistente && (
+            <span className="block truncate text-xs font-normal text-pipe-muted">{nomeEmpresa(c)}</span>
+          )}
+          {lead.pessoa?.nome && (
+            <span className="block truncate text-xs font-normal text-pipe-muted">{lead.pessoa.nome}</span>
+          )}
         </p>
         {c?.score !== null && c?.score !== undefined ? (
           <span

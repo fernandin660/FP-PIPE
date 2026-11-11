@@ -5,6 +5,7 @@ import {
   resolverAlvos,
   deduplicar,
   listarEstagios,
+  listarFunis,
   listarMembros,
   type PayloadAlvos,
 } from "../../../../lib/crm";
@@ -44,17 +45,22 @@ export async function POST(request: Request) {
     const alvos = deduplicar(await resolverAlvos(supabase, orgId, payload));
     const companyIds = alvos.map((a) => a.company_id);
 
-    let jaExistem: string[] = [];
+    const funis = await listarFunis(supabase, orgId);
+    const funilPadrao = funis[0]?.id ?? null;
+
+    // Quem já tem negócio, por funil (uma empresa pode estar em funis diferentes).
+    const jaExistemPorFunil: Record<string, string[]> = {};
     if (companyIds.length > 0) {
       const { data: existentes } = await supabase
         .from("lead_pipeline")
-        .select("company_id")
+        .select("company_id, pipeline_id")
         .eq("organizacao_id", orgId)
         .in("company_id", companyIds);
-      jaExistem = (existentes ?? []).map(
-        (l: { company_id: string }) => l.company_id
-      );
+      for (const l of (existentes ?? []) as Array<{ company_id: string; pipeline_id: string }>) {
+        (jaExistemPorFunil[l.pipeline_id] ??= []).push(l.company_id);
+      }
     }
+    const jaExistem = funilPadrao ? jaExistemPorFunil[funilPadrao] ?? [] : [];
 
     const estagios = await listarEstagios(supabase, orgId);
     const membros = await listarMembros(supabase, orgId);
@@ -64,11 +70,14 @@ export async function POST(request: Request) {
       selecionadas: alvos.length,
       novas: companyIds.filter((id) => !jaExistem.includes(id)).length,
       jaExistem,
+      jaExistemPorFunil,
+      funis: funis.map((f) => ({ id: f.id, nome: f.nome })),
       estagios: estagios.map((s) => ({
         id: s.id,
         nome: s.nome,
         cor: s.cor,
         ordem_estagio: s.ordem_estagio,
+        pipeline_id: s.pipeline_id,
       })),
       membros: membros.map((m) => ({
         usuario_id: m.usuario_id,

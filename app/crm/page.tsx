@@ -18,6 +18,10 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 import { LeadCard } from "../../components/LeadCard";
+import { AbasCrm } from "../../components/crm/MolduraCrm";
+import NovoNegocio from "../../components/crm/NovoNegocio";
+import { BlocoCampos } from "../../components/crm/ui";
+import type { CampoPersonalizado } from "../../lib/crm-campos";
 import { MOTIVOS_PERDA, ehEstagioGanho, ehEstagioPerdido, probabilidadeDoEstagio } from "../../lib/crm-previsao";
 import { IconeTelefone, IconeEmail } from "../../components/Icones";
 
@@ -99,6 +103,12 @@ export type LeadCrm = {
   valor_oportunidade: number | null;
   produto: string | null;
   motivo_perda?: string | null;
+  pipeline_id?: string;
+  titulo?: string | null;
+  pessoa_id?: string | null;
+  pessoa?: { id: string; nome: string | null; cargo: string | null; email: string | null; telefone: string | null } | null;
+  data_prevista?: string | null;
+  campos?: Record<string, unknown>;
   criado_em: string;
   atualizado_em: string;
   company: EmpresaCrm | null;
@@ -342,6 +352,16 @@ export default function PaginaCrm() {
   const leadsAnterior = useRef<LeadCrm[] | null>(null);
   const arrastouRef = useRef(false);
 
+  // Funis
+  const [funis, setFunis] = useState<{ id: string; nome: string }[]>([]);
+  const [funilAtual, setFunilAtual] = useState<string>("");
+  const funilRef = useRef<string>("");
+  const [camposNegocio, setCamposNegocio] = useState<CampoPersonalizado[]>([]);
+  const [novoNegocioAberto, setNovoNegocioAberto] = useState(false);
+  const [pessoasDaEmpresa, setPessoasDaEmpresa] = useState<{ id: string; nome: string | null; cargo: string | null }[]>([]);
+  const [editandoCampos, setEditandoCampos] = useState(false);
+  const [rascunhoCampos, setRascunhoCampos] = useState<Record<string, unknown>>({});
+
   // Detalhe
   const [leadDetalhe, setLeadDetalhe] = useState<LeadCrm | null>(null);
   const [ehAdmin, setEhAdmin] = useState(false);
@@ -397,12 +417,31 @@ export default function PaginaCrm() {
   async function carregarCrm() {
     setErro("");
     try {
-      const res = await fetch("/api/crm", { cache: "no-store" });
+      // Funil: o escolhido, o do link (?funil=) ou o último usado neste navegador.
+      if (!funilRef.current) {
+        let inicial = new URLSearchParams(window.location.search).get("funil") ?? "";
+        if (!inicial) {
+          try {
+            inicial = localStorage.getItem("fp-crm-funil") ?? "";
+          } catch {
+            inicial = "";
+          }
+        }
+        funilRef.current = inicial;
+      }
+      const consulta = funilRef.current ? `?funil=${encodeURIComponent(funilRef.current)}` : "";
+      const res = await fetch(`/api/crm${consulta}`, { cache: "no-store" });
       if (!res.ok) {
         const dados = await res.json().catch(() => null);
         throw new Error(dados?.erro ?? "Falha ao carregar o CRM.");
       }
       const dados = await res.json();
+      setFunis(dados.funis ?? []);
+      if (dados.funil_atual) {
+        funilRef.current = dados.funil_atual;
+        setFunilAtual(dados.funil_atual);
+      }
+      setCamposNegocio(((dados.campos ?? []) as CampoPersonalizado[]).filter((c) => c.entidade === "negocio"));
       setEtagias(dados.stages ?? []);
       setLeads(dados.leads ?? []);
       setMembros(dados.membros ?? []);
@@ -412,6 +451,65 @@ export default function PaginaCrm() {
       setCarregando(false);
     }
   }
+
+  function trocarFunil(id: string) {
+    if (id === funilRef.current) return;
+    funilRef.current = id;
+    setFunilAtual(id);
+    setLeadDetalhe(null);
+    setSelecionados([]);
+    try {
+      localStorage.setItem("fp-crm-funil", id);
+    } catch {
+      // sem armazenamento local: só não lembra o funil
+    }
+    setCarregando(true);
+    void carregarCrm();
+  }
+
+  /** Salva campos do negócio (título, pessoa, previsão, campos personalizados). */
+  async function salvarNegocio(leadId: string, mudancas: Record<string, unknown>) {
+    const res = await fetch(`/api/crm/${leadId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mudancas),
+    });
+    const d = await res.json().catch(() => null);
+    if (!res.ok) {
+      setErro(d?.erro ?? "Não foi possível salvar o negócio.");
+      return false;
+    }
+    const pessoa =
+      "pessoa_id" in mudancas
+        ? pessoasDaEmpresa.find((p) => p.id === mudancas.pessoa_id) ?? null
+        : undefined;
+    const aplicar = (l: LeadCrm): LeadCrm =>
+      l.id !== leadId
+        ? l
+        : {
+            ...l,
+            ...mudancas,
+            ...(pessoa !== undefined
+              ? { pessoa: pessoa ? { id: pessoa.id, nome: pessoa.nome, cargo: pessoa.cargo, email: null, telefone: null } : null }
+              : {}),
+          };
+    setLeads((atual) => atual.map(aplicar));
+    setLeadDetalhe((atual) => (atual ? aplicar(atual) : atual));
+    return true;
+  }
+
+  // Pessoas da empresa do negócio aberto (para escolher o contato).
+  useEffect(() => {
+    if (!leadDetalhe?.company_id) return;
+    let vivo = true;
+    fetch(`/api/crm/pessoas?organizacao=${leadDetalhe.company_id}`)
+      .then((r) => (r.ok ? r.json() : { pessoas: [] }))
+      .then((d) => vivo && setPessoasDaEmpresa(d.pessoas ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [leadDetalhe?.company_id]);
 
   function entrarModoMassa() {
     setModoMassa(true);
@@ -1300,7 +1398,7 @@ export default function PaginaCrm() {
       const res = await fetch("/api/crm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_id: empresa.id }),
+        body: JSON.stringify({ company_id: empresa.id, pipeline_id: funilRef.current || undefined }),
       });
       if (!res.ok) {
         const dados = await res.json().catch(() => null);
@@ -1416,6 +1514,7 @@ export default function PaginaCrm() {
 
   // ---- Detalhe ----
   function abrirDetalhe(lead: LeadCrm) {
+    setEditandoCampos(false);
     setLeadDetalhe(lead);
     setHistorico([]);
     setInteligencia(null);
@@ -1477,12 +1576,35 @@ return (
 
       <main className="min-h-screen bg-pipe-bg px-6 py-8 lg:pl-72">
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
+          <AbasCrm />
           {/* Cabeçalho */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-medium tracking-[-0.03em] text-pipe-ink">
-                Funil de vendas
-              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-medium tracking-[-0.03em] text-pipe-ink">
+                  Negócios
+                </h1>
+                {funis.length > 0 && (
+                  <label className="flex items-center gap-2 text-sm text-pipe-muted">
+                    <span className="sr-only">Funil</span>
+                    <select
+                      value={funilAtual}
+                      onChange={(e) => {
+                        if (e.target.value === "__gerenciar") router.push("/crm/configuracoes");
+                        else trocarFunil(e.target.value);
+                      }}
+                      className="rounded-full border border-pipe-border bg-white px-3 py-1.5 text-sm font-medium text-pipe-ink focus:border-pipe-blue focus:outline-none"
+                    >
+                      {funis.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          Funil: {f.nome}
+                        </option>
+                      ))}
+                      <option value="__gerenciar">Gerenciar funis…</option>
+                    </select>
+                  </label>
+                )}
+              </div>
               <p className="text-sm text-pipe-muted mt-0.5">
                 Pipeline comercial B2B · {totalFiltrado} lead
                 {totalFiltrado === 1 ? "" : "s"}
@@ -1502,9 +1624,15 @@ return (
               </button>
               <button
                 onClick={abrirAdicionar}
-                className="bg-pipe-lime text-white font-semibold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
+                className="bg-pipe-card border border-pipe-border text-pipe-ink font-semibold px-4 py-2.5 rounded-xl text-sm hover:border-pipe-blue/50 transition"
               >
-                + Adicionar empresa
+                Trazer das listas
+              </button>
+              <button
+                onClick={() => setNovoNegocioAberto(true)}
+                className="bg-pipe-ink text-white font-semibold px-4 py-2.5 rounded-xl text-sm hover:bg-black transition"
+              >
+                + Negócio
               </button>
             </div>
           </div>
@@ -1920,6 +2048,18 @@ return (
         </div>
       )}
 
+      <NovoNegocio
+        key={`novo-negocio-${novoNegocioAberto}`}
+        aberto={novoNegocioAberto}
+        funilInicial={funilAtual || null}
+        aoFechar={() => setNovoNegocioAberto(false)}
+        aoCriar={(n) => {
+          setNovoNegocioAberto(false);
+          if (n.pipeline_id !== funilRef.current) trocarFunil(n.pipeline_id);
+          else void carregarCrm();
+        }}
+      />
+
       {/* Motivo de perda */}
       {perdaPendente && (
         <div
@@ -2013,6 +2153,14 @@ return (
                     ? `${formatarCnpj(leadDetalhe.company.cnpj)} · `
                     : ""}
                   {leadDetalhe.company?.segmento_icp || "Sem segmento"}
+                  {leadDetalhe.company_id && (
+                    <>
+                      {" · "}
+                      <Link href={`/crm/organizacoes/${leadDetalhe.company_id}`} className="text-pipe-blue hover:underline">
+                        Ver organização
+                      </Link>
+                    </>
+                  )}
                 </p>
               </div>
               <button
@@ -2032,6 +2180,103 @@ return (
                   origem/empresa deste lead antes de prosseguir.
                 </div>
               )}
+
+              {/* Negócio: título, pessoa de contato, previsão e campos personalizados */}
+              <section className="rounded-xl border border-pipe-border p-4 space-y-4">
+                <div>
+                  <label htmlFor="negocio-titulo" className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">
+                    Título do negócio
+                  </label>
+                  <input
+                    id="negocio-titulo"
+                    key={`titulo-${leadDetalhe.id}`}
+                    defaultValue={leadDetalhe.titulo ?? ""}
+                    placeholder={`Negócio ${nomeEmpresa(leadDetalhe.company)}`}
+                    onBlur={(e) => {
+                      const novo = e.target.value.trim();
+                      if (novo !== (leadDetalhe.titulo ?? "")) void salvarNegocio(leadDetalhe.id, { titulo: novo || null });
+                    }}
+                    className="mt-1.5 w-full rounded-lg border border-pipe-border bg-white px-3 py-2 text-sm text-pipe-ink focus:border-pipe-blue focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="negocio-pessoa" className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">
+                      Pessoa de contato
+                    </label>
+                    <select
+                      id="negocio-pessoa"
+                      value={leadDetalhe.pessoa_id ?? ""}
+                      onChange={(e) => void salvarNegocio(leadDetalhe.id, { pessoa_id: e.target.value || null })}
+                      className="mt-1.5 w-full rounded-lg border border-pipe-border bg-white px-3 py-2 text-sm text-pipe-ink focus:border-pipe-blue focus:outline-none"
+                    >
+                      <option value="">{pessoasDaEmpresa.length ? "Nenhuma" : "Nenhuma pessoa cadastrada"}</option>
+                      {pessoasDaEmpresa.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nome ?? "Sem nome"}
+                          {p.cargo ? ` · ${p.cargo}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {pessoasDaEmpresa.length === 0 && (
+                      <Link href={`/crm/organizacoes/${leadDetalhe.company_id}`} className="mt-1 inline-block text-xs text-pipe-blue hover:underline">
+                        Cadastrar pessoa
+                      </Link>
+                    )}
+                  </div>
+                  <div>
+                    <label htmlFor="negocio-data" className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">
+                      Previsão de fechamento
+                    </label>
+                    <input
+                      id="negocio-data"
+                      type="date"
+                      value={leadDetalhe.data_prevista ?? ""}
+                      onChange={(e) => void salvarNegocio(leadDetalhe.id, { data_prevista: e.target.value || null })}
+                      className="mt-1.5 w-full rounded-lg border border-pipe-border bg-white px-3 py-2 text-sm text-pipe-ink focus:border-pipe-blue focus:outline-none"
+                    />
+                  </div>
+                </div>
+                {camposNegocio.length > 0 && (
+                  <div className="border-t border-pipe-border pt-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">Campos personalizados</p>
+                      {editandoCampos ? (
+                        <span className="flex gap-3 text-sm">
+                          <button onClick={() => setEditandoCampos(false)} className="text-pipe-muted hover:text-pipe-ink">
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() =>
+                              void salvarNegocio(leadDetalhe.id, { campos: rascunhoCampos }).then((ok) => ok && setEditandoCampos(false))
+                            }
+                            className="font-medium text-pipe-blue hover:underline"
+                          >
+                            Salvar
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setRascunhoCampos({ ...(leadDetalhe.campos ?? {}) });
+                            setEditandoCampos(true);
+                          }}
+                          className="text-sm text-pipe-blue hover:underline"
+                        >
+                          Editar
+                        </button>
+                      )}
+                    </div>
+                    <BlocoCampos
+                      campos={camposNegocio}
+                      valores={leadDetalhe.campos ?? {}}
+                      editando={editandoCampos}
+                      rascunho={rascunhoCampos}
+                      aoMudarRascunho={setRascunhoCampos}
+                    />
+                  </div>
+                )}
+              </section>
 
               {/* Estágio e responsável */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">

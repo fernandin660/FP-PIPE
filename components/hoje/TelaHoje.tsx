@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { criarClienteSupabase } from "../../lib/supabase/client";
 import Sidebar from "../Sidebar";
+import { AbasCrm } from "../crm/MolduraCrm";
 import ModalPerfil, { type PerfilVendedor } from "../ModalPerfil";
 import { IconeCalendario, IconeEmail, IconeEnviar, IconeEquipe, IconeEscrever, IconeTelefone } from "../Icones";
 
@@ -258,8 +259,9 @@ export default function TelaHoje() {
         aoSalvar={setPerfil}
       />
 
-      <main className="min-h-screen bg-pipe-bg px-5 py-10 sm:px-8 lg:pl-72 lg:pr-10">
+      <main className="min-h-screen bg-pipe-bg px-5 pb-10 pt-8 sm:px-8 lg:pl-72 lg:pr-10">
         <div className="mx-auto max-w-4xl">
+          <AbasCrm />
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-pipe-blue">{dataTitulo}</p>
           <h1 className="mt-3 text-4xl font-medium tracking-[-0.03em] text-pipe-ink md:text-5xl">O que fazer hoje</h1>
 

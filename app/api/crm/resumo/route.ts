@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
-import { listarEstagios } from "../../../../lib/crm";
+import { listarEstagios, listarFunis } from "../../../../lib/crm";
 
 /**
  * Resumo leve do pipeline da organização, usado para dar visibilidade
@@ -14,7 +14,9 @@ export async function GET() {
 
     const { supabase, orgId } = ctx!;
 
-    const estagios = await listarEstagios(supabase, orgId);
+    // Resumo do funil padrão (o primeiro).
+    const [funilPadrao] = await listarFunis(supabase, orgId);
+    const estagios = await listarEstagios(supabase, orgId, funilPadrao?.id);
 
     const contagensPorEstagio = new Map<string, number>();
     let total = 0;
@@ -23,7 +25,8 @@ export async function GET() {
       const { data } = await supabase
         .from("lead_pipeline")
         .select("stage_id")
-        .eq("organizacao_id", orgId);
+        .eq("organizacao_id", orgId)
+        .eq("pipeline_id", funilPadrao?.id ?? "");
 
       for (const l of (data ?? []) as Array<{ stage_id: string }>) {
         if (!l.stage_id) continue;

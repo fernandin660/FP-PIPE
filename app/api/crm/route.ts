@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { calcularPrioridade } from "../../../lib/prioridade";
-import { limitesDeHojeBrasilia } from "../../../lib/crm";
+import { limitesDeHojeBrasilia, resolverFunil } from "../../../lib/crm";
 
 type Estagio = {
   id: string;
@@ -25,6 +25,11 @@ type EstaQuint = {
   valor_oportunidade: number | null;
   produto: string | null;
   motivo_perda: string | null;
+  pipeline_id: string;
+  titulo: string | null;
+  pessoa_id: string | null;
+  data_prevista: string | null;
+  campos: Record<string, unknown> | null;
 };
 
 type Empresa = {
@@ -99,7 +104,7 @@ async function garantirEstagios(
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { ctx, resposta } = await exigirAcesso();
   if (resposta) return resposta;
 
@@ -107,16 +112,30 @@ export async function GET() {
 
   await garantirEstagios(supabase, orgId);
 
-  const [{ data: estagios }, { data: leads }] = await Promise.all([
+  // Funil exibido: ?funil=<id> (se for da organização) ou o padrão.
+  const pedido = new URL(request.url).searchParams.get("funil");
+  const { funis, funil } = await resolverFunil(supabase, orgId, pedido);
+  if (!funil) {
+    return NextResponse.json({ erro: "Funil não configurado." }, { status: 500 });
+  }
+
+  const [{ data: estagios }, { data: leads }, { data: camposDef }] = await Promise.all([
     supabase
       .from("pipeline_stages")
       .select("id, nome, cor, ordem_estagio, probabilidade, criado_em")
       .eq("organizacao_id", orgId)
+      .eq("pipeline_id", funil.id)
       .order("ordem_estagio", { ascending: true }),
     supabase
       .from("lead_pipeline")
-      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, criado_em, atualizado_em")
-      .eq("organizacao_id", orgId),
+      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, pipeline_id, titulo, pessoa_id, data_prevista, campos, criado_em, atualizado_em")
+      .eq("organizacao_id", orgId)
+      .eq("pipeline_id", funil.id),
+    supabase
+      .from("crm_campos")
+      .select("id, entidade, nome, tipo, opcoes, ordem")
+      .eq("organizacao_id", orgId)
+      .order("ordem", { ascending: true }),
   ]);
 
   const estagiosArr = (estagios as Estagio[]) ?? [];
@@ -143,6 +162,20 @@ export async function GET() {
   }
   const mapaEmpresa = new Map<string, Empresa>();
   for (const e of empresas) mapaEmpresa.set(e.id, e);
+
+  // Pessoa de contato de cada negócio.
+  const idsPessoas = [...new Set(leadsArr.map((l) => l.pessoa_id).filter((x): x is string => Boolean(x)))];
+  const mapaPessoa = new Map<string, { id: string; nome: string | null; cargo: string | null; email: string | null; telefone: string | null }>();
+  if (idsPessoas.length > 0) {
+    const { data: pessoas } = await supabase
+      .from("contatos")
+      .select("id, nome, cargo, email, telefone")
+      .eq("organizacao_id", orgId)
+      .in("id", idsPessoas);
+    for (const p of (pessoas ?? []) as Array<{ id: string; nome: string | null; cargo: string | null; email: string | null; telefone: string | null }>) {
+      mapaPessoa.set(p.id, p);
+    }
+  }
 
   // Resolve nomes dos responsáveis (membros da org) via perfil + email_convite.
   const membros: Array<{ usuario_id: string; nome: string | null; email: string | null }> =
@@ -360,6 +393,12 @@ export async function GET() {
       valor_oportunidade: l.valor_oportunidade,
       produto: l.produto,
       motivo_perda: l.motivo_perda ?? null,
+      pipeline_id: l.pipeline_id,
+      titulo: l.titulo,
+      pessoa_id: l.pessoa_id,
+      pessoa: l.pessoa_id ? mapaPessoa.get(l.pessoa_id) ?? null : null,
+      data_prevista: l.data_prevista,
+      campos: l.campos ?? {},
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
       company: c ?? null,
@@ -374,6 +413,9 @@ export async function GET() {
   });
 
   return NextResponse.json({
+    funis,
+    funil_atual: funil.id,
+    campos: camposDef ?? [],
     stages: estagiosArr,
     leads: leadsResposta,
     membros: membros.map((m) => ({
@@ -390,7 +432,15 @@ export async function POST(req: Request) {
 
   const { supabase, orgId, usuarioId } = ctx!;
 
-  let body: { company_id?: string };
+  let body: {
+    company_id?: string;
+    pipeline_id?: string;
+    stage_id?: string;
+    titulo?: string;
+    valor_oportunidade?: number | null;
+    pessoa_id?: string | null;
+    data_prevista?: string | null;
+  };
   try {
     body = await req.json();
   } catch {
@@ -422,31 +472,59 @@ export async function POST(req: Request) {
     );
   }
 
-  // Verifica se já está no pipeline
+  const { funil } = await resolverFunil(supabase, orgId, body.pipeline_id ?? null);
+  if (!funil) {
+    return NextResponse.json({ erro: "Funil não configurado." }, { status: 500 });
+  }
+
+  // Uma empresa tem no máximo um negócio por funil.
   const { data: jaExiste } = await supabase
     .from("lead_pipeline")
     .select("id")
     .eq("organizacao_id", orgId)
     .eq("company_id", companyId)
+    .eq("pipeline_id", funil.id)
+    .limit(1)
     .maybeSingle();
 
   if (jaExiste) {
     return NextResponse.json(
-      { erro: "Esta empresa já está no pipeline." },
+      { erro: `Esta empresa já tem um negócio no funil ${funil.nome}.` },
       { status: 409 }
     );
   }
 
-  // Estágio inicial = primeira coluna (maior prioridade = ordem 1)
-  const { data: primeiro } = await supabase
+  // Etapa pedida (se for deste funil) ou a primeira coluna.
+  const { data: etapasFunil } = await supabase
     .from("pipeline_stages")
     .select("id")
     .eq("organizacao_id", orgId)
-    .order("ordem_estagio", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .eq("pipeline_id", funil.id)
+    .order("ordem_estagio", { ascending: true });
+  const idsEtapas = (etapasFunil ?? []).map((e) => e.id as string);
+  const stageId = (body.stage_id && idsEtapas.includes(body.stage_id) ? body.stage_id : idsEtapas[0]) ?? null;
 
-  const stageId = primeiro?.id ?? null;
+  // Pessoa precisa ser da organização.
+  let pessoaId: string | null = null;
+  if (typeof body.pessoa_id === "string" && body.pessoa_id) {
+    const { data: pessoa } = await supabase
+      .from("contatos")
+      .select("id")
+      .eq("id", body.pessoa_id)
+      .eq("organizacao_id", orgId)
+      .maybeSingle();
+    if (!pessoa) {
+      return NextResponse.json({ erro: "Pessoa não encontrada nesta organização." }, { status: 400 });
+    }
+    pessoaId = pessoa.id;
+  }
+  const titulo = typeof body.titulo === "string" ? body.titulo.trim().slice(0, 160) || null : null;
+  const valor =
+    typeof body.valor_oportunidade === "number" && Number.isFinite(body.valor_oportunidade) && body.valor_oportunidade >= 0
+      ? body.valor_oportunidade
+      : null;
+  const dataPrevista =
+    typeof body.data_prevista === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.data_prevista) ? body.data_prevista : null;
   if (!stageId) {
     return NextResponse.json(
       { erro: "Pipeline não configurado. Tente novamente." },
@@ -471,8 +549,12 @@ export async function POST(req: Request) {
       stage_id: stageId,
       responsavel_id: usuarioId,
       ordenacao,
+      titulo,
+      valor_oportunidade: valor,
+      pessoa_id: pessoaId,
+      data_prevista: dataPrevista,
     })
-    .select("id, company_id, stage_id, responsavel_id, ordenacao, criado_em")
+    .select("id, company_id, stage_id, pipeline_id, responsavel_id, ordenacao, criado_em")
     .single();
 
   if (erroInsert || !novo) {

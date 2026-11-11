@@ -275,6 +275,8 @@ export async function POST(request: Request) {
       .select("id")
       .eq("organizacao_id", orgId)
       .eq("company_id", companyId)
+      .order("atualizado_em", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!lead) {

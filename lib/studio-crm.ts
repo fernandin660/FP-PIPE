@@ -32,22 +32,30 @@ export async function registrarPedidoNoCrm(
   const idioma = pedido.idioma.toUpperCase();
 
   // Garante que a organização tem os estágios do funil.
-  let { data: estagio } = await admin
-    .from("pipeline_stages")
-    .select("id")
-    .eq("organizacao_id", ORG_ID)
-    .order("ordem_estagio", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!estagio) {
-    await admin.rpc("_crm_seed_estagios", { org_id: ORG_ID });
-    ({ data: estagio } = await admin
-      .from("pipeline_stages")
+  // Primeira etapa do funil padrão (o primeiro funil da organização).
+  const primeiraEtapa = async () => {
+    const { data: funil } = await admin
+      .from("pipelines")
       .select("id")
       .eq("organizacao_id", ORG_ID)
+      .order("ordem", { ascending: true })
+      .order("criado_em", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!funil) return null;
+    const { data } = await admin
+      .from("pipeline_stages")
+      .select("id")
+      .eq("pipeline_id", funil.id)
       .order("ordem_estagio", { ascending: true })
       .limit(1)
-      .maybeSingle());
+      .maybeSingle();
+    return data;
+  };
+  let estagio = await primeiraEtapa();
+  if (!estagio) {
+    await admin.rpc("_crm_seed_estagios", { org_id: ORG_ID });
+    estagio = await primeiraEtapa();
   }
   if (!estagio) return { ok: false, motivo: "sem_estagio" };
 
@@ -106,6 +114,7 @@ export async function registrarPedidoNoCrm(
     .select("id")
     .eq("organizacao_id", ORG_ID)
     .eq("company_id", companyId)
+    .limit(1)
     .maybeSingle();
 
   if (!lead) {

@@ -13,11 +13,15 @@ export type PayloadAlvos = {
 export type Estagio = {
   id: string;
   organizacao_id: string;
+  pipeline_id: string;
   nome: string;
   ordem_estagio: number;
   cor: string;
+  probabilidade: number | null;
   criado_em: string;
 };
+
+export type Funil = { id: string; nome: string; ordem: number };
 
 export type MembroOrg = {
   usuario_id: string;
@@ -43,17 +47,43 @@ export async function garantirEstagios(
   }
 }
 
+/** Etapas da organização (de todos os funis, ou só de um). */
 export async function listarEstagios(
   supabase: ClienteServidor,
-  orgId: string
+  orgId: string,
+  funilId?: string
 ): Promise<Estagio[]> {
   await garantirEstagios(supabase, orgId);
-  const { data } = await supabase
+  let consulta = supabase
     .from("pipeline_stages")
-    .select("id, nome, cor, ordem_estagio, criado_em")
-    .eq("organizacao_id", orgId)
-    .order("ordem_estagio", { ascending: true });
+    .select("id, organizacao_id, pipeline_id, nome, cor, ordem_estagio, probabilidade, criado_em")
+    .eq("organizacao_id", orgId);
+  if (funilId) consulta = consulta.eq("pipeline_id", funilId);
+  const { data } = await consulta.order("ordem_estagio", { ascending: true });
   return (data as Estagio[]) ?? [];
+}
+
+/** Funis da organização, na ordem de exibição (o primeiro é o padrão). */
+export async function listarFunis(supabase: ClienteServidor, orgId: string): Promise<Funil[]> {
+  await garantirEstagios(supabase, orgId);
+  const { data } = await supabase
+    .from("pipelines")
+    .select("id, nome, ordem")
+    .eq("organizacao_id", orgId)
+    .order("ordem", { ascending: true })
+    .order("criado_em", { ascending: true });
+  return (data as Funil[]) ?? [];
+}
+
+/** Funil pedido (se for da organização) ou o padrão. */
+export async function resolverFunil(
+  supabase: ClienteServidor,
+  orgId: string,
+  funilId?: string | null
+): Promise<{ funis: Funil[]; funil: Funil | null }> {
+  const funis = await listarFunis(supabase, orgId);
+  const funil = funis.find((f) => f.id === funilId) ?? funis[0] ?? null;
+  return { funis, funil };
 }
 
 export async function listarMembros(

@@ -190,6 +190,8 @@ export async function GET(request: Request) {
       .select("id, stage_id, responsavel_id")
       .eq("organizacao_id", orgId)
       .eq("company_id", companyId)
+      .order("atualizado_em", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     let stageNome: string | null = null;

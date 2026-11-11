@@ -88,6 +88,7 @@ export async function POST(request: Request) {
       .from("lead_pipeline")
       .select("company_id")
       .eq("organizacao_id", orgId)
+      .eq("pipeline_id", stageFinal.pipeline_id)
       .in("company_id", companyIds);
 
     const jaExistemSet = new Set(
