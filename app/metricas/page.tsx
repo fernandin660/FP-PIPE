@@ -552,7 +552,7 @@ function PaginaMetricas() {
         {
           rotulo: "Valor de pipeline",
           valor: brl(dados.resumo.valorPipeline),
-          cor: "text-white",
+          cor: "text-pipe-ink",
         },
         {
           rotulo: "Novos leads (período)",
@@ -574,12 +574,12 @@ function PaginaMetricas() {
         saldoCreditos={saldoCreditos}
         aoAbrirPerfil={() => setModalPerfilAberto(true)}
       />
-      <main className="min-h-screen bg-pipe-dark px-6 py-8 lg:pl-72">
+      <main className="min-h-screen bg-pipe-bg px-6 py-8 lg:pl-72">
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
           {/* Cabeçalho */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-2xl text-white flex items-center gap-2">
+              <h1 className="font-display text-2xl text-pipe-ink flex items-center gap-2">
                 <IconeGrafico className="w-6 h-6 text-pipe-lime" /> Dashboard
               </h1>
               <p className="text-sm text-pipe-muted mt-0.5">
@@ -591,13 +591,13 @@ function PaginaMetricas() {
                 <>
                   <button
                     onClick={exportar.csv}
-                    className="bg-pipe-card border border-pipe-border text-gray-200 px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-pipe-lime/50 transition"
+                    className="bg-pipe-card border border-pipe-border text-pipe-ink-soft px-4 py-2.5 rounded-xl text-sm font-semibold hover:border-pipe-lime/50 transition"
                   >
                     Exportar CSV
                   </button>
                   <button
                     onClick={exportar.pdf}
-                    className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
+                    className="bg-pipe-lime text-white font-semibold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
                   >
                     Exportar PDF
                   </button>
@@ -618,7 +618,7 @@ function PaginaMetricas() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   periodo === p.valor
                     ? "bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30"
-                    : "text-gray-300 hover:bg-pipe-bg border border-transparent"
+                    : "text-pipe-ink-soft hover:bg-pipe-bg border border-transparent"
                 }`}
               >
                 {p.rotulo}
@@ -631,7 +631,7 @@ function PaginaMetricas() {
             <select
               value={filtroProduto}
               onChange={(e) => setFiltroProduto(e.target.value)}
-              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-pipe-blue"
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-1.5 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue"
             >
               <option value="">Todos os produtos</option>
               {produtosCadastrados.map((p) => (
@@ -651,14 +651,14 @@ function PaginaMetricas() {
             )}
             <Link
               href="/produtos"
-              className="text-xs text-pipe-blue hover:text-white font-semibold"
+              className="text-xs text-pipe-blue hover:text-pipe-ink font-semibold"
             >
               Gerenciar produtos
             </Link>
           </div>
 
           {erro && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+            <p className="text-sm text-red-700 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
               {erro}
             </p>
           )}
@@ -677,7 +677,7 @@ function PaginaMetricas() {
                     <p className="text-[11px] uppercase tracking-wide text-pipe-muted">
                       {c.rotulo}
                     </p>
-                    <p className={`text-2xl font-display font-bold mt-1 ${c.cor}`}>
+                    <p className={`text-2xl font-display font-semibold mt-1 ${c.cor}`}>
                       {c.valor}
                     </p>
                   </div>
@@ -687,7 +687,7 @@ function PaginaMetricas() {
               {/* Atividades pendentes / a fazer */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                  <h2 className="font-display text-lg text-white">
+                  <h2 className="font-display text-lg text-pipe-ink">
                     Atividades pendentes
                   </h2>
                   <div className="flex flex-wrap items-center gap-2">
@@ -697,7 +697,7 @@ function PaginaMetricas() {
                         type="date"
                         value={filtroDe}
                         onChange={(e) => setFiltroDe(e.target.value)}
-                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-white"
+                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-pipe-ink"
                       />
                     </label>
                     <label className="flex items-center gap-1.5 text-xs text-pipe-muted">
@@ -706,7 +706,7 @@ function PaginaMetricas() {
                         type="date"
                         value={filtroAte}
                         onChange={(e) => setFiltroAte(e.target.value)}
-                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-white"
+                        className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1 text-xs text-pipe-ink"
                       />
                     </label>
                     {(filtroDe || filtroAte) && (
@@ -727,7 +727,7 @@ function PaginaMetricas() {
                 </div>
 
                 {erroPendentes && (
-                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-xs text-red-700 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-3">
                     {erroPendentes}
                   </p>
                 )}
@@ -749,7 +749,7 @@ function PaginaMetricas() {
                         className="flex flex-wrap items-start justify-between gap-3 bg-pipe-bg border border-pipe-border rounded-xl p-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-white truncate">
+                          <p className="text-sm font-semibold text-pipe-ink truncate">
                             {a.titulo}
                           </p>
                           <p className="text-xs text-pipe-muted truncate mt-0.5">
@@ -767,7 +767,7 @@ function PaginaMetricas() {
                             <span
                               className={
                                 a.atrasada
-                                  ? "text-red-400 font-semibold"
+                                  ? "text-red-700 font-semibold"
                                   : ""
                               }
                             >
@@ -778,7 +778,7 @@ function PaginaMetricas() {
                             </span>
                           </p>
                           {a.observacao && (
-                            <p className="text-xs text-pipe-muted/70 mt-1 line-clamp-2">
+                            <p className="text-xs text-pipe-muted mt-1 line-clamp-2">
                               {a.observacao}
                             </p>
                           )}
@@ -792,13 +792,13 @@ function PaginaMetricas() {
                           </Link>
                           <button
                             onClick={() => setEditando(a)}
-                            className="inline-flex items-center gap-1.5 text-xs text-gray-200 font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
+                            className="inline-flex items-center gap-1.5 text-xs text-pipe-ink-soft font-semibold px-2.5 py-1.5 border border-pipe-border rounded-lg hover:border-pipe-lime/40 transition"
                           >
                             <IconeEscrever className="w-4 h-4" /> Editar
                           </button>
                           <button
                             onClick={() => void alternarConcluida(a)}
-                            className="inline-flex items-center gap-1.5 text-xs bg-pipe-lime text-pipe-bg font-bold px-2.5 py-1.5 rounded-lg hover:brightness-110 transition"
+                            className="inline-flex items-center gap-1.5 text-xs bg-pipe-lime text-white font-semibold px-2.5 py-1.5 rounded-lg hover:brightness-110 transition"
                           >
                             <IconeVerificado className="w-4 h-4" /> Concluir
                           </button>
@@ -811,14 +811,14 @@ function PaginaMetricas() {
 
               {/* Funil de conversão */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-4">
+                <h2 className="font-display text-lg text-pipe-ink mb-4">
                   Funil de conversão
                 </h2>
                 <div className="space-y-3">
                   {dados.funil.map((f) => (
                     <div key={f.id}>
                       <div className="flex flex-wrap items-center justify-between text-xs mb-1 gap-2">
-                        <span className="font-semibold text-white flex items-center gap-2">
+                        <span className="font-semibold text-pipe-ink flex items-center gap-2">
                           <span
                             className="w-2.5 h-2.5 rounded-full"
                             style={{ background: f.cor }}
@@ -845,7 +845,7 @@ function PaginaMetricas() {
 
               {/* Série temporal */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-4">
+                <h2 className="font-display text-lg text-pipe-ink mb-4">
                   Evolução no período
                 </h2>
                 <div className="h-64">
@@ -872,7 +872,7 @@ function PaginaMetricas() {
 
               {/* Resultado por produto */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-1">
+                <h2 className="font-display text-lg text-pipe-ink mb-1">
                   Resultado por produto
                 </h2>
                 <p className="text-xs text-pipe-muted mb-4">
@@ -890,16 +890,16 @@ function PaginaMetricas() {
                       key={p.produto}
                       className="bg-pipe-bg border border-pipe-border rounded-xl p-4"
                     >
-                      <p className="text-sm font-bold text-white line-clamp-1">
+                      <p className="text-sm font-semibold text-pipe-ink line-clamp-1">
                         {p.produto}
                       </p>
-                      <p className="text-lg font-display font-bold text-pipe-lime mt-1">
+                      <p className="text-lg font-display font-semibold text-pipe-lime mt-1">
                         {brl(p.valor)}
                       </p>
                       <p className="text-[11px] text-pipe-muted mt-1">
                         {num(p.total)} lead{p.total === 1 ? "" : "s"} ·{" "}
                         <span className="text-pipe-lime">{p.ganhos} ganhos</span> ·{" "}
-                        <span className="text-red-400">{p.perdidos} perdidos</span>
+                        <span className="text-red-700">{p.perdidos} perdidos</span>
                       </p>
                     </div>
                   ))}
@@ -914,7 +914,7 @@ function PaginaMetricas() {
 
               {/* Atividade por vendedor */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-4">
+                <h2 className="font-display text-lg text-pipe-ink mb-4">
                   Atividade dos vendedores
                 </h2>
                 <div className="overflow-x-auto">
@@ -936,7 +936,7 @@ function PaginaMetricas() {
                           key={v.usuario_id}
                           className="border-b border-pipe-border/50"
                         >
-                          <td className="py-2.5 pr-3 text-white font-medium">
+                          <td className="py-2.5 pr-3 text-pipe-ink font-medium">
                             {v.nome || v.email || "Membro"}
                           </td>
                           <td className="py-2.5 pr-3 text-pipe-blue font-semibold">
@@ -966,7 +966,7 @@ function PaginaMetricas() {
 
               {/* Geração por origem */}
               <section className="bg-pipe-card border border-pipe-border rounded-2xl p-5">
-                <h2 className="font-display text-lg text-white mb-4">
+                <h2 className="font-display text-lg text-pipe-ink mb-4">
                   Empresas geradas por origem
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -975,10 +975,10 @@ function PaginaMetricas() {
                       key={g.origem}
                       className="bg-pipe-bg border border-pipe-border rounded-xl p-4"
                     >
-                      <p className="text-sm font-bold text-white capitalize">
+                      <p className="text-sm font-semibold text-pipe-ink capitalize">
                         {g.origem.replace(/_/g, " ")}
                       </p>
-                      <p className="text-lg font-display font-bold text-pipe-blue mt-1">
+                      <p className="text-lg font-display font-semibold text-pipe-blue mt-1">
                         {num(g.total)}
                       </p>
                     </div>
@@ -1049,7 +1049,7 @@ function ModalEdicaoAtividade({
   };
 
   const inputCls =
-    "w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:border-pipe-lime outline-none mt-1";
+    "w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:border-pipe-lime outline-none mt-1";
 
   return (
     <div
@@ -1060,7 +1060,7 @@ function ModalEdicaoAtividade({
         className="bg-pipe-card border border-pipe-border rounded-2xl p-5 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-lg text-white mb-1">Editar atividade</h3>
+        <h3 className="font-display text-lg text-pipe-ink mb-1">Editar atividade</h3>
         <p className="text-xs text-pipe-muted mb-4 truncate">
           {atividade.empresa}
           {atividade.stage_nome ? ` · ${atividade.stage_nome}` : ""}
@@ -1096,7 +1096,7 @@ function ModalEdicaoAtividade({
         />
 
         {erro && (
-          <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mt-3">
+          <p className="text-xs text-red-700 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mt-3">
             {erro}
           </p>
         )}
@@ -1104,14 +1104,14 @@ function ModalEdicaoAtividade({
         <div className="flex justify-end gap-2 mt-5">
           <button
             onClick={aoFechar}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 border border-pipe-border hover:border-pipe-lime/40 transition"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-pipe-ink-soft border border-pipe-border hover:border-pipe-lime/40 transition"
           >
             Cancelar
           </button>
           <button
             onClick={() => void salvar()}
             disabled={salvando}
-            className="px-4 py-2 rounded-xl text-sm font-bold bg-pipe-lime text-pipe-bg hover:brightness-110 disabled:opacity-50 transition"
+            className="px-4 py-2 rounded-xl text-sm font-semibold bg-pipe-lime text-white hover:brightness-110 disabled:opacity-50 transition"
           >
             {salvando ? "Salvando…" : "Salvar"}
           </button>

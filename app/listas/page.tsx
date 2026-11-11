@@ -1027,10 +1027,10 @@ export default function PaginaListas() {
 
   function corDoScore(score: number): string {
     if (score >= 70)
-      return "bg-lime-500/20 text-lime-400 border border-lime-500/40";
+      return "bg-lime-500/20 text-emerald-700 border border-lime-500/40";
     if (score >= 40)
-      return "bg-amber-500/20 text-amber-400 border border-amber-500/40";
-    return "bg-red-500/15 text-red-400 border border-red-500/40";
+      return "bg-amber-500/20 text-amber-700 border border-amber-500/40";
+    return "bg-red-500/15 text-red-700 border border-red-500/40";
   }
 
   function temContato(e: EmpresaDaLista): boolean {
@@ -1083,23 +1083,24 @@ export default function PaginaListas() {
         aoFechar={() => setModalAbordagemAberto(false)}
       />
 
-      <main className="min-h-screen bg-pipe-dark px-6 py-12 lg:pl-72">
+      <main className="min-h-screen bg-pipe-bg px-6 py-12 lg:pl-72">
         <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between">
-          <Link href="/prospeccao" className="font-display text-3xl text-white">
-            FP <span className="text-pipe-lime">Pipe</span>
+          <Link href="/prospeccao" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink lg:invisible">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" /></svg>
+              FP Pipe
           </Link>
 
           <Link
             href="/prospeccao"
-            className="bg-pipe-lime text-black font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
+            className="bg-pipe-lime text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
           >
             + Nova prospecção
           </Link>
         </div>
 
         <div className="flex items-end justify-between mt-10">
-          <h1 className="font-display text-5xl text-white">Minhas listas</h1>
+          <h1 className="font-display text-5xl text-pipe-ink">Minhas listas</h1>
 
           {!carregando && listas.length > 0 && (
             <p className="text-pipe-muted text-sm">
@@ -1115,7 +1116,7 @@ export default function PaginaListas() {
           </p>
         ) : listas.length === 0 ? (
           <div className="bg-pipe-card border border-pipe-border rounded-xl p-8 mt-6 text-center">
-            <p className="text-white font-medium">
+            <p className="text-pipe-ink font-medium">
               Você ainda não tem nenhuma lista.
             </p>
 
@@ -1157,13 +1158,13 @@ export default function PaginaListas() {
                               if (e.key === "Escape") setEditandoListaId(null);
                             }}
                             autoFocus
-                            className="bg-pipe-dark border border-pipe-blue rounded-lg px-3 py-1.5 text-sm font-bold text-white focus:outline-none"
+                            className="bg-pipe-dark border border-pipe-blue rounded-lg px-3 py-1.5 text-sm font-semibold text-pipe-ink focus:outline-none"
                           />
 
                           <button
                             onClick={() => void salvarRenomear()}
                             title="Salvar nome"
-                            className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition"
                           >
                             <IconeVerificado tamanho={16} />
                           </button>
@@ -1171,13 +1172,13 @@ export default function PaginaListas() {
                           <button
                             onClick={() => setEditandoListaId(null)}
                             title="Cancelar"
-                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
                           >
                             ×
                           </button>
                         </div>
                       ) : (
-                        <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                        <h2 className="font-semibold text-lg text-pipe-ink flex items-center gap-2">
                           {lista.nome}
                           {campanhasPorLista[lista.id] === "enviada" && (
                             <span className="text-[10px] rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1 font-semibold">
@@ -1211,7 +1212,7 @@ export default function PaginaListas() {
                           {lista.segmentos.map((s) => (
                             <span
                               key={s}
-                              className="text-[10px] bg-pipe-dark border border-pipe-border text-gray-300 px-2 py-0.5 rounded-full"
+                              className="text-[10px] bg-pipe-dark border border-pipe-border text-pipe-ink-soft px-2 py-0.5 rounded-full"
                             >
                               {s}
                             </span>
@@ -1238,7 +1239,7 @@ export default function PaginaListas() {
                       <button
                         onClick={() => apagarLista(lista)}
                         title="Apagar esta lista"
-                        className="border border-red-500/30 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
+                        className="border border-red-500/30 text-red-700 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                       >
                         Apagar
                       </button>
@@ -1246,7 +1247,7 @@ export default function PaginaListas() {
                       {empresas.length > 0 && (
                         <button
                           onClick={() => void exportarLista(lista)}
-                          className="border border-pipe-border text-gray-300 text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
+                          className="border border-pipe-border text-pipe-ink-soft text-xs font-semibold px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                         >
                           Exportar CSV
                         </button>
@@ -1296,10 +1297,10 @@ export default function PaginaListas() {
                                   <button
                                     key={valor}
                                     onClick={() => setFiltroContato(valor)}
-                                    className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
+                                    className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg transition ${
                                       filtroAtivo === valor
                                         ? "bg-pipe-blue text-white"
-                                        : "bg-pipe-dark text-pipe-muted hover:text-white border border-pipe-border"
+                                        : "bg-pipe-dark text-pipe-muted hover:text-pipe-ink border border-pipe-border"
                                     }`}
                                   >
                                     {rotulo}
@@ -1331,7 +1332,7 @@ export default function PaginaListas() {
                           >
                             {typeof empresa.score === "number" ? (
                               <span
-                                className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs ${corDoScore(empresa.score)}`}
+                                className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs ${corDoScore(empresa.score)}`}
                               >
                                 {empresa.score}
                               </span>
@@ -1344,20 +1345,20 @@ export default function PaginaListas() {
                             <div className="min-w-0">
                               <button
                                 onClick={() => abrirDetalhe(empresa, lista)}
-                                className="text-sm text-white font-medium truncate text-left hover:text-pipe-blue hover:underline transition"
+                                className="text-sm text-pipe-ink font-medium truncate text-left hover:text-pipe-blue hover:underline transition"
                                 title="Abrir ficha completa do lead"
                               >
                                 {empresa.nome_fantasia ||
                                   empresa.razao_social ||
                                   "Sem nome"}
                                 {empresa.confirmado ? (
-                                  <span className="ml-2 text-[10px] font-bold text-pipe-lime">
+                                  <span className="ml-2 text-[10px] font-semibold text-pipe-lime">
                                     Confirmado
                                   </span>
                                 ) : null}
                                 {temContato(empresa) ? (
                                   <span
-                                    className="ml-2 text-[10px] font-bold text-pipe-lime"
+                                    className="ml-2 text-[10px] font-semibold text-pipe-lime"
                                     title="Este lead já tem e-mail, telefone ou LinkedIn registrado"
                                   >
                                     Contato
@@ -1405,7 +1406,7 @@ export default function PaginaListas() {
           <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-pipe-card border-l border-pipe-border overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="font-bold text-lg text-white leading-snug">
+                <h2 className="font-semibold text-lg text-pipe-ink leading-snug">
                   {empresaDetalhe.nome_fantasia ||
                     empresaDetalhe.razao_social ||
                     "Sem nome"}
@@ -1421,14 +1422,14 @@ export default function PaginaListas() {
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {typeof empresaDetalhe.score === "number" ? (
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded ${corDoScore(empresaDetalhe.score)}`}
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded ${corDoScore(empresaDetalhe.score)}`}
                     >
                       Score {empresaDetalhe.score}
                     </span>
                   ) : null}
 
                   {empresaDetalhe.confirmado ? (
-                    <span className="text-[11px] font-bold text-pipe-lime">
+                    <span className="text-[11px] font-semibold text-pipe-lime">
                       Confirmado
                     </span>
                   ) : null}
@@ -1443,7 +1444,7 @@ export default function PaginaListas() {
 
               <button
                 onClick={() => setEmpresaDetalhe(null)}
-                className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
+                className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-pipe-ink hover:bg-pipe-dark transition"
                 title="Fechar (Esc)"
               >
                 ×
@@ -1452,14 +1453,14 @@ export default function PaginaListas() {
 
             <div className="px-6 py-5 space-y-5">
               <section>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                   Empresa
                 </p>
 
                 <dl className="space-y-1.5 text-sm">
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">CNPJ</dt>
-                    <dd className="text-gray-200">
+                    <dd className="text-pipe-ink-soft">
                       {formatarCnpj(empresaDetalhe.cnpj)}
                     </dd>
                   </div>
@@ -1469,7 +1470,7 @@ export default function PaginaListas() {
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Razão social
                       </dt>
-                      <dd className="text-gray-200">
+                      <dd className="text-pipe-ink-soft">
                         {empresaDetalhe.razao_social}
                       </dd>
                     </div>
@@ -1480,7 +1481,7 @@ export default function PaginaListas() {
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Nome fantasia
                       </dt>
-                      <dd className="text-gray-200">
+                      <dd className="text-pipe-ink-soft">
                         {empresaDetalhe.nome_fantasia}
                       </dd>
                     </div>
@@ -1488,7 +1489,7 @@ export default function PaginaListas() {
 
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">Endereço</dt>
-                    <dd className="text-gray-200">
+                    <dd className="text-pipe-ink-soft">
                       {empresaDetalhe.endereco ||
                         [empresaDetalhe.municipio, empresaDetalhe.uf]
                           .filter(Boolean)
@@ -1502,7 +1503,7 @@ export default function PaginaListas() {
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Segmento ICP
                       </dt>
-                      <dd className="text-gray-200">
+                      <dd className="text-pipe-ink-soft">
                         {empresaDetalhe.segmento_icp}
                       </dd>
                     </div>
@@ -1511,7 +1512,7 @@ export default function PaginaListas() {
                   {empresaDetalhe.porte ? (
                     <div className="flex gap-2">
                       <dt className="text-pipe-muted w-32 shrink-0">Porte</dt>
-                      <dd className="text-gray-200">{empresaDetalhe.porte}</dd>
+                      <dd className="text-pipe-ink-soft">{empresaDetalhe.porte}</dd>
                     </div>
                   ) : null}
 
@@ -1520,7 +1521,7 @@ export default function PaginaListas() {
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Capital social
                       </dt>
-                      <dd className="text-gray-200">
+                      <dd className="text-pipe-ink-soft">
                         {empresaDetalhe.capital_social.toLocaleString(
                           "pt-BR",
                           { style: "currency", currency: "BRL" }
@@ -1534,7 +1535,7 @@ export default function PaginaListas() {
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Motivo do score
                       </dt>
-                      <dd className="text-gray-300">
+                      <dd className="text-pipe-ink-soft">
                         {empresaDetalhe.score_motivo}
                       </dd>
                     </div>
@@ -1543,7 +1544,7 @@ export default function PaginaListas() {
               </section>
 
               <section className="border-t border-pipe-border pt-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                   Contato da empresa
                 </p>
 
@@ -1611,12 +1612,12 @@ export default function PaginaListas() {
                 empresaDetalhe.aprovador_telefone ||
                 empresaDetalhe.aprovador_email) && (
                 <section className="border-t border-pipe-border pt-4">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                     Aprovador
                   </p>
 
                   <div className="flex flex-col gap-1.5 text-sm">
-                    <p className="text-gray-200 font-medium">
+                    <p className="text-pipe-ink-soft font-medium">
                       {empresaDetalhe.decisor_nome || "Nome não identificado"}
                       {empresaDetalhe.decisor_cargo
                         ? ` · ${empresaDetalhe.decisor_cargo}`
@@ -1676,12 +1677,12 @@ export default function PaginaListas() {
                 empresaDetalhe.campeao_telefone ||
                 empresaDetalhe.campeao_email) && (
                 <section className="border-t border-pipe-border pt-4">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                     Influenciador (quem recebe sua proposta)
                   </p>
 
                   <div className="flex flex-col gap-1.5 text-sm">
-                    <p className="text-gray-200 font-medium">
+                    <p className="text-pipe-ink-soft font-medium">
                       {empresaDetalhe.campeao_nome ||
                         empresaDetalhe.campeao_cargo ||
                         "—"}
@@ -1720,13 +1721,13 @@ export default function PaginaListas() {
               )}
 
               <section className="border-t border-pipe-border pt-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-blue mb-2">
                   Abordagem
                 </p>
 
                 {!listaIcpResumo && (
                   <div className="mb-3 bg-amber-500/5 border border-amber-500/30 rounded-lg p-3">
-                    <p className="text-xs text-amber-300 font-semibold mb-1.5">
+                    <p className="text-xs text-amber-700 font-semibold mb-1.5">
                       Esta lista foi criada antes de guardarmos o que sua
                       empresa vende — complete abaixo para abordagens mais
                       precisas.
@@ -1737,13 +1738,13 @@ export default function PaginaListas() {
                       onChange={(e) => setPerfilVendedor(e.target.value)}
                       rows={3}
                       placeholder="Ex.: Vendemos consultoria em cibersegurança para médias empresas: pentest, monitoramento de ameaças e adequação à LGPD."
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-amber-400 resize-y mb-2"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink-soft focus:outline-none focus:border-amber-400 resize-y mb-2"
                     />
 
                     <button
                       onClick={salvarPerfilVendedor}
                       disabled={salvandoPerfil || !perfilVendedor.trim()}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-black hover:opacity-90 disabled:opacity-50 transition"
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-pipe-ink hover:opacity-90 disabled:opacity-50 transition"
                     >
                       {salvandoPerfil
                         ? "Salvando..."
@@ -1754,7 +1755,7 @@ export default function PaginaListas() {
 
                 <button
                   onClick={() => setModalAbordagemAberto(true)}
-                  className="w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-bold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
+                  className="w-full bg-pipe-blue/15 border border-pipe-blue text-pipe-blue text-xs font-semibold py-2.5 rounded-lg hover:bg-pipe-blue/25 transition"
                 >
                   Gerar abordagem
                 </button>
@@ -1767,7 +1768,7 @@ export default function PaginaListas() {
 
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-blue">
                     Contato institucional da empresa
                   </p>
 
@@ -1775,7 +1776,7 @@ export default function PaginaListas() {
                     <button
                       onClick={() => void buscarNaReceita()}
                       disabled={buscandoReceita}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
                     >
                       {buscandoReceita
                         ? "Buscando..."
@@ -1785,7 +1786,7 @@ export default function PaginaListas() {
                     <button
                       onClick={() => void buscarNoMaps()}
                       disabled={buscandoMaps}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
                     >
                       {buscandoMaps ? "Buscando..." : "Google Maps"}
                     </button>
@@ -1793,10 +1794,10 @@ export default function PaginaListas() {
                 </div>
 
                 {erroReceita && (
-                  <p className="text-xs text-red-400 mb-2">{erroReceita}</p>
+                  <p className="text-xs text-red-700 mb-2">{erroReceita}</p>
                 )}
                 {erroMaps && (
-                  <p className="text-xs text-red-400 mb-2">{erroMaps}</p>
+                  <p className="text-xs text-red-700 mb-2">{erroMaps}</p>
                 )}
 
                 <div className="space-y-1 text-xs">
@@ -1819,7 +1820,7 @@ export default function PaginaListas() {
                       <a
                         key={tel}
                         href={`tel:${tel.replace(/[^\d+]/g, "")}`}
-                        className="block text-white hover:text-pipe-lime"
+                        className="block text-pipe-ink hover:text-pipe-lime"
                       >
                         <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {tel}
                       </a>
@@ -1832,7 +1833,7 @@ export default function PaginaListas() {
 
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-blue">
                     Dados da empresa (editáveis)
                   </p>
 
@@ -1843,7 +1844,7 @@ export default function PaginaListas() {
                         aberto: !v.aberto,
                       }))
                     }
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
                   >
                     {edicaoEmpresa.aberto ? "Fechar" : "Editar"}
                   </button>
@@ -1860,7 +1861,7 @@ export default function PaginaListas() {
                         }))
                       }
                       placeholder="Nome da empresa"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <input
@@ -1872,7 +1873,7 @@ export default function PaginaListas() {
                         }))
                       }
                       placeholder="Endereço"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <div className="grid grid-cols-[1fr_80px] gap-2">
@@ -1885,7 +1886,7 @@ export default function PaginaListas() {
                           }))
                         }
                         placeholder="Cidade"
-                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                       />
                       <input
                         value={edicaoEmpresa.uf}
@@ -1897,7 +1898,7 @@ export default function PaginaListas() {
                           }))
                         }
                         placeholder="UF"
-                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm uppercase text-white focus:outline-none focus:border-pipe-blue"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm uppercase text-pipe-ink focus:outline-none focus:border-pipe-blue"
                       />
                     </div>
 
@@ -1911,7 +1912,7 @@ export default function PaginaListas() {
                           }))
                         }
                         placeholder="Telefone da empresa"
-                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                       />
                       <input
                         value={edicaoEmpresa.email}
@@ -1923,7 +1924,7 @@ export default function PaginaListas() {
                           }))
                         }
                         placeholder="E-mail da empresa"
-                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                        className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                       />
                     </div>
 
@@ -1936,14 +1937,14 @@ export default function PaginaListas() {
                         }))
                       }
                       placeholder="LinkedIn da empresa (https://linkedin.com/company/...)"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => void acharLinkedinEmpresa()}
                         disabled={buscandoLinkedin || salvandoEmpresa}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
+                        className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 disabled:opacity-50 transition"
                         title="Busca o LinkedIn da empresa no Google e salva automaticamente"
                       >
                         {buscandoLinkedin
@@ -1954,7 +1955,7 @@ export default function PaginaListas() {
                       <button
                         onClick={() => void salvarDadosEmpresa()}
                         disabled={salvandoEmpresa}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                        className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-pipe-lime text-white hover:opacity-90 disabled:opacity-50 transition"
                       >
                         {salvandoEmpresa
                           ? "Salvando..."
@@ -1975,14 +1976,14 @@ export default function PaginaListas() {
 
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-blue">
                     Contato do lead (editável)
                   </p>
 
                   <button
                     onClick={salvarDadosLead}
                     disabled={salvandoLead}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-pipe-lime text-white hover:opacity-90 disabled:opacity-50 transition"
                   >
                     {salvandoLead
                       ? "Salvando..."
@@ -2007,7 +2008,7 @@ export default function PaginaListas() {
                       setEdicaoLead((v) => ({ ...v, nome: e.target.value }))
                     }
                     placeholder="Nome do contato"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   />
 
                   <input
@@ -2017,7 +2018,7 @@ export default function PaginaListas() {
                       setEdicaoLead((v) => ({ ...v, email: e.target.value }))
                     }
                     placeholder="E-mail do contato"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   />
 
                   <input
@@ -2026,7 +2027,7 @@ export default function PaginaListas() {
                       setEdicaoLead((v) => ({ ...v, telefone: e.target.value }))
                     }
                     placeholder="Telefone do contato (WhatsApp)"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   />
 
                   <input
@@ -2035,7 +2036,7 @@ export default function PaginaListas() {
                       setEdicaoLead((v) => ({ ...v, linkedin: e.target.value }))
                     }
                     placeholder="LinkedIn do contato (https://linkedin.com/in/...)"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   />
 
                   <textarea
@@ -2045,14 +2046,14 @@ export default function PaginaListas() {
                     }
                     rows={3}
                     placeholder="Informações adicionais (contexto, objeções, histórico, anotações...)"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink-soft whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
                   />
                 </div>
               </section>
 
               <section className="border-t border-pipe-border pt-4">
                 <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-blue">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-blue">
                     <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contatos deste lead ({contatosLead.length})
                   </p>
 
@@ -2060,7 +2061,7 @@ export default function PaginaListas() {
                     onClick={() =>
                       setFormContato((v) => ({ ...v, aberto: !v.aberto }))
                     }
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-pipe-blue/50 text-pipe-blue hover:bg-pipe-blue/10 transition"
                   >
                     {formContato.aberto ? "Cancelar" : "Adicionar contato"}
                   </button>
@@ -2079,7 +2080,7 @@ export default function PaginaListas() {
                         setFormContato((v) => ({ ...v, nome: e.target.value }))
                       }
                       placeholder="Nome"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <input
@@ -2088,7 +2089,7 @@ export default function PaginaListas() {
                         setFormContato((v) => ({ ...v, cargo: e.target.value }))
                       }
                       placeholder="Cargo"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <textarea
@@ -2101,7 +2102,7 @@ export default function PaginaListas() {
                       }
                       rows={2}
                       placeholder="E-mails (vários: separe por ; ou vírgula)"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue resize-y"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue resize-y"
                     />
 
                     <textarea
@@ -2114,7 +2115,7 @@ export default function PaginaListas() {
                       }
                       rows={2}
                       placeholder="Telefones (vários: separe por ; ou vírgula)"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue resize-y"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue resize-y"
                     />
 
                     <input
@@ -2126,7 +2127,7 @@ export default function PaginaListas() {
                         }))
                       }
                       placeholder="LinkedIn (https://linkedin.com/in/...)"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
 
                     <button
@@ -2135,7 +2136,7 @@ export default function PaginaListas() {
                         salvandoContato ||
                         (!formContato.nome.trim() && !formContato.emails.trim())
                       }
-                      className="w-full text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+                      className="w-full text-xs font-semibold px-3 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 disabled:opacity-50 transition"
                     >
                       {salvandoContato
                         ? "Salvando..."
@@ -2165,7 +2166,7 @@ export default function PaginaListas() {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-white truncate">
+                            <p className="text-sm font-semibold text-pipe-ink truncate">
                               {c.nome ?? "Sem nome"}
                               {c.cargo && (
                                 <span className="font-normal text-pipe-muted">
@@ -2199,7 +2200,7 @@ export default function PaginaListas() {
                                     {i > 0 && " · "}
                                     <a
                                       href={`tel:${t.replace(/[^\d+]/g, "")}`}
-                                      className="hover:text-white"
+                                      className="hover:text-pipe-ink"
                                     >
                                       {t}
                                     </a>
@@ -2223,7 +2224,7 @@ export default function PaginaListas() {
                           <button
                             onClick={() => void removerContatoLead(c.id)}
                             title="Remover contato"
-                            className="shrink-0 w-7 h-7 rounded-lg text-pipe-muted hover:text-red-400 hover:bg-red-500/10 transition"
+                            className="shrink-0 w-7 h-7 rounded-lg text-pipe-muted hover:text-red-700 hover:bg-red-500/10 transition"
                           >
                             ×
                           </button>
@@ -2241,17 +2242,17 @@ export default function PaginaListas() {
       {conflitoContato && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 className="font-bold text-lg text-white">
+            <h3 className="font-semibold text-lg text-pipe-ink">
               {conflitoContato.campo} já atribuído a outro lead
             </h3>
 
             <p className="text-sm text-pipe-muted leading-relaxed">
               O {conflitoContato.campo.toLowerCase()}{" "}
-              <span className="text-white font-semibold break-all">
+              <span className="text-pipe-ink font-semibold break-all">
                 {conflitoContato.valor}
               </span>{" "}
               já está no lead{" "}
-              <span className="text-white font-semibold">
+              <span className="text-pipe-ink font-semibold">
                 {conflitoContato.nomeLead}
               </span>
               . Deseja duplicar neste lead ou ir para o existente?
@@ -2260,14 +2261,14 @@ export default function PaginaListas() {
             <div className="flex justify-end gap-2 flex-wrap">
               <button
                 onClick={() => setConflitoContato(null)}
-                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
               >
                 Cancelar
               </button>
 
               <button
                 onClick={() => void duplicarContatoConflito()}
-                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-200 hover:bg-pipe-dark transition"
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
               >
                 Duplicar aqui
               </button>
@@ -2275,7 +2276,7 @@ export default function PaginaListas() {
               <button
                 onClick={irParaLeadConflito}
                 title={`Abrir o lead ${conflitoContato.nomeLead}`}
-                className="text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
+                className="text-xs font-semibold px-3 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition"
               >
                 → Ir para o lead: {conflitoContato.nomeLead}
               </button>

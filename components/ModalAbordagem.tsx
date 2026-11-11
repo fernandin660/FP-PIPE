@@ -307,7 +307,7 @@ export default function ModalAbordagem({
             <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">
               Gerar abordagem
             </p>
-            <h2 className="font-display text-xl text-white mt-0.5">
+            <h2 className="font-display text-xl text-pipe-ink mt-0.5">
               {nomeEmpresa}
             </h2>
             <p className="text-xs text-pipe-muted mt-1">
@@ -319,7 +319,7 @@ export default function ModalAbordagem({
 
           <button
             onClick={aoFechar}
-            className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
+            className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-pipe-ink hover:bg-pipe-dark transition"
           >
             ×
           </button>
@@ -328,7 +328,7 @@ export default function ModalAbordagem({
         {!resultado && (
           <div className="px-6 py-5 space-y-6">
             <section>
-              <p className="text-xs font-bold uppercase tracking-wide text-gray-300 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-pipe-ink-soft mb-3">
                 O que você quer oferecer?
               </p>
 
@@ -343,7 +343,7 @@ export default function ModalAbordagem({
                     className={`text-xs font-semibold px-3 py-2 rounded-lg border transition ${
                       produtoEscolhido === produto
                         ? "bg-pipe-blue/15 border-pipe-blue text-pipe-blue"
-                        : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
+                        : "border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark"
                     }`}
                   >
                     {produto}
@@ -357,7 +357,7 @@ export default function ModalAbordagem({
                   className={`text-xs font-semibold px-3 py-2 rounded-lg border transition ${
                     produtoEscolhido === "__portfolio__"
                       ? "bg-pipe-blue/15 border-pipe-blue text-pipe-blue"
-                      : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
+                      : "border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark"
                   }`}
                 >
                   Todo o portfólio
@@ -368,7 +368,7 @@ export default function ModalAbordagem({
                   className={`text-xs font-semibold px-3 py-2 rounded-lg border transition ${
                     produtoEscolhido === "__outro__"
                       ? "bg-pipe-blue/15 border-pipe-blue text-pipe-blue"
-                      : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
+                      : "border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark"
                   }`}
                 >
                   Outro produto
@@ -380,21 +380,21 @@ export default function ModalAbordagem({
                   value={outroTexto}
                   onChange={(e) => setOutroTexto(e.target.value)}
                   placeholder="Ex.: Manutenção preventiva de frota"
-                  className="mt-3 w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  className="mt-3 w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                 />
               )}
             </section>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-gray-300 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-pipe-ink-soft mb-2">
                   Objetivo da abordagem
                 </label>
 
                 <select
                   value={objetivo}
                   onChange={(e) => setObjetivo(e.target.value)}
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                 >
                   <option value="">Selecionar...</option>
                   {OBJETIVOS.map((item) => (
@@ -406,14 +406,14 @@ export default function ModalAbordagem({
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-gray-300 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-pipe-ink-soft mb-2">
                   Canal
                 </label>
 
                 <select
                   value={canal}
                   onChange={(e) => setCanal(e.target.value)}
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                 >
                   <option value="">Selecionar...</option>
                   {CANAIS.map((item) => (
@@ -426,13 +426,13 @@ export default function ModalAbordagem({
             </section>
 
             {mensagemErro && (
-              <p className="text-sm text-red-400">{mensagemErro}</p>
+              <p className="text-sm text-red-700">{mensagemErro}</p>
             )}
 
             <div className="border-t border-pipe-border pt-4 flex items-center justify-between gap-4">
               <p className="text-xs text-pipe-muted">
                 Custo:{" "}
-                <span className="text-pipe-lime font-bold">
+                <span className="text-pipe-lime font-semibold">
                   1 Crédito de IA
                 </span>
               </p>
@@ -440,7 +440,7 @@ export default function ModalAbordagem({
               <button
                 onClick={gerar}
                 disabled={!podeGerar}
-                className="bg-pipe-lime text-black font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
+                className="bg-pipe-lime text-white font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
               >
                 {gerando ? "Gerando a abordagem…" : "Gerar abordagem"}
               </button>
@@ -467,11 +467,11 @@ export default function ModalAbordagem({
             </div>
 
             <section className="border border-pipe-lime/30 bg-pipe-lime/5 rounded-xl p-4">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-lime mb-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-lime mb-1.5">
                 Melhor argumento
               </p>
 
-              <p className="text-sm text-gray-100">{resultado.argumento}</p>
+              <p className="text-sm text-pipe-ink">{resultado.argumento}</p>
             </section>
 
             {editando ? (
@@ -481,7 +481,7 @@ export default function ModalAbordagem({
                     value={assuntoEdicao}
                     onChange={(e) => setAssuntoEdicao(e.target.value)}
                     placeholder="Assunto"
-                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   />
                 )}
 
@@ -489,13 +489,13 @@ export default function ModalAbordagem({
                   value={conteudoEdicao}
                   onChange={(e) => setConteudoEdicao(e.target.value)}
                   rows={12}
-                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
+                  className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink-soft whitespace-pre-wrap focus:outline-none focus:border-pipe-blue resize-y"
                 />
 
                 <div className="flex gap-2 justify-end">
                   <button
                     onClick={() => setEditando(false)}
-                    className="text-xs font-semibold border border-pipe-border text-gray-300 px-4 py-2 rounded-lg hover:bg-pipe-dark transition"
+                    className="text-xs font-semibold border border-pipe-border text-pipe-ink-soft px-4 py-2 rounded-lg hover:bg-pipe-dark transition"
                   >
                     Cancelar
                   </button>
@@ -503,7 +503,7 @@ export default function ModalAbordagem({
                   <button
                     onClick={salvarEdicao}
                     disabled={salvandoEdicao || !conteudoEdicao.trim()}
-                    className="text-xs font-bold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                    className="text-xs font-semibold bg-pipe-lime text-white px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
                   >
                     {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
                   </button>
@@ -512,19 +512,19 @@ export default function ModalAbordagem({
             ) : (
               <section className="space-y-3">
                 {resultado.canal === "email" && resultado.assunto && (
-                  <p className="text-sm text-gray-200">
+                  <p className="text-sm text-pipe-ink-soft">
                     <strong>Assunto:</strong> {resultado.assunto}
                   </p>
                 )}
 
-                <pre className="whitespace-pre-wrap font-sans text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
+                <pre className="whitespace-pre-wrap font-sans text-sm text-pipe-ink-soft leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
 {resultado.conteudo}
                 </pre>
 
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={copiar}
-                    className="text-xs font-semibold bg-pipe-lime text-black px-4 py-2 rounded-lg hover:opacity-90 transition"
+                    className="text-xs font-semibold bg-pipe-lime text-white px-4 py-2 rounded-lg hover:opacity-90 transition"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       <IconeCopiar tamanho={14} />
@@ -534,7 +534,7 @@ export default function ModalAbordagem({
 
                   <button
                     onClick={comecarEdicao}
-                    className="text-xs font-semibold border border-pipe-border text-gray-300 px-4 py-2 rounded-lg hover:bg-pipe-dark transition"
+                    className="text-xs font-semibold border border-pipe-border text-pipe-ink-soft px-4 py-2 rounded-lg hover:bg-pipe-dark transition"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       <IconeEscrever tamanho={14} />
@@ -545,7 +545,7 @@ export default function ModalAbordagem({
                   <button
                     onClick={gerar}
                     disabled={gerando}
-                    className="text-xs font-semibold border border-pipe-border text-gray-300 px-4 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition"
+                    className="text-xs font-semibold border border-pipe-border text-pipe-ink-soft px-4 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition"
                   >
                     {gerando ? "Gerando..." : "Gerar novamente"}
                   </button>
@@ -561,13 +561,13 @@ export default function ModalAbordagem({
                           }}
                           placeholder="Nome do modelo"
                           autoFocus
-                          className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pipe-blue w-40"
+                          className="bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue w-40"
                         />
 
                         <button
                           onClick={salvarComoModelo}
                           disabled={salvandoModelo}
-                          className="text-xs font-bold bg-amber-500 text-black px-3 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                          className="text-xs font-semibold bg-amber-500 text-pipe-ink px-3 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
                         >
                           {salvandoModelo ? "..." : "Salvar"}
                         </button>
@@ -575,7 +575,7 @@ export default function ModalAbordagem({
                     ) : (
                       <button
                         onClick={() => setMostrandoModelo(true)}
-                        className="text-xs font-semibold border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/10 transition"
+                        className="text-xs font-semibold border border-amber-500/50 text-amber-700 px-4 py-2 rounded-lg hover:bg-amber-500/10 transition"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <IconeEstrela tamanho={14} />
@@ -584,7 +584,7 @@ export default function ModalAbordagem({
                       </button>
                     )
                   ) : (
-                    <span className="text-xs font-semibold text-amber-400 self-center">
+                    <span className="text-xs font-semibold text-amber-700 self-center">
                       Salvo nos Modelos
                     </span>
                   )}
@@ -596,7 +596,7 @@ export default function ModalAbordagem({
 
         {historico.length > 0 && !resultado && (
           <div className="px-6 pb-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-300 mb-3 pt-2 border-t border-pipe-border">
+            <p className="text-xs font-semibold uppercase tracking-wide text-pipe-ink-soft mb-3 pt-2 border-t border-pipe-border">
               Histórico deste lead ({historico.length})
             </p>
 
@@ -607,7 +607,7 @@ export default function ModalAbordagem({
                   onClick={() => abrirResultado(item)}
                   className="w-full text-left bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 hover:border-pipe-blue/50 transition"
                 >
-                  <p className="text-xs font-semibold text-gray-200 truncate">
+                  <p className="text-xs font-semibold text-pipe-ink-soft truncate">
                     {item.argumento || item.produto}
                   </p>
                   <p className="text-[11px] text-pipe-muted mt-0.5">

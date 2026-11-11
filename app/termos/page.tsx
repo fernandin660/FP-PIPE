@@ -8,23 +8,23 @@ const CONTATO = "fernandopugliesi@fppipe.com.br";
 
 export default function PaginaTermos() {
   return (
-    <main className="min-h-screen bg-pipe-bg text-gray-200">
+    <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft">
       <div className="max-w-3xl mx-auto px-6 py-14">
         <Link
           href="/plataforma"
-          className="text-pipe-muted text-sm hover:text-white transition"
+          className="text-pipe-muted text-sm hover:text-pipe-ink transition"
         >
           ← Voltar
         </Link>
 
-        <h1 className="font-display text-4xl text-white mt-6">Termos de Uso</h1>
+        <h1 className="font-display text-4xl text-pipe-ink mt-6">Termos de Uso</h1>
         <p className="text-pipe-muted text-sm mt-2">
           Última atualização: setembro de 2026
         </p>
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed">
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">1. Objeto</h2>
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">1. Objeto</h2>
             <p>
               O FP Pipe é uma plataforma de prospecção B2B que ajuda você a
               montar listas de empresas com o perfil do seu cliente ideal,
@@ -34,7 +34,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               2. Conta do usuário
             </h2>
             <ul className="list-disc pl-5 space-y-2">
@@ -54,7 +54,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               3. Planos, pagamento e reembolso
             </h2>
             <ul className="list-disc pl-5 space-y-2">
@@ -83,7 +83,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               4. Uso aceitável
             </h2>
             <ul className="list-disc pl-5 space-y-2">
@@ -104,7 +104,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               5. Disponibilidade e suporte
             </h2>
             <p>
@@ -121,7 +121,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               6. Suspensão e encerramento
             </h2>
             <p>
@@ -132,7 +132,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               7. Alterações destes Termos
             </h2>
             <p>
@@ -143,7 +143,7 @@ export default function PaginaTermos() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               8. Legislação e foro
             </h2>
             <p>

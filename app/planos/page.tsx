@@ -204,17 +204,17 @@ function CartaoPlano({
     <div
       className={`relative flex flex-col rounded-2xl p-7 border ${
         plano.destaques
-          ? "bg-pipe-card border-pipe-lime/50 shadow-[0_0_32px_rgba(127,255,0,0.08)] md:-mt-3 md:mb-[-12px]"
+          ? "bg-pipe-card border-pipe-lime/50 shadow-[0_24px_60px_-30px_rgba(17,17,20,0.25)] md:-mt-3 md:mb-[-12px]"
           : "bg-pipe-card border-pipe-border"
       }`}
     >
       {plano.selo && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold tracking-wide uppercase bg-pipe-lime text-black rounded-full px-4 py-1">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-semibold tracking-wide uppercase bg-pipe-lime text-white rounded-full px-4 py-1">
           {plano.selo}
         </span>
       )}
 
-      <h2 className="font-display text-xl text-white">
+      <h2 className="font-display text-xl text-pipe-ink">
         <span className="inline-flex items-center gap-2">
           <IconeDoPlano chave={plano.chave} />
           {plano.nome}
@@ -225,12 +225,12 @@ function CartaoPlano({
       </p>
 
       <div className="flex items-end gap-1 mt-5">
-        <span className="font-display text-4xl text-white">R$ {preco}</span>
+        <span className="font-display text-4xl text-pipe-ink">R$ {preco}</span>
         <span className="text-pipe-muted text-sm mb-1">/mês</span>
       </div>
 
       {ciclo === "anual" && (
-        <p className="text-pipe-muted/70 text-xs mt-1">
+        <p className="text-pipe-muted text-xs mt-1">
           R$ {(plano.precoAnual * 12).toLocaleString("pt-BR")} cobrados uma vez
           ao ano
         </p>
@@ -240,7 +240,7 @@ function CartaoPlano({
         {plano.itens.map((item) => (
           <li key={item} className="flex items-start gap-2">
             <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0 mt-0.5" />
-            <span className="text-gray-300">{item}</span>
+            <span className="text-pipe-ink-soft">{item}</span>
           </li>
         ))}
       </ul>
@@ -251,19 +251,19 @@ function CartaoPlano({
           disabled={carregando !== null}
           className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition disabled:opacity-50 ${
             plano.destaques
-              ? "bg-pipe-lime text-black hover:opacity-90"
-              : "border border-pipe-border text-white hover:border-pipe-blue"
+              ? "bg-pipe-lime text-white hover:opacity-90"
+              : "border border-pipe-border text-pipe-ink hover:border-pipe-blue"
           }`}
         >
           {carregando === plano.chave ? "Abrindo pagamento..." : plano.cta}
         </button>
       ) : (
-        <div className="mt-7 block w-full text-center font-semibold rounded-lg py-3 bg-gray-800 text-gray-400 border border-gray-700">
+        <div className="mt-7 block w-full text-center font-semibold rounded-lg py-3 bg-pipe-dark text-pipe-muted border border-pipe-border">
           Peça ao administrador
         </div>
       )}
 
-      <p className="text-pipe-muted/60 text-[11px] text-center mt-2">
+      <p className="text-pipe-muted text-[11px] text-center mt-2">
         {ciclo === "mensal"
           ? "Somente cartão de crédito"
           : "Cartão de crédito ou Pix"}
@@ -352,28 +352,29 @@ export default function Planos() {
   }
 
   return (
-    <main className="min-h-screen bg-pipe-bg text-gray-200">
+    <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft">
       {/* NAV */}
 
       <header className="sticky top-0 z-40 backdrop-blur bg-pipe-bg/85 border-b border-pipe-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
             href="/plataforma"
-            className="font-display text-2xl text-white hover:opacity-90 transition"
+            className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink hover:opacity-90 transition"
           >
-            FP <span className="text-pipe-lime">Pipe</span>
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" /></svg>
+              FP Pipe
           </Link>
 
           <div className="flex items-center gap-3">
             <Link
               href="/plataforma"
-              className="text-sm text-pipe-muted hover:text-white transition hidden sm:block"
+              className="text-sm text-pipe-muted hover:text-pipe-ink transition hidden sm:block"
             >
               ← Voltar
             </Link>
             <Link
               href="/prospeccao"
-              className="text-sm font-semibold text-black bg-pipe-lime rounded-lg px-4 py-2 hover:opacity-90 transition"
+              className="text-sm font-semibold text-white bg-pipe-lime rounded-lg px-4 py-2 hover:opacity-90 transition"
             >
               Criar conta grátis
             </Link>
@@ -384,7 +385,7 @@ export default function Planos() {
       {/* TOPO */}
 
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-10 text-center">
-        <h1 className="font-display text-4xl md:text-5xl text-white">
+        <h1 className="font-display text-4xl md:text-5xl text-pipe-ink">
           Planos com o limite que você precisa{" "}
           <span className="text-pipe-lime">por mês</span>
         </h1>
@@ -400,10 +401,10 @@ export default function Planos() {
           <p
             className={`mt-6 mx-auto max-w-xl text-sm rounded-lg border px-4 py-3 ${
               avisoStatus.tipo === "ok"
-                ? "text-lime-300 bg-lime-500/10 border-lime-500/30"
+                ? "text-emerald-700 bg-lime-500/10 border-lime-500/30"
                 : avisoStatus.tipo === "pendente"
-                  ? "text-yellow-300 bg-yellow-500/10 border-yellow-500/30"
-                  : "text-red-300 bg-red-500/10 border-red-500/30"
+                  ? "text-amber-700 bg-yellow-500/10 border-yellow-500/30"
+                  : "text-red-700 bg-red-500/10 border-red-500/30"
             }`}
           >
             {avisoStatus.texto}
@@ -417,12 +418,12 @@ export default function Planos() {
             onClick={() => setCiclo("anual")}
             className={`px-5 py-2 rounded-md text-sm font-semibold transition ${
               ciclo === "anual"
-                ? "bg-pipe-blue text-black"
-                : "text-pipe-muted hover:text-white"
+                ? "bg-pipe-blue text-white"
+                : "text-pipe-muted hover:text-pipe-ink"
             }`}
           >
             Anual
-            <span className="ml-2 text-xs font-bold text-lime-400">
+            <span className="ml-2 text-xs font-semibold text-emerald-700">
               até -24%
             </span>
           </button>
@@ -430,8 +431,8 @@ export default function Planos() {
             onClick={() => setCiclo("mensal")}
             className={`px-5 py-2 rounded-md text-sm font-semibold transition ${
               ciclo === "mensal"
-                ? "bg-pipe-blue text-black"
-                : "text-pipe-muted hover:text-white"
+                ? "bg-pipe-blue text-white"
+                : "text-pipe-muted hover:text-pipe-ink"
             }`}
           >
             Mensal
@@ -439,12 +440,12 @@ export default function Planos() {
         </div>
 
         {ciclo === "anual" ? (
-          <p className="text-pipe-muted/70 text-xs mt-3">
+          <p className="text-pipe-muted text-xs mt-3">
             Cartão de crédito ou Pix · cobrança única por ano · sem renovação
             automática
           </p>
         ) : (
-          <p className="text-pipe-muted/70 text-xs mt-3">
+          <p className="text-pipe-muted text-xs mt-3">
             Somente cartão de crédito · cancele quando quiser · troque para o
             anual e economize até 24%
           </p>
@@ -454,7 +455,7 @@ export default function Planos() {
       {/* ERRO GLOBAL */}
 
       {erro && (
-        <p className="max-w-md mx-auto px-6 pb-4 -mt-4 text-red-400 text-sm text-center">
+        <p className="max-w-md mx-auto px-6 pb-4 -mt-4 text-red-700 text-sm text-center">
           {erro}
         </p>
       )}
@@ -479,14 +480,14 @@ export default function Planos() {
       {/* INTERNACIONAL */}
 
       <div className="max-w-6xl mx-auto px-6 pb-5 text-center">
-        <h2 className="font-display text-3xl text-white">
+        <h2 className="font-display text-3xl text-pipe-ink">
           <span className="inline-flex items-center gap-3">
             <IconeSetaExterna className="w-7 h-7 text-pipe-lime" /> Internacional
           </span>
         </h2>
         <p className="text-pipe-muted text-sm mt-2 max-w-2xl mx-auto">
           Os mesmos planos, com busca de empresas em{" "}
-          <span className="text-white font-semibold">toda a América</span> —
+          <span className="text-pipe-ink font-semibold">toda a América</span> —
           Norte, Central e Sul. Nome, segmento, endereço, telefone* e site da
           empresa.
         </p>
@@ -507,7 +508,7 @@ export default function Planos() {
           ))}
       </section>
 
-      <p className="max-w-4xl mx-auto px-6 pb-10 pt-4 text-center text-pipe-muted/60 text-[11px]">
+      <p className="max-w-4xl mx-auto px-6 pb-10 pt-4 text-center text-pipe-muted text-[11px]">
         *Telefone e site conforme disponibilidade nos dados públicos do
         OpenStreetMap. E-mail de contato extraído do site da empresa quando
         disponível.
@@ -519,7 +520,7 @@ export default function Planos() {
         <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 text-center">
           <p className="text-pipe-muted text-sm">
             No mercado, contatos B2B custam{" "}
-            <span className="text-white font-semibold">
+            <span className="text-pipe-ink font-semibold">
               R$ 1–6 por lead
             </span>{" "}
             e vêm sem abordagem escrita. Na FP Pipe,{" "}
@@ -527,7 +528,7 @@ export default function Planos() {
               cada contato já sai com o primeiro e-mail redigido
             </span>{" "}
             e você{" "}
-            <span className="text-white font-semibold">
+            <span className="text-pipe-ink font-semibold">
               dispara a campanha inteira pelo Gold
             </span>{" "}
             — sem trocar de ferramenta.
@@ -538,7 +539,7 @@ export default function Planos() {
       {/* FAQ */}
 
       <section className="max-w-3xl mx-auto px-6 pb-20">
-        <h2 className="font-display text-3xl text-white text-center">
+        <h2 className="font-display text-3xl text-pipe-ink text-center">
           Perguntas frequentes
         </h2>
 
@@ -548,7 +549,7 @@ export default function Planos() {
               key={item.pergunta}
               className="group bg-pipe-card border border-pipe-border rounded-xl p-5"
             >
-              <summary className="cursor-pointer text-white font-medium list-none flex items-center justify-between gap-4">
+              <summary className="cursor-pointer text-pipe-ink font-medium list-none flex items-center justify-between gap-4">
                 {item.pergunta}
                 <span className="text-pipe-blue group-open:rotate-45 transition-transform text-xl leading-none">
                   +
@@ -563,13 +564,13 @@ export default function Planos() {
       {/* FOOTER */}
 
       <footer className="border-t border-pipe-border">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-pipe-muted/60">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-pipe-muted">
           <p>© FP Pipe — Inteligência comercial para quem vende B2B.</p>
           <div className="flex items-center gap-6">
-            <Link href="/plataforma" className="hover:text-white transition">
+            <Link href="/plataforma" className="hover:text-pipe-ink transition">
               Início
             </Link>
-            <Link href="/login" className="hover:text-white transition">
+            <Link href="/login" className="hover:text-pipe-ink transition">
               Entrar
             </Link>
           </div>

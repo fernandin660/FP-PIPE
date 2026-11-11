@@ -366,14 +366,14 @@ export default function ModalPerfil({
         {!obrigatorio && (
           <button
             onClick={aoFechar}
-            className="absolute top-4 right-5 text-pipe-muted hover:text-white text-xl transition"
+            className="absolute top-4 right-5 text-pipe-muted hover:text-pipe-ink text-xl transition"
             aria-label="Fechar"
           >
             ×
           </button>
         )}
 
-        <h2 className="font-display text-3xl text-white">
+        <h2 className="font-display text-3xl text-pipe-ink">
           Perfil da{" "}
           <span className="text-pipe-lime">sua empresa</span>
         </h2>
@@ -432,7 +432,7 @@ export default function ModalPerfil({
             placeholder="Nome da sua empresa"
             value={nomeEmpresa}
             onChange={(e) => setNomeEmpresa(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -440,13 +440,13 @@ export default function ModalPerfil({
               placeholder="Seu nome (ex.: Fernando)"
               value={nomeUsuario}
               onChange={(e) => setNomeUsuario(e.target.value)}
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
             />
             <input
               placeholder="Tempo de empresa (ex.: 8 anos)"
               value={tempoEmpresa}
               onChange={(e) => setTempoEmpresa(e.target.value)}
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
             />
           </div>
 
@@ -455,15 +455,15 @@ export default function ModalPerfil({
             value={areaAtuacao}
             onChange={(e) => setAreaAtuacao(e.target.value)}
             onBlur={talvezBuscarSugestoes}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
           />
 
           <div>
             <select
               value={departamentoUso}
               onChange={(e) => setDepartamentoUso(e.target.value)}
-              className={`w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none text-white ${
-                departamentoUso ? "" : "text-pipe-muted/60"
+              className={`w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none text-pipe-ink ${
+                departamentoUso ? "" : "text-pipe-muted"
               }`}
             >
               <option value="">
@@ -476,7 +476,7 @@ export default function ModalPerfil({
               ))}
             </select>
 
-            <p className="text-pipe-muted/70 text-[11px] mt-1">
+            <p className="text-pipe-muted text-[11px] mt-1">
               Ex.: um CRM é usado pelo Comercial — os alvos viram gerentes
               comerciais, SDRs e vendedores, não a TI. Isso deixa o ICP muito
               mais preciso.
@@ -488,7 +488,7 @@ export default function ModalPerfil({
             placeholder="Site da empresa (ex.: https://suaempresa.com.br)"
             value={site}
             onChange={(e) => setSite(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
           />
 
           <textarea
@@ -500,7 +500,7 @@ export default function ModalPerfil({
             value={produtosServicos}
             onChange={(e) => setProdutosServicos(e.target.value)}
             onBlur={talvezBuscarSugestoes}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white resize-y"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink resize-y"
           />
 
           <p className="text-pipe-muted text-xs">
@@ -510,7 +510,7 @@ export default function ModalPerfil({
 
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-pipe-ink">
                 <IconeAlvo tamanho={16} className="inline -mt-0.5 mr-1.5 text-pipe-lime" />
                 Especialidades e nichos
               </p>
@@ -522,7 +522,7 @@ export default function ModalPerfil({
                   buscandoNichos ||
                   (!areaAtuacao.trim() && !produtosServicos.trim())
                 }
-                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-pipe-blue/15 border border-pipe-blue/40 text-pipe-blue hover:bg-pipe-blue/25 disabled:opacity-40 disabled:cursor-not-allowed transition whitespace-nowrap"
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-pipe-blue/15 border border-pipe-blue/40 text-pipe-blue hover:bg-pipe-blue/25 disabled:opacity-40 disabled:cursor-not-allowed transition whitespace-nowrap"
               >
                 {buscandoNichos
                   ? "Analisando..."
@@ -541,7 +541,7 @@ export default function ModalPerfil({
             </p>
 
             {erroNichos && (
-              <p className="text-yellow-400/90 text-xs mb-2">
+              <p className="text-amber-700 text-xs mb-2">
                 {erroNichos}
               </p>
             )}
@@ -560,8 +560,8 @@ export default function ModalPerfil({
                       onClick={() => alternarNicho(nicho)}
                       className={`text-xs px-2.5 py-1 rounded-full border transition ${
                         escolhido
-                          ? "bg-pipe-lime text-black border-pipe-lime font-semibold"
-                          : "bg-pipe-card text-gray-300 border-pipe-border hover:border-pipe-blue hover:text-white"
+                          ? "bg-pipe-lime text-white border-pipe-lime font-semibold"
+                          : "bg-pipe-card text-pipe-ink-soft border-pipe-border hover:border-pipe-blue hover:text-pipe-ink"
                       }`}
                     >
                       {escolhido ? "" : "+ "}
@@ -588,11 +588,11 @@ export default function ModalPerfil({
               <input
                 name="nichoManualInput"
                 placeholder="Ou digite um nicho (ex.: Escritórios de contabilidade)"
-                className="flex-1 bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-xs focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+                className="flex-1 bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-xs focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
               />
               <button
                 type="submit"
-                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:text-white hover:border-pipe-blue transition"
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:text-pipe-ink hover:border-pipe-blue transition"
               >
                 Adicionar
               </button>
@@ -600,7 +600,7 @@ export default function ModalPerfil({
           </div>
 
           <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-            <p className="text-sm font-semibold text-white mb-1">
+            <p className="text-sm font-semibold text-pipe-ink mb-1">
               Portfólio (opcional)
             </p>
 
@@ -616,7 +616,7 @@ export default function ModalPerfil({
                     key={`${anexo.url}-${indice}`}
                     className="flex items-center justify-between gap-2 text-xs bg-pipe-card border border-pipe-border rounded-lg px-2.5 py-1.5"
                   >
-                    <span className="truncate text-gray-300">
+                    <span className="truncate text-pipe-ink-soft">
                       {anexo.nome}
                       <span className="text-pipe-muted">
                         {" "}
@@ -627,7 +627,7 @@ export default function ModalPerfil({
                     <button
                       type="button"
                       onClick={() => removerAnexo(indice)}
-                      className="shrink-0 text-red-400 hover:text-red-300"
+                      className="shrink-0 text-red-700 hover:text-red-700"
                       title="Remover anexo"
                     >
                       ×
@@ -655,12 +655,12 @@ export default function ModalPerfil({
             </label>
           </div>
 
-          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+          {erro && <p className="text-red-700 text-sm">{erro}</p>}
 
           <button
             type="submit"
             disabled={salvando || enviandoFoto}
-            className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
           >
             {salvando
               ? "Salvando..."

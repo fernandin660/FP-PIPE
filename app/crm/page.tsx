@@ -279,10 +279,10 @@ function cargoPessoa(l: LeadCrm): string | null {
 }
 
 function corScore(score: number | null): string {
-  if (score === null) return "bg-gray-500/20 text-gray-300";
+  if (score === null) return "bg-gray-500/20 text-pipe-ink-soft";
   if (score >= 80) return "bg-pipe-lime/15 text-pipe-lime";
-  if (score >= 50) return "bg-yellow-500/15 text-yellow-300";
-  return "bg-red-500/15 text-red-300";
+  if (score >= 50) return "bg-yellow-500/15 text-amber-700";
+  return "bg-red-500/15 text-red-700";
 }
 
 function formatarData(iso: string | null): string {
@@ -1355,12 +1355,12 @@ return (
         aoSalvar={setPerfil}
       />
 
-      <main className="min-h-screen bg-pipe-dark px-6 py-8 lg:pl-72">
+      <main className="min-h-screen bg-pipe-bg px-6 py-8 lg:pl-72">
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
           {/* Cabeçalho */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-2xl text-white flex items-center gap-2">
+              <h1 className="font-display text-2xl text-pipe-ink flex items-center gap-2">
                 <IconePasta className="text-pipe-lime shrink-0" />
                 CRM de Prospecção
               </h1>
@@ -1373,17 +1373,17 @@ return (
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={modoMassa ? sairModoMassa : entrarModoMassa}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
                   modoMassa
-                    ? "bg-pipe-lime text-pipe-bg hover:brightness-110"
-                    : "bg-pipe-card border border-pipe-border text-white hover:border-pipe-blue/50"
+                    ? "bg-pipe-lime text-white hover:brightness-110"
+                    : "bg-pipe-card border border-pipe-border text-pipe-ink hover:border-pipe-blue/50"
                 }`}
               >
                 {modoMassa ? "Sair da seleção" : "Selecionar em massa"}
               </button>
               <button
                 onClick={abrirAdicionar}
-                className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
+                className="bg-pipe-lime text-white font-semibold px-4 py-2.5 rounded-xl text-sm hover:brightness-110 transition"
               >
                 + Adicionar empresa
               </button>
@@ -1396,12 +1396,12 @@ return (
               value={filtroTexto}
               onChange={(e) => setFiltroTexto(e.target.value)}
               placeholder="Buscar empresa, contato, cargo…"
-              className="flex-1 min-w-[200px] bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+              className="flex-1 min-w-[200px] bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
             />
             <select
               value={filtroEstagio}
               onChange={(e) => setFiltroEstagio(e.target.value)}
-              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
             >
               <option value="todos">Todos os estágios</option>
               {etagias.map((s) => (
@@ -1413,7 +1413,7 @@ return (
             <select
               value={filtroResponsavel}
               onChange={(e) => setFiltroResponsavel(e.target.value)}
-              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
             >
               <option value="todos">Todos os responsáveis</option>
               <option value="sem">Sem responsável</option>
@@ -1426,7 +1426,7 @@ return (
             <select
               value={filtroScore}
               onChange={(e) => setFiltroScore(e.target.value)}
-              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
             >
               <option value="todos">Todos os scores</option>
               <option value="alto">Score alto (80+)</option>
@@ -1434,26 +1434,26 @@ return (
               <option value="baixo">Score baixo (&lt;50)</option>
             </select>
             {erro && (
-              <p className="w-full text-sm text-red-400">{erro}</p>
+              <p className="w-full text-sm text-red-700">{erro}</p>
             )}
           </div>
 
           {/* Ações em massa */}
           {modoMassa && (
             <div className="bg-pipe-card border border-dashed border-pipe-lime/40 rounded-2xl p-3 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-semibold text-pipe-ink">
                 {selecionados.length} selecionado
                 {selecionados.length === 1 ? "" : "s"}
               </span>
               <button
                 onClick={selecionarVisiveis}
-                className="text-xs text-pipe-muted hover:text-white transition"
+                className="text-xs text-pipe-muted hover:text-pipe-ink transition"
               >
                 Selecionar visíveis ({totalFiltrado})
               </button>
               <button
                 onClick={selecionarTodos}
-                className="text-xs text-pipe-muted hover:text-white transition"
+                className="text-xs text-pipe-muted hover:text-pipe-ink transition"
               >
                 Selecionar todo o kanban
               </button>
@@ -1461,7 +1461,7 @@ return (
               <select
                 value={massaStageId}
                 onChange={(e) => setMassaStageId(e.target.value)}
-                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
               >
                 <option value="">Mover para estágio…</option>
                 {etagias.map((s) => (
@@ -1475,21 +1475,21 @@ return (
                 disabled={
                   !massaStageId || selecionados.length === 0 || processandoMassa
                 }
-                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white font-bold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink font-semibold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Mover
               </button>
               <button
                 onClick={abrirCadenciaMassa}
                 disabled={selecionados.length === 0 || processandoMassa}
-                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white font-bold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink font-semibold hover:border-pipe-blue/50 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Aplicar cadência
               </button>
               <button
                 onClick={excluirSelecionados}
                 disabled={selecionados.length === 0 || processandoMassa}
-                className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-sm text-red-400 font-bold hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-sm text-red-700 font-semibold hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Excluir
               </button>
@@ -1498,7 +1498,7 @@ return (
               )}
               <button
                 onClick={sairModoMassa}
-                className="ml-auto text-xs text-pipe-muted hover:text-white transition"
+                className="ml-auto text-xs text-pipe-muted hover:text-pipe-ink transition"
               >
                 Cancelar
               </button>
@@ -1509,7 +1509,7 @@ return (
           {modalCadenciaMassa && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
               <div className="bg-pipe-card border border-pipe-border rounded-2xl p-5 w-full max-w-md">
-                <h3 className="font-display text-lg text-white">
+                <h3 className="font-display text-lg text-pipe-ink">
                   Aplicar cadência
                 </h3>
                 <p className="text-sm text-pipe-muted mt-1">
@@ -1526,7 +1526,7 @@ return (
                   <select
                     value={cadenciaMassaId}
                     onChange={(e) => setCadenciaMassaId(e.target.value)}
-                    className="mt-4 w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="mt-4 w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   >
                     <option value="">Escolher cadência…</option>
                     {cadenciasMassa.map((c) => (
@@ -1539,14 +1539,14 @@ return (
                 <div className="flex justify-end gap-2 mt-5">
                   <button
                     onClick={() => setModalCadenciaMassa(false)}
-                    className="px-4 py-2 rounded-xl text-sm text-pipe-muted hover:text-white transition"
+                    className="px-4 py-2 rounded-xl text-sm text-pipe-muted hover:text-pipe-ink transition"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={aplicarCadenciaMassa}
                     disabled={!cadenciaMassaId || processandoMassa}
-                    className="bg-pipe-lime text-pipe-bg font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="bg-pipe-lime text-white font-semibold px-4 py-2 rounded-xl text-sm hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     Aplicar
                   </button>
@@ -1586,19 +1586,19 @@ return (
                     className={`w-[300px] shrink-0 rounded-2xl border transition ${
                       sobre
                         ? "border-pipe-lime bg-pipe-lime/5"
-                        : "border-pipe-border bg-pipe-card/50"
+                        : "border-transparent bg-[#ebe9e3]/70"
                     }`}
                   >
                     <div
                       className="px-4 py-3 flex items-center justify-between"
-                      style={{ borderTop: `4px solid ${stage.cor}` }}
+                      style={{ borderTop: `3px solid ${stage.cor}` }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span
                           className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: stage.cor }}
                         />
-                        <p className="text-sm font-bold text-white truncate">
+                        <p className="text-sm font-semibold text-pipe-ink truncate">
                           {stage.nome}
                         </p>
                       </div>
@@ -1669,10 +1669,10 @@ return (
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-pipe-border flex items-center justify-between">
-              <h2 className="font-display text-xl text-white">Adicionar ao pipeline</h2>
+              <h2 className="font-display text-xl text-pipe-ink">Adicionar ao pipeline</h2>
               <button
                 onClick={() => setModalAdicionarAberto(false)}
-                className="text-pipe-muted hover:text-white text-xl leading-none"
+                className="text-pipe-muted hover:text-pipe-ink text-xl leading-none"
               >
                 ×
               </button>
@@ -1684,7 +1684,7 @@ return (
                 value={buscaAdicionar}
                 onChange={(e) => setBuscaAdicionar(e.target.value)}
                 placeholder="Buscar nas suas empresas…"
-                className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
               />
             </div>
 
@@ -1706,7 +1706,7 @@ return (
                     className="flex items-center justify-between gap-3 bg-pipe-bg border border-pipe-border rounded-xl p-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
+                      <p className="text-sm font-semibold text-pipe-ink truncate">
                         {nomeEmpresa(e)}
                       </p>
                       <p className="text-xs text-pipe-muted truncate">
@@ -1721,7 +1721,7 @@ return (
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {e.score !== null && e.score !== undefined ? (
-                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md ${corScore(e.score)}`}>
+                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${corScore(e.score)}`}>
                           {e.score}
                         </span>
                       ) : null}
@@ -1756,7 +1756,7 @@ return (
           >
             <div className="px-6 py-4 border-b border-pipe-border flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-display text-xl text-white break-words">
+                <h2 className="font-display text-xl text-pipe-ink break-words">
                   {leadDetalhe.company_inconsistente
                     ? "Dados da empresa indisponíveis"
                     : nomeEmpresa(leadDetalhe.company)}
@@ -1770,7 +1770,7 @@ return (
               </div>
               <button
                 onClick={() => setLeadDetalhe(null)}
-                className="text-pipe-muted hover:text-white text-xl leading-none shrink-0"
+                className="text-pipe-muted hover:text-pipe-ink text-xl leading-none shrink-0"
               >
                 ×
               </button>
@@ -1778,7 +1778,7 @@ return (
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               {leadDetalhe.company_inconsistente && (
-                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl px-4 py-3 text-sm">
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 rounded-xl px-4 py-3 text-sm">
                   Dados da empresa indisponíveis: este lead referencia uma
                   empresa não encontrada na sua organização. Verifique a
                   origem/empresa deste lead antes de prosseguir.
@@ -1788,7 +1788,7 @@ return (
               {/* Estágio e responsável */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1.5">
                     Estágio
                   </p>
                   <select
@@ -1798,7 +1798,7 @@ return (
                       setLeadDetalhe({ ...leadDetalhe, stage_id: novoStage });
                       void moverLead(leadDetalhe.id, novoStage, null);
                     }}
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   >
                     {etagias.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1808,7 +1808,7 @@ return (
                   </select>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1.5">
                     Responsável
                   </p>
                   <select
@@ -1817,7 +1817,7 @@ return (
                     onChange={(e) =>
                       void mudarResponsavel(leadDetalhe, e.target.value)
                     }
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue disabled:opacity-50"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue disabled:opacity-50"
                   >
                     <option value="">Sem responsável</option>
                     {membros.map((m) => (
@@ -1832,7 +1832,7 @@ return (
               {/* Oportunidade */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1.5">
                     Valor da oportunidade (R$)
                   </p>
                   <input
@@ -1849,11 +1849,11 @@ return (
                             : Number(e.target.value),
                       })
                     }
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
                   />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1.5">
                     Produto / serviço
                   </p>
                   <select
@@ -1870,7 +1870,7 @@ return (
                         produto: e.target.value === "" ? null : e.target.value,
                       })
                     }
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   >
                     <option value="">Sem produto</option>
                     {produtosCadastrados.map((p) => (
@@ -1906,24 +1906,24 @@ return (
               {leadDetalhe.company?.score !== null &&
                 leadDetalhe.company?.score !== undefined && (
                   <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1">
                       ICP Fit
                     </p>
                     <div className="flex items-center gap-3">
                       <span
-                        className={`text-lg font-bold px-2.5 py-1 rounded-lg ${corScore(
+                        className={`text-lg font-semibold px-2.5 py-1 rounded-lg ${corScore(
                           leadDetalhe.company.score
                         )}`}
                       >
                         {leadDetalhe.company.score}
                       </span>
                       <span
-                        className={`text-[11px] font-bold px-2 py-1 rounded-lg ${
+                        className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${
                           leadDetalhe.prioridade?.nivel === "alta"
-                            ? "bg-red-500/15 text-red-400"
+                            ? "bg-red-500/15 text-red-700"
                             : leadDetalhe.prioridade?.nivel === "media"
-                              ? "bg-yellow-500/15 text-yellow-300"
-                              : "bg-gray-500/20 text-gray-300"
+                              ? "bg-yellow-500/15 text-amber-700"
+                              : "bg-gray-500/20 text-pipe-ink-soft"
                         }`}
                       >
                         {leadDetalhe.prioridade?.rotulo}
@@ -1964,7 +1964,7 @@ return (
                               (f, i) => (
                                 <li
                                   key={i}
-                                  className="text-xs text-amber-300 flex gap-1.5"
+                                  className="text-xs text-amber-700 flex gap-1.5"
                                 >
                                   <span className="shrink-0">−</span>
                                   <span>{f}</span>
@@ -1989,7 +1989,7 @@ return (
                         {leadDetalhe.prioridade?.motivos?.map((m, i) => (
                           <li
                             key={i}
-                            className="text-xs text-gray-300 flex gap-1.5"
+                            className="text-xs text-pipe-ink-soft flex gap-1.5"
                           >
                             <span className="shrink-0">•</span>
                             <span>{m}</span>
@@ -2007,13 +2007,13 @@ return (
 
               {/* Empresa */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                   Empresa
                 </p>
                 <dl className="flex flex-col gap-1.5 text-sm">
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">Razão social</dt>
-                    <dd className="text-gray-200">
+                    <dd className="text-pipe-ink-soft">
                       {leadDetalhe.company?.razao_social || "—"}
                     </dd>
                   </div>
@@ -2023,7 +2023,7 @@ return (
                       <dt className="text-pipe-muted w-32 shrink-0">
                         Sócio / responsável
                       </dt>
-                      <dd className="text-gray-200">
+                      <dd className="text-pipe-ink-soft">
                         {leadDetalhe.company.decisor_nome ||
                           leadDetalhe.company.campeao_nome}
                         {(leadDetalhe.company.decisor_cargo ||
@@ -2039,7 +2039,7 @@ return (
                   )}
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">Localização</dt>
-                    <dd className="text-gray-200">
+                    <dd className="text-pipe-ink-soft">
                       {[leadDetalhe.company?.municipio, leadDetalhe.company?.uf]
                         .filter(Boolean)
                         .join(" - ") || "—"}
@@ -2047,12 +2047,12 @@ return (
                   </div>
                   <div className="flex gap-2">
                     <dt className="text-pipe-muted w-32 shrink-0">Origem</dt>
-                    <dd className="text-gray-200">{leadDetalhe.company?.origem || "—"}</dd>
+                    <dd className="text-pipe-ink-soft">{leadDetalhe.company?.origem || "—"}</dd>
                   </div>
                   {leadDetalhe.company?.endereco && (
                     <div className="flex gap-2">
                       <dt className="text-pipe-muted w-32 shrink-0">Endereço</dt>
-                      <dd className="text-gray-200">{leadDetalhe.company.endereco}</dd>
+                      <dd className="text-pipe-ink-soft">{leadDetalhe.company.endereco}</dd>
                     </div>
                   )}
                 </dl>
@@ -2107,7 +2107,7 @@ return (
 
               {/* Company Intelligence */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-3">
                   Inteligência da empresa
                 </p>
 
@@ -2116,7 +2116,7 @@ return (
                     Carregando inteligência…
                   </p>
                 ) : erroInteligencia ? (
-                  <p className="text-sm text-red-400">{erroInteligencia}</p>
+                  <p className="text-sm text-red-700">{erroInteligencia}</p>
                 ) : !inteligencia ? (
                   <p className="text-sm text-pipe-muted">
                     Nenhum dado consolidado disponível.
@@ -2142,13 +2142,13 @@ return (
                         </button>
                       </div>
                       {inteligencia.interpretacao_ia ? (
-                        <p className="text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-lg p-3">
+                        <p className="text-sm text-pipe-ink-soft leading-relaxed bg-pipe-dark border border-pipe-border rounded-lg p-3">
                           {inteligencia.interpretacao_ia}
                         </p>
                       ) : (
                         <p className="text-xs text-pipe-muted">
                           Sem interpretação gerada ainda.{" "}
-                          <span className="text-gray-400">
+                          <span className="text-pipe-muted">
                             A análise usa apenas os dados reais da empresa.
                           </span>
                         </p>
@@ -2172,7 +2172,7 @@ return (
                               className="flex items-start justify-between gap-2 bg-pipe-dark border border-pipe-border rounded-lg p-2.5"
                             >
                               <div className="min-w-0">
-                                <p className="text-sm text-white font-medium truncate">
+                                <p className="text-sm text-pipe-ink font-medium truncate">
                                   {d.nome}
                                   {d.cargo ? (
                                     <span className="text-pipe-muted font-normal">
@@ -2188,10 +2188,10 @@ return (
                                         : d.papel === "campeao"
                                           ? "bg-pipe-blue/15 text-pipe-blue"
                                           : d.papel === "aprovador"
-                                            ? "bg-purple-500/15 text-purple-300"
+                                            ? "bg-purple-500/15 text-purple-700"
                                             : d.papel === "influenciador"
-                                              ? "bg-yellow-500/15 text-yellow-300"
-                                              : "bg-gray-500/20 text-gray-300"
+                                              ? "bg-yellow-500/15 text-amber-700"
+                                              : "bg-gray-500/20 text-pipe-ink-soft"
                                     }`}
                                   >
                                     {d.rotulo}
@@ -2249,7 +2249,7 @@ return (
                           {inteligencia.fatos_cadastrais.map((f, i) => (
                             <span
                               key={i}
-                              className="text-[11px] text-gray-300 bg-pipe-dark border border-pipe-border rounded-md px-2 py-1"
+                              className="text-[11px] text-pipe-ink-soft bg-pipe-dark border border-pipe-border rounded-md px-2 py-1"
                             >
                               {f}
                             </span>
@@ -2275,7 +2275,7 @@ return (
                               className="flex items-start justify-between gap-2 bg-pipe-dark border border-pipe-border rounded-lg p-2.5"
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs text-white font-medium">
+                                <p className="text-xs text-pipe-ink font-medium">
                                   {ROTULO_TIPO_SINAL[s.tipo] ?? s.tipo}
                                   {s.data ? (
                                     <span className="text-pipe-muted font-normal">
@@ -2283,7 +2283,7 @@ return (
                                     </span>
                                   ) : null}
                                 </p>
-                                <p className="text-[11px] text-gray-300 mt-0.5">
+                                <p className="text-[11px] text-pipe-ink-soft mt-0.5">
                                   {s.descricao}
                                 </p>
                                 <p className="text-[10px] text-pipe-muted mt-0.5">
@@ -2294,7 +2294,7 @@ return (
                               <button
                                 onClick={() => void removerSinal(s.id)}
                                 title="Remover sinal"
-                                className="text-[11px] text-red-400 hover:text-red-300 shrink-0"
+                                className="text-[11px] text-red-700 hover:text-red-700 shrink-0"
                               >
                                 ×
                               </button>
@@ -2314,7 +2314,7 @@ return (
                                 tipo: e.target.value,
                               }))
                             }
-                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white"
+                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-pipe-ink"
                           >
                             {(inteligencia.tipos_sinal ?? [
                               "contratacao",
@@ -2341,7 +2341,7 @@ return (
                                 data: e.target.value,
                               }))
                             }
-                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white"
+                            className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-pipe-ink"
                           />
                         </div>
                         <input
@@ -2353,12 +2353,12 @@ return (
                             }))
                           }
                           placeholder="Descreva o sinal (ex.: contratou 3 executivos)"
-                          className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-pipe-muted"
+                          className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-1.5 text-xs text-pipe-ink placeholder:text-pipe-muted/70"
                         />
                         <button
                           onClick={() => void adicionarSinal()}
                           disabled={salvandoSinal}
-                          className="text-xs font-semibold bg-pipe-lime text-black px-3 py-1.5 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                          className="text-xs font-semibold bg-pipe-lime text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                         >
                           {salvandoSinal ? "Salvando…" : "+ Registro de sinal"}
                         </button>
@@ -2370,10 +2370,10 @@ return (
 
               {/* Contato prioritário */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                   Contato prioritário
                 </p>
-                <p className="text-gray-200 font-semibold">{nomePessoa(leadDetalhe)}</p>
+                <p className="text-pipe-ink-soft font-semibold">{nomePessoa(leadDetalhe)}</p>
                 {cargoPessoa(leadDetalhe) && (
                   <p className="text-sm text-pipe-muted">{cargoPessoa(leadDetalhe)}</p>
                 )}
@@ -2395,12 +2395,12 @@ return (
 
               {/* Cadência */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-3">
                   Cadência
                 </p>
                 {cadenciaAtiva ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-white font-medium">
+                    <p className="text-sm text-pipe-ink font-medium">
                       {cadencias.find((c) => c.id === cadenciaAtiva.cadencia_id)
                         ?.nome ?? "Cadência ativa"}
                     </p>
@@ -2414,7 +2414,7 @@ return (
                         void sairCadencia(leadDetalhe.company_id)
                       }
                       disabled={aplicandoCadencia}
-                      className="bg-red-500/10 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition disabled:opacity-50"
+                      className="bg-red-500/10 text-red-700 border border-red-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition disabled:opacity-50"
                     >
                       Sair da cadência
                     </button>
@@ -2424,7 +2424,7 @@ return (
                     <select
                       value={cadenciaSelecionada}
                       onChange={(e) => setCadenciaSelecionada(e.target.value)}
-                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     >
                       <option value="">Selecione uma cadência…</option>
                       {cadencias.map((c) => (
@@ -2450,7 +2450,7 @@ return (
 
               {/* Registrar atividade */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-3">
                   {editandoAtividadeId
                     ? "Editar atividade"
                     : "Registrar atividade"}
@@ -2465,7 +2465,7 @@ return (
                           tipo_atividade: e.target.value,
                         }))
                       }
-                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     >
                       {TIPOS_ATIVIDADE.map((t) => (
                         <option key={t} value={t}>
@@ -2482,7 +2482,7 @@ return (
                           data_hora_atividade: e.target.value,
                         }))
                       }
-                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                      className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     />
                   </div>
                   <input
@@ -2492,7 +2492,7 @@ return (
                     onChange={(e) =>
                       setFormAtividade((f) => ({ ...f, titulo: e.target.value }))
                     }
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
                   />
                   <textarea
                     placeholder="Observações / notas"
@@ -2504,7 +2504,7 @@ return (
                       }))
                     }
                     rows={2}
-                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+                    className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
                   />
                   <div className="flex gap-2">
                     <button
@@ -2531,7 +2531,7 @@ return (
                             data_hora_atividade: "",
                           });
                         }}
-                        className="bg-pipe-card border border-pipe-border px-4 py-2 rounded-lg text-xs font-semibold text-pipe-muted hover:text-white transition"
+                        className="bg-pipe-card border border-pipe-border px-4 py-2 rounded-lg text-xs font-semibold text-pipe-muted hover:text-pipe-ink transition"
                       >
                         Cancelar
                       </button>
@@ -2542,7 +2542,7 @@ return (
 
               {/* Histórico */}
               <section className="bg-pipe-bg border border-pipe-border rounded-xl p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-3">
                   Histórico
                 </p>
                 {carregandoHistorico ? (
@@ -2584,7 +2584,7 @@ return (
                             }`}
                           />
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm text-white font-medium">
+                            <p className="text-sm text-pipe-ink font-medium">
                               {ROTULO_EVENTO[h.tipo_evento] ?? h.tipo_evento}
                               {typeof d.tipo_atividade === "string" &&
                                 d.tipo_atividade &&
@@ -2600,14 +2600,14 @@ return (
                               <div className="flex gap-1 shrink-0">
                                 <button
                                   onClick={() => comecarEditarAtividade(h)}
-                                  className="text-[11px] text-pipe-muted hover:text-white"
+                                  className="text-[11px] text-pipe-muted hover:text-pipe-ink"
                                   title="Editar"
                                 >
                                   editar
                                 </button>
                                 <button
                                   onClick={() => void removerAtividade(h)}
-                                  className="text-[11px] text-pipe-muted hover:text-red-400"
+                                  className="text-[11px] text-pipe-muted hover:text-red-700"
                                   title="Remover"
                                 >
                                   remover
@@ -2616,7 +2616,7 @@ return (
                             )}
                           </div>
                           {typeof d.titulo === "string" && d.titulo && (
-                            <p className="text-sm text-gray-200">{d.titulo}</p>
+                            <p className="text-sm text-pipe-ink-soft">{d.titulo}</p>
                           )}
                           {h.tipo_evento === "mudanca_estagio" &&
                             origem &&
@@ -2655,7 +2655,7 @@ return (
               <section className="flex gap-2">
                 <button
                   onClick={() => void removerDoPipeline(leadDetalhe)}
-                  className="bg-red-500/10 text-red-400 border border-red-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition"
+                  className="bg-red-500/10 text-red-700 border border-red-500/30 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition"
                 >
                   Remover do pipeline
                 </button>

@@ -8,16 +8,16 @@ const CONTATO = "fernandopugliesi@fppipe.com.br";
 
 export default function PaginaPrivacidade() {
   return (
-    <main className="min-h-screen bg-pipe-bg text-gray-200">
+    <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft">
       <div className="max-w-3xl mx-auto px-6 py-14">
         <Link
           href="/plataforma"
-          className="text-pipe-muted text-sm hover:text-white transition"
+          className="text-pipe-muted text-sm hover:text-pipe-ink transition"
         >
           ← Voltar
         </Link>
 
-        <h1 className="font-display text-4xl text-white mt-6">
+        <h1 className="font-display text-4xl text-pipe-ink mt-6">
           Política de Privacidade
         </h1>
         <p className="text-pipe-muted text-sm mt-2">
@@ -26,7 +26,7 @@ export default function PaginaPrivacidade() {
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed">
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               1. Quem somos
             </h2>
             <p>
@@ -39,7 +39,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               2. Quais dados coletamos
             </h2>
             <ul className="list-disc pl-5 space-y-2">
@@ -69,7 +69,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               3. Como usamos seus dados
             </h2>
             <ul className="list-disc pl-5 space-y-2">
@@ -86,7 +86,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               4. Com quem compartilhamos
             </h2>
             <p>
@@ -98,7 +98,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               5. Seus direitos (LGPD)
             </h2>
             <p>
@@ -118,7 +118,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               6. Segurança e retenção
             </h2>
             <p>
@@ -130,7 +130,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">7. Cookies</h2>
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">7. Cookies</h2>
             <p>
               Utilizamos apenas cookies essenciais de sessão para manter você
               autenticado. Não usamos cookies de rastreamento publicitário.
@@ -138,7 +138,7 @@ export default function PaginaPrivacidade() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">
+            <h2 className="text-xl font-semibold text-pipe-ink mb-3">
               8. Atualizações e contato
             </h2>
             <p>

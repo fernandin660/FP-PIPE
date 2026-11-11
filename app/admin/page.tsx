@@ -32,13 +32,13 @@ export default async function Admin() {
     return (
       <main className="flex-1 flex items-center justify-center px-6 py-24">
         <div className="text-center">
-          <h1 className="font-display text-3xl text-white">404</h1>
+          <h1 className="font-display text-3xl text-pipe-ink">404</h1>
           <p className="text-pipe-muted mt-2">
             Página não encontrada.
           </p>
           <Link
             href="/"
-            className="inline-block mt-6 text-sm border border-pipe-border rounded-lg px-4 py-2 text-white hover:border-pipe-blue transition"
+            className="inline-block mt-6 text-sm border border-pipe-border rounded-lg px-4 py-2 text-pipe-ink hover:border-pipe-blue transition"
           >
             Voltar ao início
           </Link>
@@ -186,13 +186,13 @@ export default async function Admin() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <Link
           href="/prospeccao"
-          className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-white transition"
+          className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-pipe-ink transition"
         >
           ← Voltar ao painel
         </Link>
         <Link
           href="/admin/uso"
-          className="text-xs text-pipe-muted hover:text-white transition"
+          className="text-xs text-pipe-muted hover:text-pipe-ink transition"
         >
           Painel de uso de APIs →
         </Link>
@@ -201,21 +201,21 @@ export default async function Admin() {
       <p className="text-xs font-semibold text-pipe-blue tracking-widest uppercase mt-6">
         Console interno
       </p>
-      <h1 className="font-display text-4xl text-white mt-1">
+      <h1 className="font-display text-4xl text-pipe-ink mt-1">
         Usuários do FP Pipe
       </h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
         <div className="bg-pipe-card border border-pipe-border rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wide text-pipe-muted font-bold">
+          <p className="text-xs uppercase tracking-wide text-pipe-muted font-semibold">
             Total de usuários
           </p>
-          <p className="font-display text-3xl text-white mt-2">
+          <p className="font-display text-3xl text-pipe-ink mt-2">
             {totalUsuarios}
           </p>
         </div>
         <div className="bg-pipe-card border border-pipe-border rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wide text-pipe-muted font-bold">
+          <p className="text-xs uppercase tracking-wide text-pipe-muted font-semibold">
             Assinaturas ativas
           </p>
           <p className="font-display text-3xl text-pipe-lime mt-2">
@@ -223,10 +223,10 @@ export default async function Admin() {
           </p>
         </div>
         <div className="bg-pipe-card border border-pipe-border rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wide text-pipe-muted font-bold">
+          <p className="text-xs uppercase tracking-wide text-pipe-muted font-semibold">
             Conversão
           </p>
-          <p className="font-display text-3xl text-white mt-2">
+          <p className="font-display text-3xl text-pipe-ink mt-2">
             {totalUsuarios > 0
               ? `${Math.round((pagantes / totalUsuarios) * 100)}%`
               : "—"}
@@ -252,13 +252,13 @@ export default async function Admin() {
           <tbody className="divide-y divide-pipe-border/60">
             {linhas.map((linha) => (
               <tr key={linha.id} className="hover:bg-pipe-card/60">
-                <td className="px-4 py-3 text-white">{linha.email}</td>
-                <td className="px-4 py-3 text-gray-300">{linha.plano}</td>
+                <td className="px-4 py-3 text-pipe-ink">{linha.email}</td>
+                <td className="px-4 py-3 text-pipe-ink-soft">{linha.plano}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                       linha.statusAssinatura === "ativa"
-                        ? "bg-lime-500/15 text-lime-400"
+                        ? "bg-lime-500/15 text-emerald-700"
                         : "bg-pipe-dark text-pipe-muted"
                     }`}
                   >
@@ -266,13 +266,13 @@ export default async function Admin() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-pipe-muted">{linha.ciclo}</td>
-                <td className="px-4 py-3 text-gray-300">
+                <td className="px-4 py-3 text-pipe-ink-soft">
                   {linha.saldoContatos ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-gray-300">
+                <td className="px-4 py-3 text-pipe-ink-soft">
                   {linha.saldoIa ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-gray-300">{linha.empresas}</td>
+                <td className="px-4 py-3 text-pipe-ink-soft">{linha.empresas}</td>
                 <td className="px-4 py-3 text-pipe-muted">
                   {linha.criadoEm}
                 </td>

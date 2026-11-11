@@ -168,17 +168,17 @@ export default function AdicionarAoCrmModal({
   } else if (etapa === "erro") {
     conteudo = (
       <div className="space-y-4">
-        <p className="text-sm text-red-400">{mensagemErro}</p>
+        <p className="text-sm text-red-700">{mensagemErro}</p>
         <div className="flex justify-end gap-2">
           <button
             onClick={fechar}
-            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
           >
             Fechar
           </button>
           <button
             onClick={() => void carregarPrecheck(alvosRef.current)}
-            className="text-xs font-bold px-3 py-2 rounded-lg border border-pipe-blue text-pipe-blue hover:bg-pipe-blue/10 transition"
+            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-blue text-pipe-blue hover:bg-pipe-blue/10 transition"
           >
             Tentar de novo
           </button>
@@ -190,7 +190,7 @@ export default function AdicionarAoCrmModal({
       <div className="space-y-4">
         <div className="text-center py-3">
           <IconeVerificado tamanho={40} className="mx-auto mb-2 text-pipe-lime" />
-          <p className="text-white font-semibold">Adicionadas ao CRM.</p>
+          <p className="text-pipe-ink font-semibold">Adicionadas ao CRM.</p>
           {precheck && (
             <p className="text-sm text-pipe-muted mt-1">
               {precheck.novas} novas {precheck.jaExistem.length > 0
@@ -202,13 +202,13 @@ export default function AdicionarAoCrmModal({
         <div className="flex justify-end gap-2">
           <button
             onClick={fechar}
-            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
           >
             Fechar
           </button>
           <a
             href="/crm"
-            className="text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition"
+            className="text-xs font-semibold px-3 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition"
           >
             Ver no CRM
           </a>
@@ -235,7 +235,7 @@ export default function AdicionarAoCrmModal({
             <p className="text-[11px] uppercase tracking-widest text-pipe-muted font-semibold">
               Já no CRM
             </p>
-            <p className="text-2xl font-display text-gray-300 mt-1">
+            <p className="text-2xl font-display text-pipe-ink-soft mt-1">
               {jaExistentes}
             </p>
           </div>
@@ -248,7 +248,7 @@ export default function AdicionarAoCrmModal({
           <select
             value={stageId}
             onChange={(e) => setStageId(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
           >
             {precheck?.estagios.map((s) => (
               <option key={s.id} value={s.id}>
@@ -265,7 +265,7 @@ export default function AdicionarAoCrmModal({
           <select
             value={responsavelId}
             onChange={(e) => setResponsavelId(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
           >
             <option value="">Você (padrão)</option>
             {precheck?.membros.map((m) => (
@@ -279,14 +279,14 @@ export default function AdicionarAoCrmModal({
         <div className="flex justify-end gap-2 flex-wrap pt-1">
           <button
             onClick={fechar}
-            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+            className="text-xs font-semibold px-3 py-2 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
           >
             Cancelar
           </button>
           <button
             onClick={() => void confirmar()}
             disabled={enviando || novas === 0}
-            className="text-xs font-bold px-4 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 transition disabled:opacity-50"
+            className="text-xs font-semibold px-4 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 transition disabled:opacity-50"
           >
             {enviando
               ? "Adicionando…"
@@ -303,7 +303,7 @@ export default function AdicionarAoCrmModal({
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
       <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-bold text-lg text-white">
+          <h3 className="font-semibold text-lg text-pipe-ink">
             Adicionar ao CRM
             {titulo ? (
               <span className="block text-xs font-semibold text-pipe-blue mt-0.5">
@@ -314,7 +314,7 @@ export default function AdicionarAoCrmModal({
           {etapa !== "sucesso" && (
             <button
               onClick={fechar}
-              className="text-gray-400 hover:text-white transition text-lg leading-none"
+              className="text-pipe-muted hover:text-pipe-ink transition text-lg leading-none"
               title="Fechar"
             >
               ×

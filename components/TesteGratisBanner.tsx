@@ -33,13 +33,13 @@ function barra(
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-gray-300 font-medium inline-flex items-center gap-1">
+        <span className="text-pipe-ink-soft font-medium inline-flex items-center gap-1">
           {icone}
           {rotulo}
         </span>
         <span
           className={`font-semibold ${
-            esgotou ? "text-red-400" : quase ? "text-amber-400" : "text-pipe-lime"
+            esgotou ? "text-red-700" : quase ? "text-amber-700" : "text-pipe-lime"
           }`}
         >
           {Math.max(0, restante)}/{limite}
@@ -54,12 +54,12 @@ function barra(
         />
       </div>
       {esgotou && (
-        <p className="text-[10px] text-red-400 mt-0.5">
+        <p className="text-[10px] text-red-700 mt-0.5">
           Você usou tudo aqui. Assine um plano para continuar.
         </p>
       )}
       {quase && !esgotou && (
-        <p className="text-[10px] text-amber-400 mt-0.5">Quase no limite.</p>
+        <p className="text-[10px] text-amber-700 mt-0.5">Quase no limite.</p>
       )}
     </div>
   );
@@ -107,7 +107,7 @@ export default function TesteGratisBanner({
       <div
         className={`rounded-2xl border overflow-hidden ${
           esgotouAlgo
-            ? "border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-pipe-card to-pipe-card"
+            ? "border-amber-500/40 bg-[#fffaf0]"
             : "border-pipe-border bg-pipe-card"
         }`}
       >
@@ -115,10 +115,10 @@ export default function TesteGratisBanner({
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">
+                <span className="text-sm font-semibold text-pipe-ink">
                   Seu teste grátis
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wide bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-semibold uppercase tracking-wide bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
                   plano atual
                 </span>
               </div>
@@ -131,7 +131,7 @@ export default function TesteGratisBanner({
 
             <button
               onClick={() => setFechado(true)}
-              className="text-xs text-pipe-muted hover:text-white transition"
+              className="text-xs text-pipe-muted hover:text-pipe-ink transition"
               title="Ocultar"
             >
               ×
@@ -165,7 +165,7 @@ export default function TesteGratisBanner({
           {esgotouAlgo && (
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-5 bg-pipe-dark/60 border border-amber-500/30 rounded-xl p-4">
               <div className="flex-1">
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-semibold text-pipe-ink">
                   Você chegou no limite do teste. Escolha um plano para continuar.
                 </p>
                 <p className="text-xs text-pipe-muted mt-0.5">
@@ -175,7 +175,7 @@ export default function TesteGratisBanner({
               </div>
               <Link
                 href="/planos"
-                className="shrink-0 bg-pipe-lime text-pipe-bg font-bold py-2.5 px-5 rounded-xl text-sm text-center hover:brightness-110 transition animate-pulse"
+                className="shrink-0 bg-pipe-lime text-white font-semibold py-2.5 px-5 rounded-xl text-sm text-center hover:brightness-110 transition animate-pulse"
               >
                 Assinar Gold · R$ {gold.precoAnualPorMes}/mês
               </Link>
@@ -189,7 +189,7 @@ export default function TesteGratisBanner({
               </p>
               <Link
                 href="/planos"
-                className="text-xs text-pipe-blue hover:text-blue-300 transition font-semibold"
+                className="text-xs text-pipe-blue hover:text-blue-700 transition font-semibold"
               >
                 Ver todos
               </Link>
@@ -200,27 +200,27 @@ export default function TesteGratisBanner({
                 <Link
                   key={p.nome}
                   href="/planos"
-                  className={`rounded-xl border p-3 flex flex-col gap-1 transition hover:brightness-110 ${
+                  className={`rounded-xl border p-3 flex flex-col gap-1 transition ${
                     p.destaque
                       ? "bg-pipe-lime/10 border-pipe-lime/50"
-                      : "bg-pipe-dark border-pipe-border hover:border-pipe-blue/40"
+                      : "bg-white border-pipe-border hover:border-pipe-blue/40"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span
-                      className={`text-sm font-bold ${
-                        p.destaque ? "text-pipe-lime" : "text-white"
+                      className={`text-sm font-semibold ${
+                        p.destaque ? "text-pipe-lime" : "text-pipe-ink"
                       }`}
                     >
                       {p.nome}
                     </span>
                     {p.destaque && (
-                      <span className="text-[9px] font-bold uppercase tracking-wide bg-pipe-lime text-pipe-bg px-1.5 py-0.5 rounded">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide bg-pipe-lime text-white px-1.5 py-0.5 rounded">
                         Mais vendido
                       </span>
                     )}
                   </div>
-                  <span className="text-lg font-display text-white">
+                  <span className="text-lg font-display text-pipe-ink">
                     {p.preco}
                     <span className="text-[10px] text-pipe-muted font-normal">
                       {" "}

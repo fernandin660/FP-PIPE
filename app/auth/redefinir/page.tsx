@@ -85,9 +85,9 @@ export default function PaginaRedefinir() {
         ) : linkInvalido ? (
           <div className="text-center space-y-4">
             <p className="flex justify-center">
-              <IconeCadeado tamanho={40} className="text-amber-400" />
+              <IconeCadeado tamanho={40} className="text-amber-700" />
             </p>
-            <h1 className="font-display text-2xl text-white">
+            <h1 className="font-display text-2xl text-pipe-ink">
               Link inválido ou expirado
             </h1>
             <p className="text-pipe-muted text-sm">
@@ -95,7 +95,7 @@ export default function PaginaRedefinir() {
             </p>
             <Link
               href="/login"
-              className="inline-block bg-pipe-lime text-black font-bold py-3 px-6 rounded-lg hover:opacity-90 transition"
+              className="inline-block bg-pipe-lime text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition"
             >
               Ir para o login
             </Link>
@@ -105,7 +105,7 @@ export default function PaginaRedefinir() {
             <p className="flex justify-center">
               <IconeVerificado tamanho={44} className="text-pipe-lime" />
             </p>
-            <h1 className="font-display text-2xl text-white">
+            <h1 className="font-display text-2xl text-pipe-ink">
               Senha alterada.
             </h1>
             <p className="text-pipe-muted text-sm">
@@ -113,14 +113,14 @@ export default function PaginaRedefinir() {
             </p>
             <button
               onClick={() => router.push("/prospeccao")}
-              className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 transition"
+              className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 transition"
             >
               Ir para o sistema
             </button>
           </div>
         ) : (
           <>
-            <h1 className="font-display text-2xl text-white">
+            <h1 className="font-display text-2xl text-pipe-ink">
               Criar nova senha
             </h1>
             <p className="text-pipe-muted text-sm mt-2 mb-6">
@@ -135,7 +135,7 @@ export default function PaginaRedefinir() {
                 placeholder="Nova senha (8+ caracteres, com letra e número)"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
               />
 
               <input
@@ -145,15 +145,15 @@ export default function PaginaRedefinir() {
                 placeholder="Confirme a nova senha"
                 value={confirmacao}
                 onChange={(e) => setConfirmacao(e.target.value)}
-                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+                className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
               />
 
-              {erro && <p className="text-red-400 text-sm">{erro}</p>}
+              {erro && <p className="text-red-700 text-sm">{erro}</p>}
 
               <button
                 type="submit"
                 disabled={carregando}
-                className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
               >
                 {carregando ? "Salvando..." : "Salvar"}
               </button>

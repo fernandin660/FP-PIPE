@@ -282,43 +282,43 @@ export default function PaginaDisparos() {
     setErro("");
   }
 
-  if (carregando) return <main className="flex min-h-screen items-center justify-center bg-pipe-dark text-gray-400">Carregando...</main>;
+  if (carregando) return <main className="flex min-h-screen items-center justify-center bg-pipe-dark text-pipe-muted">Carregando...</main>;
 
   return (
-    <div className="min-h-screen bg-pipe-dark text-white">
+    <div className="min-h-screen bg-pipe-bg text-pipe-ink">
       <Sidebar perfil={perfil} saldoCreditos={null} aoAbrirPerfil={() => undefined} />
       <main className="lg:pl-64 px-5 py-8 max-w-5xl mx-auto">
-        <Link href="/listas" className="text-sm text-pipe-muted hover:text-white">← Voltar para listas</Link>
+        <Link href="/listas" className="text-sm text-pipe-muted hover:text-pipe-ink">← Voltar para listas</Link>
         <div className="mt-6 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-pipe-lime">Campanhas</p>
-            <h1 className="font-display text-4xl text-white mt-2">Disparos em massa</h1>
+            <h1 className="font-display text-4xl text-pipe-ink mt-2">Disparos em massa</h1>
           <p className="text-pipe-muted mt-2">Gere e edite abordagens usando seu saldo mensal de créditos.</p>
           </div>
           <span className="text-sm text-pipe-muted">Abordagens no mês: <b className="text-pipe-lime">{saldoIa ?? 0}</b></span>
         </div>
-        <p className="mt-3 text-right text-xs text-pipe-muted">{usoEnvios?.podeEnviar ? <>Envios hoje: <b className="text-white">{usoEnvios?.enviados ?? 0}</b> / {usoEnvios?.limiteDiario ?? "--"} · Restantes: <b className="text-pipe-lime">{usoEnvios?.restantes ?? "--"}</b></> : <>Disparo em massa disponível nos planos <b>Gold</b> e <b>Platinum</b>.</>}</p>
+        <p className="mt-3 text-right text-xs text-pipe-muted">{usoEnvios?.podeEnviar ? <>Envios hoje: <b className="text-pipe-ink">{usoEnvios?.enviados ?? 0}</b> / {usoEnvios?.limiteDiario ?? "--"} · Restantes: <b className="text-pipe-lime">{usoEnvios?.restantes ?? "--"}</b></> : <>Disparo em massa disponível nos planos <b>Gold</b> e <b>Platinum</b>.</>}</p>
 
         <section className="mt-6 rounded-xl border border-pipe-border bg-pipe-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted">E-mail de envio</p>
-              <p className="mt-1 text-sm text-white">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted">E-mail de envio</p>
+              <p className="mt-1 text-sm text-pipe-ink">
                 {conexao ? `${conexao.provedor === "microsoft" ? "Outlook" : conexao.provedor === "zoho" ? "Zoho" : "Gmail"}: ${conexao.email}` : "Nenhum e-mail conectado"}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${conexao ? "bg-green-500/15 text-green-300 border border-green-500/30" : "bg-gray-500/15 text-gray-300 border border-gray-500/30"}`}>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${conexao ? "bg-green-500/15 text-emerald-700 border border-green-500/30" : "bg-gray-500/15 text-pipe-ink-soft border border-gray-500/30"}`}>
                 {conexao ? "Ativo" : "Inativo"}
               </span>
-              {conexao ? <button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-pipe-dark">Trocar</button> : <div className="flex gap-2"><a href="/api/email/zoho/iniciar" className="rounded-lg bg-pipe-lime px-3 py-2 text-xs font-bold text-pipe-dark">Conectar Zoho</a><a href="/api/email/microsoft/iniciar" className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-pipe-dark">Outlook</a></div>}
+              {conexao ? <button onClick={() => void desconectarEmail()} className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-pipe-ink-soft hover:bg-pipe-dark">Trocar</button> : <div className="flex gap-2"><a href="/api/email/zoho/iniciar" className="rounded-lg bg-pipe-lime px-3 py-2 text-xs font-semibold text-white">Conectar Zoho</a><a href="/api/email/microsoft/iniciar" className="rounded-lg border border-pipe-border px-3 py-2 text-xs font-semibold text-pipe-ink-soft hover:bg-pipe-dark">Outlook</a></div>}
             </div>
           </div>
         </section>
 
         <section className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-5">
           <label className="block text-xs uppercase tracking-wide text-pipe-muted mb-2">Lista de destinatários</label>
-          <select value={listaId} onChange={(e) => void selecionarLista(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white">
+          <select value={listaId} onChange={(e) => void selecionarLista(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-pipe-ink">
             <option value="">Selecione uma lista...</option>
             {listas.map((lista) => <option key={lista.id} value={lista.id}>{lista.nome}</option>)}
           </select>
@@ -327,9 +327,9 @@ export default function PaginaDisparos() {
           {campanha && <p className="text-sm text-pipe-muted mt-3">{destinatarios} destinatário(s) com e-mail encontrado(s) nesta lista.</p>}
           {resumoCampanha && resumoCampanha.enviados + resumoCampanha.falhas > 0 && (
             <div className="mt-3 flex flex-wrap gap-3 text-xs">
-              <span className="rounded-full bg-green-500/15 border border-green-500/30 text-green-300 px-2.5 py-1">Enviados: <b>{resumoCampanha.enviados}</b></span>
-              <span className="rounded-full bg-red-500/15 border border-red-500/30 text-red-300 px-2.5 py-1">Falhas: <b>{resumoCampanha.falhas}</b></span>
-              <span className="rounded-full bg-gray-500/15 border border-gray-500/30 text-gray-300 px-2.5 py-1">Pendentes: <b>{resumoCampanha.pendentes}</b></span>
+              <span className="rounded-full bg-green-500/15 border border-green-500/30 text-emerald-700 px-2.5 py-1">Enviados: <b>{resumoCampanha.enviados}</b></span>
+              <span className="rounded-full bg-red-500/15 border border-red-500/30 text-red-700 px-2.5 py-1">Falhas: <b>{resumoCampanha.falhas}</b></span>
+              <span className="rounded-full bg-gray-500/15 border border-gray-500/30 text-pipe-ink-soft px-2.5 py-1">Pendentes: <b>{resumoCampanha.pendentes}</b></span>
             </div>
           )}
         </section>
@@ -340,7 +340,7 @@ export default function PaginaDisparos() {
           <span className="text-xs rounded-full bg-pipe-lime/10 border border-pipe-lime/30 text-pipe-lime px-2 py-1">{campanha.geracoes_usadas} geração(ões) usadas</span>
           </div>
           <label className="block text-xs uppercase tracking-wide text-pipe-muted">Finalidade do e-mail</label>
-          <select value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white">
+          <select value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-pipe-ink">
             <option value="gerar_interesse">Gerar interesse e iniciar conversa</option>
             <option value="agendar_reuniao">Agendar reunião</option>
             <option value="descobrir_responsavel">Descobrir o responsável</option>
@@ -349,20 +349,20 @@ export default function PaginaDisparos() {
             <option value="follow_up">Fazer follow-up</option>
             <option value="reativar_contato">Reativar contato</option>
           </select>
-          <textarea value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="Instruções opcionais" className="w-full min-h-20 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white" />
-          {modelos.length > 0 && <div className="flex flex-wrap items-center gap-2"><label className="text-xs text-pipe-muted">Importar modelo:</label><select defaultValue="" onChange={(e) => importarModelo(e.target.value)} className="flex-1 min-w-48 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white"><option value="">Escolha um modelo salvo...</option>{modelos.map((modelo) => <option key={modelo.id} value={modelo.id}>{modelo.nome}</option>)}</select></div>}
-          <button onClick={() => void gerar()} disabled={gerando || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerando ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
-          <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
-          <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-white" />
-          <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
+          <textarea value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="Instruções opcionais" className="w-full min-h-20 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink" />
+          {modelos.length > 0 && <div className="flex flex-wrap items-center gap-2"><label className="text-xs text-pipe-muted">Importar modelo:</label><select defaultValue="" onChange={(e) => importarModelo(e.target.value)} className="flex-1 min-w-48 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink"><option value="">Escolha um modelo salvo...</option>{modelos.map((modelo) => <option key={modelo.id} value={modelo.id}>{modelo.nome}</option>)}</select></div>}
+          <button onClick={() => void gerar()} disabled={gerando || (saldoIa ?? 0) < 1} className="bg-pipe-lime text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40">{gerando ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
+          <input value={assunto} onChange={(e) => setAssunto(e.target.value)} placeholder="Assunto" className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-pipe-ink" />
+          <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)} placeholder="Corpo do e-mail" className="w-full min-h-64 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-3 text-sm text-pipe-ink" />
+          <button onClick={() => void salvarEdicao()} className="border border-pipe-border text-pipe-ink-soft px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-dark">Salvar edição</button>
           <button onClick={() => void salvarComoModelo()} disabled={salvandoModelo || !assunto.trim() || !corpo.trim()} className="inline-flex items-center gap-2 border border-pipe-blue/50 text-pipe-blue px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pipe-blue/10 disabled:opacity-40"><IconeEstrela className="w-4 h-4" /> Salvar como modelo</button>
-          {enriquecendo ? <div className="flex items-center gap-2 rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue"><IconeBusca className="w-4 h-4 shrink-0" /><span>Enriquecendo e-mails, telefones e sites das empresas. Aguarde o carregamento dos destinatários.</span></div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-200">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
-          {usoEnvios && !usoEnvios.podeEnviar && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue"><span>O disparo em massa está disponível nos planos <b>Gold</b> e <b>Platinum</b>. No seu plano atual você gera abordagens, mas não envia campanhas em massa. Faça upgrade para disparar.</span><a href="/planos" className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark">Assinar Gold</a></div>}
-          {usoEnvios && usoEnvios.podeEnviar && conexao && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Conta pronta para envio.</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-bold text-pipe-dark disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div>}
+          {enriquecendo ? <div className="flex items-center gap-2 rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue"><IconeBusca className="w-4 h-4 shrink-0" /><span>Enriquecendo e-mails, telefones e sites das empresas. Aguarde o carregamento dos destinatários.</span></div> : destinatarios === 0 && <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-700">Não encontramos e-mails públicos válidos nesta lista. Você pode adicionar e-mails aos leads e sincronizar novamente.</div>}
+          {usoEnvios && !usoEnvios.podeEnviar && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-blue/30 bg-pipe-blue/10 p-3 text-sm text-pipe-blue"><span>O disparo em massa está disponível nos planos <b>Gold</b> e <b>Platinum</b>. No seu plano atual você gera abordagens, mas não envia campanhas em massa. Faça upgrade para disparar.</span><a href="/planos" className="rounded-lg bg-pipe-lime px-4 py-2 font-semibold text-white">Assinar Gold</a></div>}
+          {usoEnvios && usoEnvios.podeEnviar && conexao && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-pipe-lime/30 bg-pipe-lime/10 p-3 text-sm text-pipe-lime"><span>Conta pronta para envio.</span><button onClick={() => void enviarCampanha()} disabled={enviando || campanha.status === "enviada" || destinatarios === 0} className="rounded-lg bg-pipe-lime px-4 py-2 font-semibold text-white disabled:opacity-40">{enviando ? "Enviando..." : campanha.status === "enviada" ? "Campanha enviada" : destinatarios === 0 ? "Sem destinatários" : "Enviar campanha"}</button></div>}
         </section>}
 
         {mensagem && <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-pipe-lime"><p>{mensagem}</p>{mensagem.startsWith("E-mails disparados") && <button onClick={iniciarNovoDisparo} className="rounded-lg border border-pipe-lime/40 px-3 py-1.5 font-semibold hover:bg-pipe-lime/10">Novo disparo</button>}</div>}
-        {erro && <p className="mt-4 text-sm text-red-400">{erro}</p>}
+        {erro && <p className="mt-4 text-sm text-red-700">{erro}</p>}
       </main>
     </div>
   );

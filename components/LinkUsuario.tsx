@@ -80,7 +80,7 @@ export default function LinkUsuario() {
     return (
       <Link
         href="/login"
-        className="text-sm font-semibold text-pipe-muted hover:text-white transition hidden sm:block"
+        className="text-sm font-semibold text-pipe-muted hover:text-pipe-ink transition hidden sm:block"
       >
         Entrar
       </Link>
@@ -93,9 +93,9 @@ export default function LinkUsuario() {
     <div className="relative hidden sm:block" ref={areaRef}>
       <button
         onClick={() => setAberto((v) => !v)}
-        className="flex items-center gap-2 text-sm font-semibold text-white border border-pipe-border rounded-lg px-2 py-1.5 hover:border-pipe-blue transition"
+        className="flex items-center gap-2 text-sm font-semibold text-pipe-ink border border-pipe-border rounded-lg px-2 py-1.5 hover:border-pipe-blue transition"
       >
-        <span className="w-7 h-7 rounded-full bg-pipe-blue/20 text-pipe-blue flex items-center justify-center font-bold text-sm">
+        <span className="w-7 h-7 rounded-full bg-pipe-blue/20 text-pipe-blue flex items-center justify-center font-semibold text-sm">
           {inicial}
         </span>
         <span className="max-w-[140px] truncate">
@@ -117,7 +117,7 @@ export default function LinkUsuario() {
       {aberto && (
         <div className="absolute right-0 mt-2 w-60 bg-pipe-card border border-pipe-border rounded-xl shadow-xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-pipe-border">
-            <p className="text-sm font-bold text-white truncate">
+            <p className="text-sm font-semibold text-pipe-ink truncate">
               {usuario.nome || "Bem-vindo"}
             </p>
             <p className="text-xs text-pipe-muted truncate">{usuario.email}</p>
@@ -126,14 +126,14 @@ export default function LinkUsuario() {
             <Link
               href="/prospeccao"
               onClick={() => setAberto(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-semibold text-white hover:bg-pipe-dark transition"
+              className="block px-3 py-2 rounded-lg text-sm font-semibold text-pipe-ink hover:bg-pipe-dark transition"
             >
               <IconeAlvo className="w-4 h-4 text-pipe-lime inline-block mr-2" />
               Abrir FP Pipe
             </Link>
             <button
               onClick={sair}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-pipe-muted hover:text-red-400 hover:bg-pipe-dark transition"
+              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-pipe-muted hover:text-red-700 hover:bg-pipe-dark transition"
             >
               <IconeSair className="w-4 h-4 inline-block mr-2" />
               Sair

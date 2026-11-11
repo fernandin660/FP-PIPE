@@ -23,7 +23,7 @@ export default function ModalCompraCreditos({
       >
         <button
           onClick={onFechar}
-          className="absolute top-4 right-4 text-pipe-muted hover:text-white text-xl transition"
+          className="absolute top-4 right-4 text-pipe-muted hover:text-pipe-ink text-xl transition"
           aria-label="Fechar"
         >
           ×
@@ -33,7 +33,7 @@ export default function ModalCompraCreditos({
           <IconeCartao className="w-6 h-6" />
         </span>
 
-        <h2 className="font-display text-2xl text-white mt-4">
+        <h2 className="font-display text-2xl text-pipe-ink mt-4">
           Você atingiu o limite de créditos do seu plano.
         </h2>
 
@@ -46,13 +46,13 @@ export default function ModalCompraCreditos({
           <Link
             href="/planos"
             onClick={onFechar}
-            className="flex-1 text-center rounded-xl bg-pipe-lime text-black font-bold py-3 text-sm hover:brightness-110 transition"
+            className="flex-1 text-center rounded-xl bg-pipe-lime text-white font-semibold py-3 text-sm hover:brightness-110 transition"
           >
             Ver planos e fazer upgrade
           </Link>
           <button
             onClick={onFechar}
-            className="rounded-xl border border-pipe-border text-pipe-muted hover:text-white hover:border-pipe-blue px-5 py-3 text-sm font-semibold transition"
+            className="rounded-xl border border-pipe-border text-pipe-muted hover:text-pipe-ink hover:border-pipe-blue px-5 py-3 text-sm font-semibold transition"
           >
             Agora não
           </button>

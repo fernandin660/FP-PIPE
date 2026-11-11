@@ -69,7 +69,7 @@ export default function ModalEditarPessoas({
   };
 
   const classesInput =
-    "w-full bg-pipe-dark border border-pipe-border rounded-lg p-2.5 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white text-sm";
+    "w-full bg-pipe-dark border border-pipe-border rounded-lg p-2.5 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink text-sm";
   const classesLabel = "text-[11px] text-pipe-muted";
 
   function submeter(e: React.FormEvent) {
@@ -88,13 +88,13 @@ export default function ModalEditarPessoas({
       >
         <button
           onClick={onFechar}
-          className="absolute top-4 right-4 text-pipe-muted hover:text-white text-xl transition"
+          className="absolute top-4 right-4 text-pipe-muted hover:text-pipe-ink text-xl transition"
           aria-label="Fechar"
         >
           ×
         </button>
 
-        <h2 className="font-display text-3xl text-white">
+        <h2 className="font-display text-3xl text-pipe-ink">
           Editar <span className="text-pipe-lime">contatos da empresa</span>
         </h2>
 
@@ -106,7 +106,7 @@ export default function ModalEditarPessoas({
         <form onSubmit={submeter} className="space-y-6 mt-6">
           {/* APROVADOR */}
           <div className="border border-purple-500/30 rounded-lg p-4">
-            <p className="text-sm font-bold text-purple-400 mb-3">
+            <p className="text-sm font-semibold text-purple-700 mb-3">
               Aprovador (quem assina a compra)
             </p>
 
@@ -167,7 +167,7 @@ export default function ModalEditarPessoas({
 
           {/* CAMPEÃO */}
           <div className="border border-lime-500/30 rounded-lg p-4">
-            <p className="text-sm font-bold text-pipe-lime mb-3">
+            <p className="text-sm font-semibold text-pipe-lime mb-3">
               Influenciador (quem recebe sua proposta)
             </p>
 
@@ -228,7 +228,7 @@ export default function ModalEditarPessoas({
 
           {/* EMPRESA */}
           <div className="border border-pipe-border rounded-lg p-4">
-            <p className="text-sm font-bold text-pipe-blue mb-3">
+            <p className="text-sm font-semibold text-pipe-blue mb-3">
               Dados da empresa
             </p>
 
@@ -335,7 +335,7 @@ export default function ModalEditarPessoas({
 
           <button
             type="submit"
-            className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 transition"
+            className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 transition"
           >
             Salvar alterações
           </button>

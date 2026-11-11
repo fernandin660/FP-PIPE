@@ -111,7 +111,7 @@ function AtribuirLead({
         className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition ${
           concluido
             ? "border-pipe-lime/40 text-pipe-lime"
-            : "border-pipe-border text-gray-300 hover:bg-pipe-dark"
+            : "border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark"
         }`}
       >
         {concluido ? concluido : "Adicionar a lead existente"}
@@ -124,7 +124,7 @@ function AtribuirLead({
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Digite o nome do lead..."
             autoFocus
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
           />
 
           <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
@@ -133,7 +133,7 @@ function AtribuirLead({
                 key={empresa.id}
                 onClick={() => atribuir(empresa)}
                 disabled={enviando}
-                className="w-full text-left text-xs text-gray-200 px-3 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition truncate"
+                className="w-full text-left text-xs text-pipe-ink-soft px-3 py-2 rounded-lg hover:bg-pipe-dark disabled:opacity-50 transition truncate"
               >
                 <span className="block">
                   {empresa.nome_fantasia ||
@@ -273,7 +273,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
       <button
         onClick={abrirPainel}
         title="Criar um lead novo no banco com esta empresa e este contato"
-        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-dark transition"
+        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-dark transition"
       >
         Cadastrar como lead
       </button>
@@ -282,7 +282,7 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
         <div className="absolute right-0 bottom-full mb-2 z-30 w-72 bg-pipe-card border border-pipe-border rounded-xl p-3 shadow-2xl space-y-2">
           <p className="text-[11px] text-pipe-muted leading-relaxed">
             Vamos procurar{" "}
-            <span className="text-white font-semibold">
+            <span className="text-pipe-ink font-semibold">
               {contato.empresa || "a empresa"}
             </span>{" "}
             na Receita Federal pelo nome. Se não achar, salvamos o lead com os
@@ -318,13 +318,13 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
               value={novaListaNome}
               onChange={(e) => setNovaListaNome(e.target.value)}
               placeholder="Nome da nova lista"
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
             />
           ) : (
             <select
               value={listaEscolhida}
               onChange={(e) => setListaEscolhida(e.target.value)}
-              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pipe-blue"
+              className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
             >
               <option value="">
                 {listas.length === 0
@@ -340,12 +340,12 @@ function CadastrarComoLead({ contato }: { contato: ContatoEncontrado }) {
             </select>
           )}
 
-          {erro && <p className="text-[11px] text-red-400">{erro}</p>}
+          {erro && <p className="text-[11px] text-red-700">{erro}</p>}
 
           <button
             onClick={() => void cadastrar()}
             disabled={enviando}
-            className="w-full text-xs font-bold px-3 py-2 rounded-lg bg-pipe-lime text-black hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full text-xs font-semibold px-3 py-2 rounded-lg bg-pipe-lime text-white hover:opacity-90 disabled:opacity-50 transition"
           >
             {enviando
               ? "Buscando CNPJ e criando lead..."
@@ -1120,37 +1120,38 @@ function BuscadorContent() {
         aoSalvar={setPerfil}
       />
 
-      <main className="min-h-screen bg-pipe-dark px-6 py-12 lg:pl-72">
+      <main className="min-h-screen bg-pipe-bg px-6 py-12 lg:pl-72">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <Link href="/prospeccao" className="font-display text-3xl text-white">
-              FP <span className="text-pipe-lime">Pipe</span>
+            <Link href="/prospeccao" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink lg:invisible">
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" /></svg>
+              FP Pipe
             </Link>
 
             <Link
               href="/prospeccao"
-              className="bg-pipe-lime text-black font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
+              className="bg-pipe-lime text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
             >
               + Nova prospecção
             </Link>
           </div>
 
           <div className="flex items-end justify-between mt-10 gap-4 flex-wrap">
-            <h1 className="font-display text-5xl text-white">
+            <h1 className="font-display text-5xl text-pipe-ink">
               Buscador de contatos
             </h1>
 
             {saldoContatos !== null && (
               <p className="text-pipe-muted text-sm">
                 E-mails:{" "}
-                <span className="text-pipe-lime font-bold">{saldoContatos}</span>
+                <span className="text-pipe-lime font-semibold">{saldoContatos}</span>
               </p>
             )}
 
             {saldoTelefones !== null && saldoTelefones > 0 && (
               <p className="text-pipe-muted text-sm">
                 Telefones:{" "}
-                <span className="text-pipe-lime font-bold">{saldoTelefones}</span>
+                <span className="text-pipe-lime font-semibold">{saldoTelefones}</span>
                 <span className="text-[10px] text-pipe-muted ml-1">
                   ({saldoTelefones} disponíveis)
                 </span>
@@ -1161,7 +1162,7 @@ function BuscadorContent() {
           <p className="text-pipe-muted mt-3 max-w-2xl">
             Busque uma empresa para ver telefones e e-mails gerais (grátis).{" "}
             Depois, cole o LinkedIn de um funcionário para buscar o{" "}
-             <strong className="text-gray-200">telefone pessoal</strong> (1 crédito).
+             <strong className="text-pipe-ink-soft">telefone pessoal</strong> (1 crédito).
           </p>
 
           <div className="mt-8 bg-pipe-card border border-pipe-border rounded-xl p-6 space-y-4">
@@ -1178,13 +1179,13 @@ function BuscadorContent() {
                     if (e.key === "Enter") void buscarEmpresaFicha(termoBusca);
                   }}
                   placeholder="Digite o nome da empresa (ex: Sal Express, Petrobras...)"
-                  className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   disabled={buscandoEmpresaFicha}
                 />
                 <button
                   onClick={() => void buscarEmpresaFicha(termoBusca)}
                   disabled={buscandoEmpresaFicha || termoBusca.length < 2}
-                  className="bg-pipe-lime text-black font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
+                  className="bg-pipe-lime text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap"
                 >
                   {buscandoEmpresaFicha ? "Buscando..." : "Buscar empresa"}
                 </button>
@@ -1192,14 +1193,14 @@ function BuscadorContent() {
             </div>
 
             {mensagem && (
-              <p className={`text-sm ${erroMensagem ? "text-red-400" : "text-amber-400"}`}>
+              <p className={`text-sm ${erroMensagem ? "text-red-700" : "text-amber-700"}`}>
                 {mensagem}
               </p>
             )}
             <div>
             <label className="block text-xs font-semibold text-pipe-muted uppercase tracking-wide mb-2">CNPJ (opcional)</label>
             <div className="flex flex-col sm:flex-row gap-3">
-            <input type="text" inputMode="numeric" value={cnpjPessoa} onChange={(e) => setCnpjPessoa(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); } }} placeholder="CNPJ (ex: 03.001.329/0001-65)" className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue" disabled={buscandoEmpresaFicha} />
+            <input type="text" inputMode="numeric" value={cnpjPessoa} onChange={(e) => setCnpjPessoa(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); } }} placeholder="CNPJ (ex: 03.001.329/0001-65)" className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue" disabled={buscandoEmpresaFicha} />
             <button onClick={() => { setTermoBusca(cnpjPessoa); void buscarEmpresaFicha(cnpjPessoa); }} disabled={buscandoEmpresaFicha || cnpjPessoa.trim().length < 13} className="bg-pipe-blue text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm whitespace-nowrap">Buscar por CNPJ</button>
             </div>
             </div>
@@ -1211,7 +1212,7 @@ function BuscadorContent() {
                 <div>
                   <div className="flex items-center gap-2">
                     <IconeEmpresa tamanho={28} className="inline" />
-                    <h2 className="font-display text-xl text-white">{fichaEmpresa.nome}</h2>
+                    <h2 className="font-display text-xl text-pipe-ink">{fichaEmpresa.nome}</h2>
                     <span className="text-[10px] text-pipe-muted bg-pipe-dark px-2 py-0.5 rounded-full">
                       {fichaEmpresa.origem === "banco" ? "Seus dados" : "Web"}
                     </span>
@@ -1226,13 +1227,13 @@ function BuscadorContent() {
                 {fichaEmpresa.cnpj && (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-pipe-muted">CNPJ:</span>
-                    <span className="text-white font-mono">{fichaEmpresa.cnpj}</span>
+                    <span className="text-pipe-ink font-mono">{fichaEmpresa.cnpj}</span>
                   </div>
                 )}
                 {fichaEmpresa.endereco && (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-pipe-muted"><IconeAlvo tamanho={16} className="inline" /></span>
-                    <span className="text-white">{fichaEmpresa.endereco}</span>
+                    <span className="text-pipe-ink">{fichaEmpresa.endereco}</span>
                   </div>
                 )}
                 {fichaEmpresa.website && (
@@ -1246,7 +1247,7 @@ function BuscadorContent() {
                 {fichaEmpresa.linkedin_url && (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-pipe-muted"><IconeEmpresa tamanho={16} className="inline" /></span>
-                    <a href={fichaEmpresa.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                    <a href={fichaEmpresa.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
                       LinkedIn da empresa
                     </a>
                   </div>
@@ -1261,7 +1262,7 @@ function BuscadorContent() {
                       <div key={telefone} className="flex items-center gap-2">
                         <a href={`tel:${telefone}`} className="text-pipe-lime font-semibold hover:underline text-sm"><IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {telefone}</a>
                         <span className="text-[10px] text-pipe-muted">Grátis</span>
-                        <button onClick={async () => { await navigator.clipboard.writeText(telefone); }} className="text-xs text-pipe-muted hover:text-white transition" title="Copiar"><IconeCopiar tamanho={16} /></button>
+                        <button onClick={async () => { await navigator.clipboard.writeText(telefone); }} className="text-xs text-pipe-muted hover:text-pipe-ink transition" title="Copiar"><IconeCopiar tamanho={16} /></button>
                       </div>
                     ))}
                   </div>
@@ -1279,7 +1280,7 @@ function BuscadorContent() {
                         </a>
                         <button
                           onClick={async () => { await navigator.clipboard.writeText(email); }}
-                          className="text-xs text-pipe-muted hover:text-white transition"
+                          className="text-xs text-pipe-muted hover:text-pipe-ink transition"
                           title="Copiar"
                         >
                           <IconeCopiar tamanho={16} />
@@ -1318,7 +1319,7 @@ function BuscadorContent() {
                       if (e.key === "Enter") void buscarPessoa();
                     }}
                     placeholder="Nome da pessoa (ex: Kelder Nagel)"
-                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     disabled={buscandoPessoa}
                   />
                   <input
@@ -1326,7 +1327,7 @@ function BuscadorContent() {
                     value={linkedinPessoa}
                     onChange={(e) => setLinkedinPessoa(e.target.value)}
                     placeholder="LinkedIn (opcional)"
-                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                    className="bg-pipe-dark border border-pipe-border rounded-lg px-4 py-3 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                     disabled={buscandoPessoa}
                   />
                 </div>
@@ -1339,7 +1340,7 @@ function BuscadorContent() {
                 </button>
 
                 {erroPessoa && (
-                  <p className="mt-2 text-sm text-red-400">{erroPessoa}</p>
+                  <p className="mt-2 text-sm text-red-700">{erroPessoa}</p>
                 )}
 
                 {resultadoPessoa && (
@@ -1350,7 +1351,7 @@ function BuscadorContent() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-base font-bold text-white truncate group-hover:text-pipe-lime transition">
+                          <p className="text-base font-semibold text-pipe-ink truncate group-hover:text-pipe-lime transition">
                             {resultadoPessoa.nome || fichaEmpresa?.nome || "Contato"}
                           </p>
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
@@ -1366,7 +1367,7 @@ function BuscadorContent() {
                           </div>
                           <div className="flex items-center gap-3 mt-2 flex-wrap">
                             {resultadoPessoa.matchScore !== null && resultadoPessoa.matchScore !== undefined && (
-                              <span className={`text-xs font-semibold rounded px-1.5 py-0.5 ${resultadoPessoa.matchScore >= 70 ? "text-green-300 bg-green-500/15" : resultadoPessoa.matchScore >= 50 ? "text-yellow-300 bg-yellow-500/15" : "text-gray-300 bg-gray-500/15"}`}>
+                              <span className={`text-xs font-semibold rounded px-1.5 py-0.5 ${resultadoPessoa.matchScore >= 70 ? "text-emerald-700 bg-green-500/15" : resultadoPessoa.matchScore >= 50 ? "text-amber-700 bg-yellow-500/15" : "text-pipe-ink-soft bg-gray-500/15"}`}>
                                 ICP {resultadoPessoa.matchScore}%
                               </span>
                             )}
@@ -1406,7 +1407,7 @@ function BuscadorContent() {
                               }}
                             />
                           )}
-                          <span className="text-xs text-pipe-muted group-hover:text-white transition">Ver mais →</span>
+                          <span className="text-xs text-pipe-muted group-hover:text-pipe-ink transition">Ver mais →</span>
                         </div>
                       </div>
                     </button>
@@ -1420,7 +1421,7 @@ function BuscadorContent() {
                         <aside className="absolute right-0 top-0 h-full w-full max-w-xl bg-pipe-card border-l border-pipe-border overflow-y-auto shadow-2xl">
                           <div className="sticky top-0 bg-pipe-card border-b border-pipe-border px-6 py-4 flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                              <h2 className="font-bold text-lg text-white leading-snug">
+                              <h2 className="font-semibold text-lg text-pipe-ink leading-snug">
                                 {resultadoPessoa.nome || resultadoPessoa.empresa || "Contato"}
                               </h2>
                               {(resultadoPessoa.cargo || resultadoPessoa.empresa) && (
@@ -1431,7 +1432,7 @@ function BuscadorContent() {
                             </div>
                             <button
                               onClick={() => setDrawerPessoa(false)}
-                              className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-white hover:bg-pipe-dark transition"
+                              className="shrink-0 w-8 h-8 rounded-lg border border-pipe-border text-pipe-muted hover:text-pipe-ink hover:bg-pipe-dark transition"
                             >
                               ×
                             </button>
@@ -1473,33 +1474,33 @@ function BuscadorContent() {
                                 href={resultadoPessoa.linkedin_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline"
                               >
                                 Abrir LinkedIn
                               </a>
                             )}
 
                             <section>
-                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                                 Empresa
                               </p>
                               <dl className="space-y-1.5 text-sm">
                                 {resultadoPessoa.empresaDetalhes?.cnpj && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">CNPJ</dt>
-                                    <dd className="text-gray-200 font-mono">{resultadoPessoa.empresaDetalhes.cnpj}</dd>
+                                    <dd className="text-pipe-ink-soft font-mono">{resultadoPessoa.empresaDetalhes.cnpj}</dd>
                                   </div>
                                 )}
                                 {resultadoPessoa.empresaDetalhes?.razao_social && resultadoPessoa.empresaDetalhes.razao_social !== resultadoPessoa.empresa && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">Razão social</dt>
-                                    <dd className="text-gray-200">{resultadoPessoa.empresaDetalhes.razao_social}</dd>
+                                    <dd className="text-pipe-ink-soft">{resultadoPessoa.empresaDetalhes.razao_social}</dd>
                                   </div>
                                 )}
                                 {resultadoPessoa.empresaDetalhes?.endereco && (
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">Endereço</dt>
-                                    <dd className="text-gray-200">{resultadoPessoa.empresaDetalhes.endereco}</dd>
+                                    <dd className="text-pipe-ink-soft">{resultadoPessoa.empresaDetalhes.endereco}</dd>
                                   </div>
                                 )}
                                 {resultadoPessoa.empresaDetalhes?.website && (
@@ -1516,7 +1517,7 @@ function BuscadorContent() {
                                   <div className="flex gap-2">
                                     <dt className="text-pipe-muted w-28 shrink-0">LinkedIn</dt>
                                     <dd>
-                                      <a href={resultadoPessoa.empresaDetalhes.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                                      <a href={resultadoPessoa.empresaDetalhes.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
                                         Página da empresa
                                       </a>
                                     </dd>
@@ -1527,7 +1528,7 @@ function BuscadorContent() {
 
                             {!!(resultadoPessoa.empresaDetalhes?.telefone_empresa || resultadoPessoa.empresaDetalhes?.emails_genericos?.length) && (
                               <section className="border-t border-pipe-border pt-4">
-                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                                   Contato da empresa (grátis)
                                 </p>
                                 <div className="space-y-1.5 text-sm">
@@ -1538,7 +1539,7 @@ function BuscadorContent() {
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(resultadoPessoa.empresaDetalhes!.telefone_empresa!); }}
-                                        className="text-xs text-pipe-muted hover:text-white transition"
+                                        className="text-xs text-pipe-muted hover:text-pipe-ink transition"
                                       >
                                         <IconeCopiar tamanho={16} />
                                       </button>
@@ -1551,7 +1552,7 @@ function BuscadorContent() {
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(email); }}
-                                        className="text-xs text-pipe-muted hover:text-white transition shrink-0"
+                                        className="text-xs text-pipe-muted hover:text-pipe-ink transition shrink-0"
                                       >
                                         <IconeCopiar tamanho={16} />
                                       </button>
@@ -1563,7 +1564,7 @@ function BuscadorContent() {
 
                             {(resultadoPessoa.telefones.filter((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones").length > 0 || resultadoPessoa.emails.length > 0) && (
                               <section className="border-t border-pipe-border pt-4">
-                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                                   <IconeEquipe tamanho={14} className="inline mr-1 -mt-0.5" /> Contato pessoal
                                 </p>
                                 <div className="space-y-1.5 text-sm">
@@ -1578,7 +1579,7 @@ function BuscadorContent() {
                                         </span>
                                         <button
                                           onClick={async () => { await navigator.clipboard.writeText(tel); }}
-                                          className="text-xs text-pipe-muted hover:text-white transition"
+                                          className="text-xs text-pipe-muted hover:text-pipe-ink transition"
                                         >
                                           <IconeCopiar tamanho={16} />
                                         </button>
@@ -1592,7 +1593,7 @@ function BuscadorContent() {
                                       </a>
                                       <button
                                         onClick={async () => { await navigator.clipboard.writeText(email); }}
-                                        className="text-xs text-pipe-muted hover:text-white transition shrink-0"
+                                        className="text-xs text-pipe-muted hover:text-pipe-ink transition shrink-0"
                                       >
                                         <IconeCopiar tamanho={16} />
                                       </button>
@@ -1606,14 +1607,14 @@ function BuscadorContent() {
                             )}
 
                             {!veioDoCache && resultadoPessoa.linkedin_url && !resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] === "millionphones") && (
-                              <p className="text-[10px] text-amber-400 border-t border-pipe-border pt-3 italic">
+                              <p className="text-[10px] text-amber-700 border-t border-pipe-border pt-3 italic">
                                 Contato pessoal não encontrado para esse perfil.
                               </p>
                             )}
 
                             {resultadoPessoa.telefones.some((_, i) => resultadoPessoa.fontesTelefone[i] !== "millionphones") && (
                               <section className="border-t border-pipe-border pt-4">
-                                <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">
                                   <IconeTelefone tamanho={14} className="inline mr-1 -mt-0.5" /> {veioDoCache ? "Telefones encontrados" : "Telefones encontrados (Web)"}
                                 </p>
                                 <div className="space-y-1.5 text-sm">
@@ -1625,7 +1626,7 @@ function BuscadorContent() {
                                         </a>
                                         <button
                                           onClick={async () => { await navigator.clipboard.writeText(tel); }}
-                                          className="text-xs text-pipe-muted hover:text-white transition"
+                                          className="text-xs text-pipe-muted hover:text-pipe-ink transition"
                                         >
                                           <IconeCopiar tamanho={16} />
                                         </button>
@@ -1637,14 +1638,14 @@ function BuscadorContent() {
                             )}
 
                             {!resultadoPessoa.telefones.length && !resultadoPessoa.emails.length && !resultadoPessoa.empresaDetalhes?.telefone_empresa && !resultadoPessoa.empresaDetalhes?.emails_genericos?.length && (
-                              <p className="text-xs text-amber-400 border-t border-pipe-border pt-4">
+                              <p className="text-xs text-amber-700 border-t border-pipe-border pt-4">
                                 Nenhum telefone ou e-mail encontrado. Tente informar o LinkedIn para melhorar a busca.
                               </p>
                             )}
 
                             <section className="border-t border-pipe-border pt-4">
-                              <p className="text-[11px] font-bold uppercase tracking-wide text-pipe-muted mb-2">Gerar abordagem por e-mail</p>
-                              <select value={objetivoContato} onChange={(e) => setObjetivoContato(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-2">Gerar abordagem por e-mail</p>
+                              <select value={objetivoContato} onChange={(e) => setObjetivoContato(e.target.value)} className="w-full bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink">
                                 <option value="">Escolha a finalidade...</option>
                                 <option value="gerar_interesse">Gerar interesse</option>
                                 <option value="agendar_reuniao">Agendar reunião</option>
@@ -1654,10 +1655,10 @@ function BuscadorContent() {
                                 <option value="follow_up">Fazer follow-up</option>
                                 <option value="reativar_contato">Reativar contato</option>
                               </select>
-                              <textarea value={orientacoesContato} onChange={(e) => setOrientacoesContato(e.target.value)} placeholder="Orientações para a IA (opcional): tom, oferta, contexto..." className="w-full min-h-20 mt-2 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-white" />
-                              <button onClick={() => void gerarAbordagemContato()} disabled={!objetivoContato || gerandoAbordagem || !resultadoPessoa.id} className="mt-2 bg-pipe-lime text-pipe-dark px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-40">{gerandoAbordagem ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
-                              {erroAbordagem && <p className="mt-2 text-xs text-red-400">{erroAbordagem}</p>}
-                              {abordagemContato && <div className="mt-3 rounded-lg bg-pipe-dark border border-pipe-border p-3 space-y-2"><p className="text-sm font-semibold text-white">{abordagemContato.assunto}</p><p className="text-sm text-gray-300 whitespace-pre-wrap">{abordagemContato.conteudo}</p><button onClick={() => void copiarAbordagem()} className="text-xs text-pipe-lime hover:underline">{copiadoAbordagem ? "Copiado" : "Copiar e-mail"}</button></div>}
+                              <textarea value={orientacoesContato} onChange={(e) => setOrientacoesContato(e.target.value)} placeholder="Orientações para a IA (opcional): tom, oferta, contexto..." className="w-full min-h-20 mt-2 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-2.5 text-sm text-pipe-ink" />
+                              <button onClick={() => void gerarAbordagemContato()} disabled={!objetivoContato || gerandoAbordagem || !resultadoPessoa.id} className="mt-2 bg-pipe-lime text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40">{gerandoAbordagem ? "Gerando..." : "Gerar abordagem (1 crédito)"}</button>
+                              {erroAbordagem && <p className="mt-2 text-xs text-red-700">{erroAbordagem}</p>}
+                              {abordagemContato && <div className="mt-3 rounded-lg bg-pipe-dark border border-pipe-border p-3 space-y-2"><p className="text-sm font-semibold text-pipe-ink">{abordagemContato.assunto}</p><p className="text-sm text-pipe-ink-soft whitespace-pre-wrap">{abordagemContato.conteudo}</p><button onClick={() => void copiarAbordagem()} className="text-xs text-pipe-lime hover:underline">{copiadoAbordagem ? "Copiado" : "Copiar e-mail"}</button></div>}
                             </section>
                           </div>
                         </aside>
@@ -1672,7 +1673,7 @@ function BuscadorContent() {
           {historico.length > 0 && (
             <div className="mt-10">
               <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
-                <h2 className="font-display text-2xl text-white">
+                <h2 className="font-display text-2xl text-pipe-ink">
                   Buscas recentes
                 </h2>
 
@@ -1683,7 +1684,7 @@ function BuscadorContent() {
                         onClick={() =>
                           setContatosSelecionados(new Set())
                         }
-                        className="text-xs font-semibold text-pipe-muted hover:text-white transition"
+                        className="text-xs font-semibold text-pipe-muted hover:text-pipe-ink transition"
                       >
                         Limpar seleção ({contatosSelecionados.size})
                       </button>
@@ -1691,7 +1692,7 @@ function BuscadorContent() {
                     <button
                       onClick={() => setModalCrmAberto(true)}
                       disabled={contatosSelecionados.size === 0}
-                      className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
                     >
                       Adicionar ao CRM
                       {contatosSelecionados.size > 0
@@ -1716,14 +1717,14 @@ function BuscadorContent() {
                           contato.id && alternarContato(contato.id)
                         }
                         title="Selecionar para adicionar ao CRM"
-                        className="shrink-0 w-4 h-4 accent-lime-400"
+                        className="shrink-0 w-4 h-4 accent-pipe-blue"
                       />
                     ) : (
                       <span className="w-4 shrink-0" />
                     )}
 
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-white truncate">
+                      <p className="text-sm font-semibold text-pipe-ink truncate">
                         {contato.nome ?? "—"}
                       </p>
                       <p className="text-xs text-pipe-muted truncate">
@@ -1760,7 +1761,7 @@ function BuscadorContent() {
                           navigator.clipboard.writeText(contato.email)
                         }
                         title="Copiar e-mail"
-                        className="shrink-0 border border-pipe-border text-gray-300 text-xs px-2.5 py-1.5 rounded-lg hover:bg-pipe-dark transition"
+                        className="shrink-0 border border-pipe-border text-pipe-ink-soft text-xs px-2.5 py-1.5 rounded-lg hover:bg-pipe-dark transition"
                       >
                         <IconeCopiar tamanho={16} />
                       </button>
@@ -1784,16 +1785,16 @@ function BuscadorContent() {
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="text-center">
               <IconeCadeado tamanho={40} className="mx-auto" />
-              <h3 className="font-display text-xl text-white mt-4">Serviço temporariamente indisponível</h3>
+              <h3 className="font-display text-xl text-pipe-ink mt-4">Serviço temporariamente indisponível</h3>
               <p className="text-sm text-pipe-muted mt-3">
                 A busca de telefone pessoal via MillionPhones ainda não está ativada nesta conta.
               </p>
               <p className="text-sm text-pipe-muted mt-2">
-                <strong className="text-gray-200">Contate o administrador</strong> para ativação deste serviço.
+                <strong className="text-pipe-ink-soft">Contate o administrador</strong> para ativação deste serviço.
               </p>
               <button
                 onClick={() => setMostrarPopupMillionPhones(false)}
-                className="mt-6 bg-pipe-lime text-black font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 transition text-sm"
+                className="mt-6 bg-pipe-lime text-white font-semibold px-6 py-2.5 rounded-lg hover:opacity-90 transition text-sm"
               >
                 Entendido
               </button>
@@ -1821,7 +1822,7 @@ export default function PaginaBuscador() {
     <Suspense
       fallback={
         <main className="flex-1 flex items-center justify-center py-24">
-          <p className="text-gray-400">Carregando...</p>
+          <p className="text-pipe-muted">Carregando...</p>
         </main>
       }
     >

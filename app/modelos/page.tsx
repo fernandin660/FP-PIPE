@@ -300,30 +300,31 @@ export default function PaginaModelos() {
         aoSalvar={setPerfil}
       />
 
-      <main className="min-h-screen bg-pipe-dark px-6 py-12 lg:pl-72">
+      <main className="min-h-screen bg-pipe-bg px-6 py-12 lg:pl-72">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <Link href="/prospeccao" className="font-display text-3xl text-white">
-              FP <span className="text-pipe-lime">Pipe</span>
+            <Link href="/prospeccao" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink lg:invisible">
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" /></svg>
+              FP Pipe
             </Link>
 
             <Link
               href="/prospeccao"
-              className="bg-pipe-lime text-black font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
+              className="bg-pipe-lime text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
             >
               + Nova prospecção
             </Link>
           </div>
 
-          <h1 className="font-display text-5xl text-white mt-10">Modelos e cadências</h1>
+          <h1 className="font-display text-5xl text-pipe-ink mt-10">Modelos e cadências</h1>
 
           <div className="mt-6 flex items-center gap-2 border border-pipe-border rounded-xl p-1 bg-pipe-card w-fit">
             <button
               onClick={() => setAba("modelos")}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 aba === "modelos"
-                  ? "bg-pipe-lime text-black"
-                  : "text-gray-300 hover:bg-pipe-dark"
+                  ? "bg-pipe-lime text-white"
+                  : "text-pipe-ink-soft hover:bg-pipe-dark"
               }`}
             >
               <span className="inline-flex items-center gap-2">
@@ -335,8 +336,8 @@ export default function PaginaModelos() {
               onClick={() => setAba("cadencias")}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 aba === "cadencias"
-                  ? "bg-pipe-lime text-black"
-                  : "text-gray-300 hover:bg-pipe-dark"
+                  ? "bg-pipe-lime text-white"
+                  : "text-pipe-ink-soft hover:bg-pipe-dark"
               }`}
             >
               <span className="inline-flex items-center gap-2">
@@ -356,7 +357,7 @@ export default function PaginaModelos() {
           {!carregando && modelos.length === 0 && (
             <p className="text-center text-pipe-muted mt-16">
               Nenhum modelo ainda. Gere uma abordagem e clique em{" "}
-              <span className="text-amber-400">Salvar como modelo</span> para
+              <span className="text-amber-700">Salvar como modelo</span> para
               guardá-la aqui.
             </p>
           )}
@@ -369,7 +370,7 @@ export default function PaginaModelos() {
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
-                    <p className="font-bold text-white truncate">
+                    <p className="font-semibold text-pipe-ink truncate">
                       <IconeEstrela className="w-4 h-4 text-pipe-lime inline-block mr-1.5 align-[-2px]" />
                       {modelo.nome}
                     </p>
@@ -386,7 +387,7 @@ export default function PaginaModelos() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => copiarModelo(modelo)}
-                      className="text-xs font-semibold bg-pipe-lime text-black px-3 py-2 rounded-lg hover:opacity-90 transition"
+                      className="text-xs font-semibold bg-pipe-lime text-white px-3 py-2 rounded-lg hover:opacity-90 transition"
                     >
                       <span className="inline-flex items-center gap-1.5">
                       {copiadoId === modelo.id ? (
@@ -405,7 +406,7 @@ export default function PaginaModelos() {
                       onClick={() =>
                         setAbertoId(abertoId === modelo.id ? null : modelo.id)
                       }
-                      className="text-xs font-semibold border border-pipe-border text-gray-300 px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
+                      className="text-xs font-semibold border border-pipe-border text-pipe-ink-soft px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                     >
                       {abertoId === modelo.id ? "▲ Fechar" : "▼ Ver texto"}
                     </button>
@@ -413,7 +414,7 @@ export default function PaginaModelos() {
                     <button
                       onClick={() => excluirModelo(modelo.id)}
                       title="Excluir modelo"
-                      className="text-xs font-semibold border border-red-500/30 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
+                      className="text-xs font-semibold border border-red-500/30 text-red-700 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                     >
                       Excluir
                     </button>
@@ -429,12 +430,12 @@ export default function PaginaModelos() {
                     )}
 
                     {modelo.canal === "email" && modelo.assunto && (
-                      <p className="text-sm text-gray-200">
+                      <p className="text-sm text-pipe-ink-soft">
                         <strong>Assunto:</strong> {modelo.assunto}
                       </p>
                     )}
 
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-gray-200 leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-pipe-ink-soft leading-relaxed bg-pipe-dark border border-pipe-border rounded-xl p-4">
 {modelo.conteudo}
                     </pre>
                   </div>
@@ -454,14 +455,14 @@ export default function PaginaModelos() {
                 </p>
                 <button
                   onClick={abrirNovaCadencia}
-                  className="bg-pipe-lime text-black font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm"
+                  className="bg-pipe-lime text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm"
                 >
                   + Nova cadência
                 </button>
               </div>
 
               {erroCadencia && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mt-4">
+                <p className="text-xs text-red-700 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mt-4">
                   {erroCadencia}
                 </p>
               )}
@@ -484,7 +485,7 @@ export default function PaginaModelos() {
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="min-w-0">
-                          <p className="font-bold text-white truncate">
+                          <p className="font-semibold text-pipe-ink truncate">
                             <IconeLista className="w-4 h-4 text-pipe-lime inline-block mr-1.5 align-[-2px]" />
                             {c.nome}
                           </p>
@@ -494,7 +495,7 @@ export default function PaginaModelos() {
                             {new Date(c.criado_em).toLocaleDateString("pt-BR")}
                           </p>
                           {c.descricao && (
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-pipe-muted mt-1">
                               {c.descricao}
                             </p>
                           )}
@@ -503,7 +504,7 @@ export default function PaginaModelos() {
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => abrirEdicaoCadencia(c)}
-                            className="text-xs font-semibold border border-pipe-border text-gray-300 px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
+                            className="text-xs font-semibold border border-pipe-border text-pipe-ink-soft px-3 py-2 rounded-lg hover:bg-pipe-dark transition"
                           >
                             <span className="inline-flex items-center gap-1.5">
                             <IconeEscrever className="w-4 h-4" /> Editar
@@ -512,7 +513,7 @@ export default function PaginaModelos() {
                           <button
                             onClick={() => excluirCadencia(c)}
                             title="Excluir cadência"
-                            className="text-xs font-semibold border border-red-500/30 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
+                            className="text-xs font-semibold border border-red-500/30 text-red-700 px-3 py-2 rounded-lg hover:bg-red-500/10 transition"
                           >
                             Excluir
                           </button>
@@ -525,11 +526,11 @@ export default function PaginaModelos() {
                             key={i}
                             className="flex items-start gap-3 bg-pipe-dark border border-pipe-border rounded-lg p-3"
                           >
-                            <span className="shrink-0 text-xs font-bold text-pipe-lime border border-pipe-lime/40 rounded-full w-6 h-6 flex items-center justify-center">
+                            <span className="shrink-0 text-xs font-semibold text-pipe-lime border border-pipe-lime/40 rounded-full w-6 h-6 flex items-center justify-center">
                               {i + 1}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm text-white">
+                              <p className="text-sm text-pipe-ink">
                                 {TIPOS_ATIVIDADE[e.tipo_atividade] ??
                                   e.tipo_atividade}{" "}
                                 · {e.titulo}
@@ -557,19 +558,19 @@ export default function PaginaModelos() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-pipe-card border border-pipe-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-white">
+              <h3 className="font-display text-xl text-pipe-ink">
                 {formCadencia.id ? "Editar cadência" : "Nova cadência"}
               </h3>
               <button
                 onClick={() => setModalCadencia(false)}
-                className="text-gray-400 hover:text-white text-xl"
+                className="text-pipe-muted hover:text-pipe-ink text-xl"
               >
                 ×
               </button>
             </div>
 
             {erroCadencia && (
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-3">
+              <p className="text-xs text-red-700 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-3">
                 {erroCadencia}
               </p>
             )}
@@ -588,7 +589,7 @@ export default function PaginaModelos() {
                     }))
                   }
                   placeholder="Ex.: Prospecção fria"
-                  className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white"
+                  className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink"
                 />
               </div>
 
@@ -605,7 +606,7 @@ export default function PaginaModelos() {
                     }))
                   }
                   placeholder="Para que serve esta cadência?"
-                  className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-white"
+                  className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink"
                 />
               </div>
 
@@ -642,7 +643,7 @@ export default function PaginaModelos() {
                       className="bg-pipe-dark border border-pipe-border rounded-lg p-3 space-y-2"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-pipe-lime">
+                        <span className="text-xs font-semibold text-pipe-lime">
                           Etapa {i + 1}
                         </span>
                         <button
@@ -654,7 +655,7 @@ export default function PaginaModelos() {
                               ),
                             }))
                           }
-                          className="text-xs text-red-400 hover:underline"
+                          className="text-xs text-red-700 hover:underline"
                         >
                           Remover
                         </button>
@@ -666,7 +667,7 @@ export default function PaginaModelos() {
                           onChange={(ev) =>
                             atualizarEtapa(i, "tipo_atividade", ev.target.value)
                           }
-                          className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-white"
+                          className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-pipe-ink"
                         >
                           {Object.entries(TIPOS_ATIVIDADE).map(([v, l]) => (
                             <option key={v} value={v}>
@@ -682,7 +683,7 @@ export default function PaginaModelos() {
                             atualizarEtapa(i, "atraso_dias", Number(ev.target.value))
                           }
                           placeholder="Atraso (dias)"
-                          className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-white"
+                          className="bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-pipe-ink"
                         />
                       </div>
 
@@ -692,7 +693,7 @@ export default function PaginaModelos() {
                           atualizarEtapa(i, "titulo", ev.target.value)
                         }
                         placeholder="Título da etapa"
-                        className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-white"
+                        className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-pipe-ink"
                       />
 
                       <textarea
@@ -702,7 +703,7 @@ export default function PaginaModelos() {
                         }
                         placeholder="Script / observação"
                         rows={2}
-                        className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-white resize-none"
+                        className="w-full bg-pipe-bg border border-pipe-border rounded-lg px-2 py-2 text-sm text-pipe-ink resize-none"
                       />
                     </div>
                   ))}
@@ -713,14 +714,14 @@ export default function PaginaModelos() {
             <div className="flex items-center justify-end gap-2 mt-6">
               <button
                 onClick={() => setModalCadencia(false)}
-                className="border border-pipe-border text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-pipe-dark transition"
+                className="border border-pipe-border text-pipe-ink-soft px-4 py-2 rounded-lg text-sm hover:bg-pipe-dark transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={salvarCadencia}
                 disabled={salvandoCadencia}
-                className="bg-pipe-lime text-black font-semibold px-5 py-2 rounded-lg text-sm hover:opacity-90 transition disabled:opacity-50"
+                className="bg-pipe-lime text-white font-semibold px-5 py-2 rounded-lg text-sm hover:opacity-90 transition disabled:opacity-50"
               >
                 {salvandoCadencia
                   ? "Salvando…"

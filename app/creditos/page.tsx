@@ -173,16 +173,16 @@ export default function PaginaCreditos() {
   const isAdmin = org && org.papel === "admin";
 
   return (
-    <main className="min-h-screen bg-pipe-bg text-gray-200">
+    <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft">
       <div className="max-w-4xl mx-auto px-6 py-12">
         <Link
           href="/prospeccao"
-          className="text-xs text-pipe-muted hover:text-white transition"
+          className="text-xs text-pipe-muted hover:text-pipe-ink transition"
         >
           ← Voltar
         </Link>
 
-        <h1 className="font-display text-3xl text-white mt-3">
+        <h1 className="font-display text-3xl text-pipe-ink mt-3">
           <span className="inline-flex items-center gap-3">
             <IconeCartao className="w-7 h-7 text-pipe-lime" /> Gerenciar créditos
           </span>
@@ -206,7 +206,7 @@ export default function PaginaCreditos() {
                     {moeda.nome}
                   </p>
 
-                  <p className="font-display text-4xl text-white mt-3">
+                  <p className="font-display text-4xl text-pipe-ink mt-3">
                     {moeda.saldo ?? 0}
                   </p>
 
@@ -222,7 +222,7 @@ export default function PaginaCreditos() {
               <div className="mt-12 bg-pipe-card border border-pipe-border rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <h2 className="font-display text-xl text-white">
+                    <h2 className="font-display text-xl text-pipe-ink">
                       Atribuição de Créditos por Membro ({org.planoNome})
                     </h2>
                     <p className="text-xs text-pipe-muted mt-0.5">
@@ -250,10 +250,10 @@ export default function PaginaCreditos() {
                     <tbody className="divide-y divide-pipe-border/60">
                       {org.membros.map((membro) => (
                         <tr key={membro.id} className="hover:bg-pipe-card/60">
-                          <td className="py-3 px-3 text-white">
+                          <td className="py-3 px-3 text-pipe-ink">
                             {membro.email_convite || "Membro"}
                             {membro.papel === "admin" && (
-                              <span className="ml-2 text-[10px] bg-pipe-blue/20 text-pipe-blue px-2 py-0.5 rounded-full font-bold">
+                              <span className="ml-2 text-[10px] bg-pipe-blue/20 text-pipe-blue px-2 py-0.5 rounded-full font-semibold">
                                 Admin
                               </span>
                             )}
@@ -267,7 +267,7 @@ export default function PaginaCreditos() {
                               onBlur={(e) =>
                                 atualizarLimiteMembro(membro.id, "limite_listas", e.target.value)
                               }
-                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-pipe-blue"
+                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue"
                             />
                           </td>
                           <td className="py-3 px-3">
@@ -279,7 +279,7 @@ export default function PaginaCreditos() {
                               onBlur={(e) =>
                                 atualizarLimiteMembro(membro.id, "limite_buscador", e.target.value)
                               }
-                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-pipe-blue"
+                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue"
                             />
                           </td>
                           <td className="py-3 px-3">
@@ -291,7 +291,7 @@ export default function PaginaCreditos() {
                               onBlur={(e) =>
                                 atualizarLimiteMembro(membro.id, "limite_telefone", e.target.value)
                               }
-                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-pipe-blue"
+                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue"
                             />
                           </td>
                           <td className="py-3 px-3">
@@ -303,7 +303,7 @@ export default function PaginaCreditos() {
                               onBlur={(e) =>
                                 atualizarLimiteMembro(membro.id, "limite_ia", e.target.value)
                               }
-                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-pipe-blue"
+                              className="w-24 bg-pipe-bg border border-pipe-border rounded-lg px-2.5 py-1 text-xs text-pipe-ink focus:outline-none focus:border-pipe-blue"
                             />
                           </td>
                         </tr>
@@ -321,7 +321,7 @@ export default function PaginaCreditos() {
 
         <div className="mt-10 bg-pipe-card border border-pipe-border rounded-xl p-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-sm font-bold text-white">
+            <p className="text-sm font-semibold text-pipe-ink">
               Precisa de mais créditos?
             </p>
             <p className="text-pipe-muted text-xs mt-1">
@@ -331,7 +331,7 @@ export default function PaginaCreditos() {
 
           <Link
             href="/planos"
-            className="relative overflow-hidden anim-shine bg-pipe-lime text-black font-bold text-sm rounded-lg px-6 py-3 hover:brightness-110 transition shrink-0"
+            className="relative overflow-hidden anim-shine bg-pipe-lime text-white font-semibold text-sm rounded-lg px-6 py-3 hover:brightness-110 transition shrink-0"
           >
             Ver planos
           </Link>

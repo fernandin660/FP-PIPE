@@ -132,7 +132,7 @@ export default function ProdutosPage() {
   if (erro) {
     return (
       <main className="flex-1 flex items-center justify-center py-24">
-        <p className="text-red-400">{erro}</p>
+        <p className="text-red-700">{erro}</p>
       </main>
     );
   }
@@ -141,12 +141,12 @@ export default function ProdutosPage() {
     <main className="max-w-3xl mx-auto px-4 py-10">
       <Link
         href="/prospeccao"
-        className="text-sm text-pipe-muted hover:text-white mb-6 inline-block"
+        className="text-sm text-pipe-muted hover:text-pipe-ink mb-6 inline-block"
       >
         ← Voltar ao painel
       </Link>
 
-      <h1 className="font-display text-3xl text-white mb-2">Produtos</h1>
+      <h1 className="font-display text-3xl text-pipe-ink mb-2">Produtos</h1>
       <p className="text-pipe-muted mb-8">
         Cadastre os produtos ou serviços que você vende. Eles viram uma lista
         selecionável no CRM e no Dashboard, então cada lead registra o mesmo
@@ -164,12 +164,12 @@ export default function ProdutosPage() {
             onChange={(e) => setNovoNome(e.target.value)}
             placeholder="Nome do produto ou serviço"
             maxLength={120}
-            className="flex-1 bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-pipe-muted focus:outline-none focus:border-pipe-blue"
+            className="flex-1 bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink placeholder:text-pipe-muted/70 focus:outline-none focus:border-pipe-blue"
           />
           <button
             type="submit"
             disabled={salvando || !novoNome.trim()}
-            className="bg-pipe-lime text-pipe-bg font-semibold px-5 py-2 rounded-lg disabled:opacity-50 transition"
+            className="bg-pipe-lime text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50 transition"
           >
             {salvando ? "Salvando..." : "Adicionar produto"}
           </button>
@@ -186,7 +186,7 @@ export default function ProdutosPage() {
       {produtos.length === 0 ? (
         <div className="bg-pipe-card border border-pipe-border rounded-xl p-10 text-center">
           <IconeCaixa className="w-10 h-10 text-pipe-muted mx-auto mb-3" />
-          <p className="text-white font-semibold mb-1">
+          <p className="text-pipe-ink font-semibold mb-1">
             Nenhum produto cadastrado
           </p>
           <p className="text-sm text-pipe-muted max-w-md mx-auto">
@@ -210,10 +210,10 @@ export default function ProdutosPage() {
                   value={editandoNome}
                   onChange={(e) => setEditandoNome(e.target.value)}
                   maxLength={120}
-                  className="flex-1 bg-pipe-bg border border-pipe-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-pipe-blue"
+                  className="flex-1 bg-pipe-bg border border-pipe-border rounded-lg px-3 py-1.5 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                 />
               ) : (
-                <span className="flex-1 text-white font-medium truncate">
+                <span className="flex-1 text-pipe-ink font-medium truncate">
                   {p.nome}
                 </span>
               )}
@@ -225,7 +225,7 @@ export default function ProdutosPage() {
                         void salvarRenome(p);
                       }}
                       disabled={salvando || !editandoNome.trim()}
-                      className="text-xs text-pipe-lime hover:text-white disabled:text-pipe-muted font-semibold"
+                      className="text-xs text-pipe-lime hover:text-pipe-ink disabled:text-pipe-muted font-semibold"
                     >
                       Salvar
                     </button>
@@ -234,7 +234,7 @@ export default function ProdutosPage() {
                         setEditandoId(null);
                         setEditandoNome("");
                       }}
-                      className="text-xs text-pipe-muted hover:text-white font-semibold"
+                      className="text-xs text-pipe-muted hover:text-pipe-ink font-semibold"
                     >
                       Cancelar
                     </button>
@@ -246,13 +246,13 @@ export default function ProdutosPage() {
                         setEditandoId(p.id);
                         setEditandoNome(p.nome);
                       }}
-                      className="text-xs text-pipe-blue hover:text-white font-semibold"
+                      className="text-xs text-pipe-blue hover:text-pipe-ink font-semibold"
                     >
                       Renomear
                     </button>
                     <button
                       onClick={() => void remover(p)}
-                      className="text-xs text-red-400 hover:text-red-300 font-semibold"
+                      className="text-xs text-red-700 hover:text-red-700 font-semibold"
                     >
                       Remover
                     </button>

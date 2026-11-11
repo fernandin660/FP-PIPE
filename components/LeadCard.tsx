@@ -18,10 +18,10 @@ const ROTULO_EVENTO: Record<string, string> = {
 };
 
 const COR_ATIVIDADE_STATUS: Record<string, string> = {
-  atrasada: "#ef4444",
-  hoje: "#eab308",
-  sem: "#4b5563",
-  futura: "#a2ff40",
+  atrasada: "#dc2626",
+  hoje: "#d97706",
+  sem: "#c9c6bd",
+  futura: "#2442e5",
 };
 
 const ROTULO_ATIVIDADE_STATUS: Record<string, string> = {
@@ -50,10 +50,10 @@ function cargoPessoa(lead: { company: EmpresaCrm | null }): string | null {
 }
 
 function corScore(score: number | null): string {
-  if (score === null) return "bg-gray-500/20 text-gray-300";
+  if (score === null) return "bg-gray-500/20 text-pipe-ink-soft";
   if (score >= 80) return "bg-pipe-lime/15 text-pipe-lime";
-  if (score >= 50) return "bg-yellow-500/15 text-yellow-300";
-  return "bg-red-500/15 text-red-300";
+  if (score >= 50) return "bg-yellow-500/15 text-amber-700";
+  return "bg-red-500/15 text-red-700";
 }
 
 function formatarData(iso: string | null): string {
@@ -137,12 +137,12 @@ function LeadCardComponent({
       }}
       title={modoMassa ? undefined : ROTULO_ATIVIDADE_STATUS[lead.atividade_status]}
       style={{
-        borderLeftWidth: 5,
+        borderLeftWidth: 3,
         borderLeftColor: corBarra,
         contentVisibility: "auto",
         containIntrinsicSize: "0 180px",
       }}
-      className={`group bg-pipe-bg border rounded-xl p-3 transition select-none ${
+      className={`group bg-pipe-card border rounded-xl p-3 shadow-[0_1px_2px_rgba(17,17,20,0.04)] transition select-none ${
         arrastandoId === lead.id
           ? "opacity-40 border-pipe-blue"
           : selecionado
@@ -161,19 +161,19 @@ function LeadCardComponent({
             }}
             className={`mt-0.5 shrink-0 w-4 h-4 rounded-md border flex items-center justify-center text-[10px] leading-none transition ${
               selecionado
-                ? "bg-pipe-lime border-pipe-lime text-pipe-bg"
+                ? "bg-pipe-lime border-pipe-lime text-white"
                 : "border-pipe-border bg-pipe-card"
             }`}
           >
             {selecionado ? "✓" : ""}
           </span>
         )}
-        <p className="text-sm font-bold text-white leading-snug line-clamp-2 flex-1">
+        <p className="text-sm font-semibold text-pipe-ink leading-snug line-clamp-2 flex-1">
           {lead.company_inconsistente ? "Dados da empresa indisponíveis" : nomeEmpresa(c)}
         </p>
         {c?.score !== null && c?.score !== undefined ? (
           <span
-            className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${corScore(c.score)}`}
+            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${corScore(c.score)}`}
             title={c.score_motivo ?? undefined}
           >
             {c.score}
@@ -181,12 +181,12 @@ function LeadCardComponent({
         ) : null}
         {lead.prioridade && (
           <span
-            className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${
               lead.prioridade.nivel === "alta"
-                ? "bg-red-500/15 text-red-400"
+                ? "bg-red-500/15 text-red-700"
                 : lead.prioridade.nivel === "media"
-                ? "bg-yellow-500/15 text-yellow-300"
-                : "bg-gray-500/20 text-gray-300"
+                ? "bg-yellow-500/15 text-amber-700"
+                : "bg-gray-500/20 text-pipe-ink-soft"
             }`}
             title={
               lead.prioridade.dadosInsuficientes
@@ -238,7 +238,7 @@ function LeadCardComponent({
               onConcluirAtividade(lead);
             }}
             title="Concluir atividade"
-            className="shrink-0 text-[10px] font-bold bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-1.5 py-0.5 rounded-md hover:bg-pipe-lime/25 transition"
+            className="shrink-0 text-[10px] font-semibold bg-pipe-lime/15 text-pipe-lime border border-pipe-lime/30 px-1.5 py-0.5 rounded-md hover:bg-pipe-lime/25 transition"
           >
             Concluir
           </button>

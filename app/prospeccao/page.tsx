@@ -240,13 +240,13 @@ function EntradaCidades({
           }}
           disabled={cheio}
           placeholder={cheio ? `Máximo de ${MAX_CIDADES} cidades` : placeholder}
-          className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 disabled:opacity-60"
+          className="flex-1 bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 disabled:opacity-60"
         />
         <button
           type="button"
           onClick={adicionarCidade}
           disabled={cheio || !rascunho.trim()}
-          className="px-4 rounded-lg border border-pipe-border bg-pipe-card hover:border-pipe-blue/60 disabled:opacity-40 transition font-medium text-white"
+          className="px-4 rounded-lg border border-pipe-border bg-pipe-card hover:border-pipe-blue/60 disabled:opacity-40 transition font-medium text-pipe-ink"
         >
           + Adicionar
         </button>
@@ -257,7 +257,7 @@ function EntradaCidades({
           {cidades.map((cidade) => (
             <span
               key={cidade.toLowerCase()}
-              className="inline-flex items-center gap-2 bg-pipe-blue/15 border border-pipe-blue/50 text-white text-sm rounded-full pl-3 pr-1.5 py-1"
+              className="inline-flex items-center gap-2 bg-pipe-blue/15 border border-pipe-blue/50 text-pipe-ink text-sm rounded-full pl-3 pr-1.5 py-1"
             >
               {cidade}
               <button
@@ -2116,20 +2116,23 @@ porteEmpresa,
       {/* NAVBAR                    */}
       {/* ========================= */}
 
-      <nav className="sticky top-0 z-50 bg-[#030609]/95 backdrop-blur border-b border-pipe-border">
+      <nav className="sticky top-0 z-30 bg-pipe-bg/95 backdrop-blur border-b border-pipe-border lg:pl-64">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
             onClick={irParaLanding}
-            className="font-display text-3xl tracking-wider text-white leading-none"
+            className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink lg:invisible"
           >
-            FP<span className="text-pipe-lime">PIPE</span>
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" />
+            </svg>
+            FP Pipe
           </button>
 
           <div className="flex items-center gap-6">
             {tela === "landing" && (
               <a
                 href="#como-funciona"
-                className="hidden md:block text-sm text-pipe-muted hover:text-white transition"
+                className="hidden md:block text-sm text-pipe-muted hover:text-pipe-ink transition"
               >
                 Como funciona
               </a>
@@ -2139,14 +2142,14 @@ porteEmpresa,
               <>
                 <a
                   href="/listas"
-                  className="text-sm text-pipe-muted hover:text-white transition"
+                  className="text-sm text-pipe-muted hover:text-pipe-ink transition"
                 >
                   Minhas listas
                 </a>
 
                 <button
                   onClick={sairDaConta}
-                  className="text-sm text-pipe-muted hover:text-white transition"
+                  className="text-sm text-pipe-muted hover:text-pipe-ink transition"
                   title={usuarioEmail}
                 >
                   Sair
@@ -2155,7 +2158,7 @@ porteEmpresa,
             ) : (
               <a
                 href="/login"
-                className="text-sm text-pipe-muted hover:text-white transition"
+                className="text-sm text-pipe-muted hover:text-pipe-ink transition"
               >
                 Entrar
               </a>
@@ -2163,7 +2166,7 @@ porteEmpresa,
 
             <button
               onClick={iniciarApp}
-              className="bg-pipe-blue text-black text-sm font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition"
+              className="bg-pipe-blue text-white text-sm font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition"
             >
               Criar minha lista
             </button>
@@ -2187,7 +2190,7 @@ porteEmpresa,
                 Inteligência Comercial · Prospecção B2B
               </span>
 
-              <h1 className="font-display text-6xl md:text-8xl mt-8 leading-[0.95] text-white">
+              <h1 className="font-display text-6xl md:text-8xl mt-8 leading-[0.95] text-pipe-ink">
                 Seu cliente ideal.
                 <br />
                 <span className="text-pipe-lime">Listas prontas.</span>
@@ -2207,14 +2210,14 @@ porteEmpresa,
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={iniciarApp}
-                  className="bg-pipe-lime text-black font-bold px-8 py-4 rounded-lg hover:opacity-90 transition text-lg"
+                  className="bg-pipe-lime text-white font-semibold px-8 py-4 rounded-lg hover:opacity-90 transition text-lg"
                 >
                   Criar meu ICP agora →
                 </button>
 
                 <a
                   href="#como-funciona"
-                  className="border border-pipe-border text-white px-8 py-4 rounded-lg hover:bg-pipe-card transition text-lg"
+                  className="border border-pipe-border text-pipe-ink px-8 py-4 rounded-lg hover:bg-pipe-card transition text-lg"
                 >
                   Ver como funciona
                 </a>
@@ -2250,7 +2253,7 @@ porteEmpresa,
               Pipeline
             </p>
 
-            <h2 className="font-display text-5xl md:text-6xl text-center mt-3 text-white">
+            <h2 className="font-display text-5xl md:text-6xl text-center mt-3 text-pipe-ink">
               Como funciona
             </h2>
 
@@ -2264,7 +2267,7 @@ porteEmpresa,
                     {String(indice + 1).padStart(2, "0")}
                   </span>
 
-                  <h3 className="font-bold text-lg mt-3 text-white">
+                  <h3 className="font-semibold text-lg mt-3 text-pipe-ink">
                     {passo.titulo}
                   </h3>
 
@@ -2284,7 +2287,7 @@ porteEmpresa,
                 Entregáveis
               </p>
 
-              <h2 className="font-display text-5xl md:text-6xl text-center mt-3 text-white">
+              <h2 className="font-display text-5xl md:text-6xl text-center mt-3 text-pipe-ink">
                 O que você recebe
               </h2>
 
@@ -2298,7 +2301,7 @@ porteEmpresa,
                       <IconeVerificado tamanho={18} />
                     </span>
 
-                    <h3 className="font-bold text-lg mt-4 text-white">
+                    <h3 className="font-semibold text-lg mt-4 text-pipe-ink">
                       {item.titulo}
                     </h3>
 
@@ -2312,7 +2315,7 @@ porteEmpresa,
               <div className="text-center mt-12">
                 <button
                   onClick={iniciarApp}
-                  className="bg-pipe-lime text-black font-bold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
+                  className="bg-pipe-lime text-white font-semibold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
                 >
                   Quero meu ICP agora
                 </button>
@@ -2324,7 +2327,7 @@ porteEmpresa,
 
           <section className="border-t border-pipe-border bg-pipe-dark">
             <div className="max-w-6xl mx-auto px-6 py-20 text-center">
-              <h2 className="font-display text-5xl md:text-6xl text-white">
+              <h2 className="font-display text-5xl md:text-6xl text-pipe-ink">
                 Encontre as empresas que merecem sua próxima abordagem.
               </h2>
 
@@ -2334,7 +2337,7 @@ porteEmpresa,
 
               <button
                 onClick={iniciarApp}
-                className="mt-8 bg-pipe-lime text-black font-bold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
+                className="mt-8 bg-pipe-lime text-white font-semibold px-10 py-4 rounded-lg hover:opacity-90 transition text-lg"
               >
                 Começar agora
               </button>
@@ -2345,8 +2348,9 @@ porteEmpresa,
 
           <footer className="border-t border-pipe-border">
             <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-              <span className="font-display text-2xl tracking-wider text-white">
-                FP<span className="text-pipe-lime">PIPE</span>
+              <span className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink">
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" /></svg>
+              FP Pipe
               </span>
 
               <p className="text-pipe-muted text-sm">
@@ -2425,7 +2429,7 @@ porteEmpresa,
                   Etapa 1 de 2
                 </p>
 
-                <h1 className="font-display text-5xl mt-2 text-white">
+                <h1 className="font-display text-5xl mt-2 text-pipe-ink">
                   Quem é o seu cliente ideal?
                 </h1>
 
@@ -2436,7 +2440,7 @@ porteEmpresa,
               </div>
 
               <div className="bg-pipe-card border border-pipe-border p-4 rounded-lg mb-8">
-                <p className="font-semibold text-white">Área de atuação:</p>
+                <p className="font-semibold text-pipe-ink">Área de atuação:</p>
 
                 <p className="text-pipe-muted">
                   {perfil?.area_atuacao || perfil?.nome_empresa || "—"}
@@ -2446,7 +2450,7 @@ porteEmpresa,
               {/* PORTE */}
 
               <div className="mb-8">
-                <h2 className="font-bold text-xl mb-2 text-white">
+                <h2 className="font-semibold text-xl mb-2 text-pipe-ink">
                   Qual porte de empresa você quer alcançar?
                 </h2>
 
@@ -2482,7 +2486,7 @@ porteEmpresa,
                         onClick={() => alternarPorte(porte.rotulo)}
                         className={`border rounded-lg p-3 text-left transition ${
                           selecionado
-                            ? "bg-pipe-blue text-black border-pipe-blue font-medium"
+                            ? "bg-pipe-blue text-white border-pipe-blue font-medium"
                             : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                         }`}
                       >
@@ -2493,7 +2497,7 @@ porteEmpresa,
                         <span
                           className={`block text-xs mt-1 ${
                             selecionado
-                              ? "text-black/70"
+                              ? "text-white/80"
                               : "text-pipe-muted"
                           }`}
                         >
@@ -2508,7 +2512,7 @@ porteEmpresa,
               {/* FUNCIONÁRIOS */}
 
               <div className="mb-8">
-                <h2 className="font-bold text-xl mb-2 text-white">
+                <h2 className="font-semibold text-xl mb-2 text-pipe-ink">
                   Quantidade de funcionários
                 </h2>
 
@@ -2536,7 +2540,7 @@ porteEmpresa,
                         }
                         className={`border rounded-lg p-3 transition ${
                           selecionado
-                            ? "bg-pipe-blue text-black border-pipe-blue font-medium"
+                            ? "bg-pipe-blue text-white border-pipe-blue font-medium"
                             : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                         }`}
                       >
@@ -2551,7 +2555,7 @@ porteEmpresa,
               {/* MODO DE BUSCA */}
 
               <div className="mb-8">
-                <h2 className="font-bold text-xl mb-2 text-white">
+                <h2 className="font-semibold text-xl mb-2 text-pipe-ink">
                   Onde está o seu mercado?
                 </h2>
 
@@ -2570,7 +2574,7 @@ porteEmpresa,
                       onClick={() => setModoBusca(modo.chave)}
                       className={`border rounded-lg p-4 text-left transition ${
                         modoBusca === modo.chave
-                          ? "bg-pipe-blue text-black border-pipe-blue font-medium"
+                          ? "bg-pipe-blue text-white border-pipe-blue font-medium"
                           : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                       }`}
                     >
@@ -2585,7 +2589,7 @@ porteEmpresa,
 
               {modoBusca === "brasil" && (
               <div className="mb-8">
-                <h2 className="font-bold text-xl mb-2 text-white">
+                <h2 className="font-semibold text-xl mb-2 text-pipe-ink">
                   Onde você quer prospectar?
                 </h2>
 
@@ -2619,7 +2623,7 @@ porteEmpresa,
                       }}
                       className={`border rounded-lg p-4 text-left transition ${
                         tipoLocalizacao === tipo
-                          ? "bg-pipe-blue text-black border-pipe-blue font-medium"
+                          ? "bg-pipe-blue text-white border-pipe-blue font-medium"
                           : "bg-pipe-card border-pipe-border hover:border-pipe-blue/60"
                       }`}
                     >
@@ -2632,7 +2636,7 @@ porteEmpresa,
                 {(tipoLocalizacao === "Estado específico" ||
                   tipoLocalizacao === "Cidade específica") && (
                   <div className="mt-4">
-                    <label className="block font-medium mb-2 text-white">
+                    <label className="block font-medium mb-2 text-pipe-ink">
                       Selecione o estado
                     </label>
 
@@ -2681,7 +2685,7 @@ porteEmpresa,
                   </p>
 
                   <div>
-                    <label className="block font-medium mb-2 text-white">
+                    <label className="block font-medium mb-2 text-pipe-ink">
                       País
                     </label>
 
@@ -2699,7 +2703,7 @@ porteEmpresa,
                   </div>
 
                   <div>
-                    <label className="block font-medium mb-2 text-white">
+                    <label className="block font-medium mb-2 text-pipe-ink">
                       Cidades (até 4)
                     </label>
 
@@ -2711,7 +2715,7 @@ porteEmpresa,
                   </div>
 
                   <div>
-                    <label className="block font-medium mb-2 text-white">
+                    <label className="block font-medium mb-2 text-pipe-ink">
                       Segmento ou tipo de negócio
                     </label>
 
@@ -2720,7 +2724,7 @@ porteEmpresa,
                       value={segmentoIntl}
                       onChange={(e) => setSegmentoIntl(e.target.value)}
                       placeholder="Ex.: transportadora, clínica, restaurante, escritório de advocacia..."
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-4 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70"
                     />
                   </div>
                 </div>
@@ -2731,7 +2735,7 @@ porteEmpresa,
               {modoBusca === "brasil" && (
               <div className="mb-8 space-y-8">
                 <div>
-                  <h2 className="font-bold text-xl mb-2 text-white">
+                  <h2 className="font-semibold text-xl mb-2 text-pipe-ink">
                     Existe algum segmento específico?
                   </h2>
 
@@ -2767,7 +2771,7 @@ porteEmpresa,
                               <span
                                 className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs ${
                                   selecionado
-                                    ? "bg-pipe-blue text-black border-pipe-blue font-bold"
+                                    ? "bg-pipe-blue text-white border-pipe-blue font-semibold"
                                     : "border-pipe-border"
                                 }`}
                               >
@@ -2776,8 +2780,8 @@ porteEmpresa,
                               <span
                                 className={
                                   selecionado
-                                    ? "text-white font-medium"
-                                    : "text-gray-300"
+                                    ? "text-pipe-ink font-medium"
+                                    : "text-pipe-ink-soft"
                                 }
                               >
                                 {segmento.nome}
@@ -2791,7 +2795,7 @@ porteEmpresa,
                                 </span>
                               )}
                               {selecionado && !algumSubMarcado && (
-                                <span className="text-[11px] text-lime-400 mt-0.5">
+                                <span className="text-[11px] text-emerald-700 mt-0.5">
                                   todos os CNAEs
                                 </span>
                               )}
@@ -2825,8 +2829,8 @@ porteEmpresa,
                                       key={sub.id}
                                       className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs cursor-pointer transition ${
                                         subSelecionado
-                                          ? "bg-pipe-blue/20 text-white border border-pipe-blue/50"
-                                          : "text-gray-400 hover:bg-pipe-card hover:text-gray-200 border border-transparent"
+                                          ? "bg-pipe-blue/20 text-pipe-ink border border-pipe-blue/50"
+                                          : "text-pipe-muted hover:bg-pipe-card hover:text-pipe-ink-soft border border-transparent"
                                       }`}
                                     >
                                       <input
@@ -2853,7 +2857,7 @@ porteEmpresa,
                 {/* TIPO DE EMPRESA */}
 
                 <div>
-                  <h3 className="font-semibold text-base mb-1 text-white">
+                  <h3 className="font-semibold text-base mb-1 text-pipe-ink">
                     Tipo de empresa
                   </h3>
 
@@ -2872,8 +2876,8 @@ porteEmpresa,
                           onClick={() => alternarTipoEmpresa(tipo)}
                           className={`rounded-full border px-3 py-1.5 text-xs transition ${
                             selecionado
-                              ? "bg-pipe-lime text-black border-pipe-lime font-medium"
-                              : "bg-pipe-card border-pipe-border text-gray-300 hover:border-pipe-lime/60"
+                              ? "bg-pipe-lime text-white border-pipe-lime font-medium"
+                              : "bg-pipe-card border-pipe-border text-pipe-ink-soft hover:border-pipe-lime/60"
                           }`}
                         >
                           {selecionado ? <IconeVerificado tamanho={14} className="inline-block mr-1.5 -mt-0.5" /> : null}
@@ -2887,7 +2891,7 @@ porteEmpresa,
                 {/* SOMENTE MATRIZ */}
 
                 <div>
-                  <h3 className="font-semibold text-base mb-1 text-white">
+                  <h3 className="font-semibold text-base mb-1 text-pipe-ink">
                     Somente matriz
                   </h3>
 
@@ -2901,10 +2905,10 @@ porteEmpresa,
                       type="checkbox"
                       checked={somenteMatriz}
                       onChange={(e) => setSomenteMatriz(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 accent-lime-400"
+                      className="mt-0.5 w-4 h-4 accent-pipe-blue"
                     />
                     <span>
-                      <span className="block text-sm text-gray-200 font-medium">
+                      <span className="block text-sm text-pipe-ink-soft font-medium">
                         Somente CNPJ e dados da empresa Matriz
                       </span>
                       <span className="block text-xs text-pipe-muted mt-0.5">
@@ -2923,7 +2927,7 @@ porteEmpresa,
                 <button
                   onClick={gerarPerfilICP}
                   disabled={gerandoICP}
-                  className="w-full bg-pipe-lime text-black font-semibold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                  className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
                 >
                   {gerandoICP
                     ? "Montando seu ICP..."
@@ -2954,37 +2958,37 @@ porteEmpresa,
                       Sua operação
                     </p>
 
-                    <h2 className="font-bold text-lg text-white">
+                    <h2 className="font-semibold text-lg text-pipe-ink">
                       Filtros escolhidos
                     </h2>
                   </div>
 
                   <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                       Área de atuação
                     </p>
 
-                    <p className="text-sm text-gray-200">
+                    <p className="text-sm text-pipe-ink-soft">
                       {perfil?.area_atuacao || perfil?.nome_empresa || "—"}
                     </p>
                   </div>
 
                   <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                       Porte da empresa
                     </p>
 
-                    <p className="text-sm text-gray-200">
+                    <p className="text-sm text-pipe-ink-soft">
                       {porteEmpresa.length > 0 ? porteEmpresa.join(", ") : "—"}
                     </p>
                   </div>
 
                   <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                       Funcionários
                     </p>
 
-                    <p className="text-sm text-gray-200">
+                    <p className="text-sm text-pipe-ink-soft">
                       {faixaFuncionarios.length > 0
                         ? faixaFuncionarios.join(", ")
                         : "—"}
@@ -2992,11 +2996,11 @@ porteEmpresa,
                   </div>
 
                   <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                    <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                       Localização
                     </p>
 
-                    <p className="text-sm text-gray-200">
+                    <p className="text-sm text-pipe-ink-soft">
                       {tipoLocalizacao === "Estado específico"
                         ? `Estado de ${estadoSelecionado}`
                         : tipoLocalizacao === "Cidade específica"
@@ -3007,7 +3011,7 @@ porteEmpresa,
 
                   {segmentosSelecionados.length > 0 && (
                     <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                         Segmentos
                       </p>
 
@@ -3015,7 +3019,7 @@ porteEmpresa,
                         {segmentosSelecionados.map((segmento) => (
                           <span
                             key={segmento}
-                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-gray-300"
+                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-pipe-ink-soft"
                           >
                             {segmento}
                           </span>
@@ -3026,7 +3030,7 @@ porteEmpresa,
 
                   {subsegmentosSelecionados.length > 0 && (
                     <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                         Subsegmentos
                       </p>
 
@@ -3048,7 +3052,7 @@ porteEmpresa,
 
                   {tiposEmpresaSelecionados.length > 0 && (
                     <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                         Tipo de empresa
                       </p>
 
@@ -3056,7 +3060,7 @@ porteEmpresa,
                         {tiposEmpresaSelecionados.map((tipo) => (
                           <span
                             key={tipo}
-                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-gray-300"
+                            className="bg-pipe-card border border-pipe-border px-2 py-0.5 rounded-full text-xs text-pipe-ink-soft"
                           >
                             {tipo}
                           </span>
@@ -3067,7 +3071,7 @@ porteEmpresa,
 
                   {perfil?.nichos && perfil.nichos.length > 0 && (
                     <div className="bg-pipe-dark border border-pipe-border rounded-lg p-3">
-                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-bold mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-pipe-muted font-semibold mb-1">
                         Especialidades confirmadas
                       </p>
 
@@ -3086,7 +3090,7 @@ porteEmpresa,
 
                   <button
                     onClick={() => setEtapa(1)}
-                    className="w-full border border-pipe-border text-gray-300 py-2 rounded-lg text-xs font-semibold hover:bg-pipe-card hover:text-white transition"
+                    className="w-full border border-pipe-border text-pipe-ink-soft py-2 rounded-lg text-xs font-semibold hover:bg-pipe-card hover:text-pipe-ink transition"
                   >
                     ← Ajustar filtros
                   </button>
@@ -3099,7 +3103,7 @@ porteEmpresa,
                   Etapa 2 de 2
                 </p>
 
-                <h1 className="font-display text-5xl mt-2 text-white">
+                <h1 className="font-display text-5xl mt-2 text-pipe-ink">
                   Seu ICP está pronto!
                 </h1>
 
@@ -3115,11 +3119,11 @@ porteEmpresa,
                   {/* RESUMO */}
 
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                    <h2 className="font-bold text-lg mb-2 text-pipe-blue">
+                    <h2 className="font-semibold text-lg mb-2 text-pipe-blue">
                       Resumo do ICP
                     </h2>
 
-                    <p className="text-gray-300">
+                    <p className="text-pipe-ink-soft">
                       {icpGerado.resumo_icp}
                     </p>
                   </div>
@@ -3127,7 +3131,7 @@ porteEmpresa,
                   {/* TIPOS DE EMPRESA */}
 
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                    <h2 className="font-bold text-lg mb-3 text-white">
+                    <h2 className="font-semibold text-lg mb-3 text-pipe-ink">
                       Tipos de Empresa Ideal
                     </h2>
 
@@ -3135,7 +3139,7 @@ porteEmpresa,
                       {(icpGerado.tipos_de_empresa || []).map((tipo: string) => (
                         <span
                           key={tipo}
-                          className="bg-pipe-dark border border-pipe-border px-3 py-1 rounded-full text-sm text-gray-300"
+                          className="bg-pipe-dark border border-pipe-border px-3 py-1 rounded-full text-sm text-pipe-ink-soft"
                         >
                           {tipo}
                         </span>
@@ -3147,7 +3151,7 @@ porteEmpresa,
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                      <h2 className="font-bold text-lg mb-3 text-purple-400">
+                      <h2 className="font-semibold text-lg mb-3 text-purple-700">
                         Decisores
                       </h2>
 
@@ -3157,8 +3161,8 @@ porteEmpresa,
 
                       <ul className="space-y-2">
                         {(icpGerado.decisores || []).map((cargo: string) => (
-                          <li key={cargo} className="text-gray-300 flex gap-2">
-                            <span className="text-purple-400 font-bold">•</span>
+                          <li key={cargo} className="text-pipe-ink-soft flex gap-2">
+                            <span className="text-purple-700 font-semibold">•</span>
                             {cargo}
                           </li>
                         ))}
@@ -3166,7 +3170,7 @@ porteEmpresa,
                     </div>
 
                     <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                      <h2 className="font-bold text-lg mb-3 text-amber-400">
+                      <h2 className="font-semibold text-lg mb-3 text-amber-700">
                         Influenciadores
                       </h2>
 
@@ -3176,8 +3180,8 @@ porteEmpresa,
 
                       <ul className="space-y-2">
                         {(icpGerado.influenciadores || []).map((cargo: string) => (
-                          <li key={cargo} className="text-gray-300 flex gap-2">
-                            <span className="text-amber-400 font-bold">•</span>
+                          <li key={cargo} className="text-pipe-ink-soft flex gap-2">
+                            <span className="text-amber-700 font-semibold">•</span>
                             {cargo}
                           </li>
                         ))}
@@ -3189,7 +3193,7 @@ porteEmpresa,
 
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h2 className="font-bold text-lg text-lime-400">
+                      <h2 className="font-semibold text-lg text-emerald-700">
                         Cargos-alvo
                       </h2>
                       {cargosEscolhidos.length > 0 && (
@@ -3219,9 +3223,9 @@ porteEmpresa,
                           return (
                             <span
                               key={cargo}
-                              className="inline-flex items-center gap-2 bg-pipe-dark border border-pipe-lime/40 text-gray-200 pl-2 pr-1 py-1 rounded-full text-sm"
+                              className="inline-flex items-center gap-2 bg-pipe-dark border border-pipe-lime/40 text-pipe-ink-soft pl-2 pr-1 py-1 rounded-full text-sm"
                             >
-                              <span className="font-bold text-pipe-lime">
+                              <span className="font-semibold text-pipe-lime">
                                 {indice + 1}º
                               </span>
                               {cargo}
@@ -3232,7 +3236,7 @@ porteEmpresa,
                               )}
                               <button
                                 onClick={() => removerCargo(cargo)}
-                                className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-500/20 text-pipe-muted hover:text-red-400 transition"
+                                className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-500/20 text-pipe-muted hover:text-red-700 transition"
                                 aria-label={`Remover ${cargo}`}
                               >
                                 ×
@@ -3243,7 +3247,7 @@ porteEmpresa,
                       )}
 
                       {cargosEscolhidos.length === 0 && (
-                        <p className="text-xs text-pipe-muted/70">
+                        <p className="text-xs text-pipe-muted">
                           Nenhum cargo selecionado ainda — busque abaixo.
                         </p>
                       )}
@@ -3253,7 +3257,7 @@ porteEmpresa,
                       value={buscaCargo}
                       onChange={(e) => setBuscaCargo(e.target.value)}
                       placeholder="Buscar cargo... ex.: gerente de ti, diretor comercial, gerente de frota"
-                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-lime focus:outline-none placeholder:text-pipe-muted/60 text-white text-sm"
+                      className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-lime focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink text-sm"
                     />
 
                     {buscaCargo.trim() && (
@@ -3272,7 +3276,7 @@ porteEmpresa,
                               className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-pipe-card disabled:opacity-40 disabled:hover:bg-pipe-dark transition text-left"
                             >
                               <div>
-                                <p className="text-sm text-gray-200">
+                                <p className="text-sm text-pipe-ink-soft">
                                   {cargo.nome}
                                 </p>
                                 <p className="text-[11px] text-pipe-muted">
@@ -3284,7 +3288,7 @@ porteEmpresa,
                                 className={
                                   jaEscolhido
                                     ? "text-pipe-muted"
-                                    : "text-pipe-lime font-bold"
+                                    : "text-pipe-lime font-semibold"
                                 }
                               >
                                 {jaEscolhido ? <IconeVerificado tamanho={14} /> : "+"}
@@ -3305,14 +3309,14 @@ porteEmpresa,
                   {/* DORES */}
 
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                    <h2 className="font-bold text-lg mb-3 text-red-400">
+                    <h2 className="font-semibold text-lg mb-3 text-red-700">
                       Principais Dores
                     </h2>
 
                     <ul className="space-y-2">
                       {(icpGerado.principais_dores || []).map((dor: string) => (
-                        <li key={dor} className="text-gray-300 flex gap-2">
-                          <span className="text-red-400 font-bold">•</span>
+                        <li key={dor} className="text-pipe-ink-soft flex gap-2">
+                          <span className="text-red-700 font-semibold">•</span>
                           {dor}
                         </li>
                       ))}
@@ -3322,11 +3326,11 @@ porteEmpresa,
                   {/* ESTRATÉGIA */}
 
                   <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
-                    <h2 className="font-bold text-lg mb-2 text-pipe-lime">
+                    <h2 className="font-semibold text-lg mb-2 text-pipe-lime">
                       Estratégia de Abordagem
                     </h2>
 
-                    <p className="text-gray-300">
+                    <p className="text-pipe-ink-soft">
                       {icpGerado.estrategia_abordagem}
                     </p>
                   </div>
@@ -3336,7 +3340,7 @@ porteEmpresa,
                   {icpGerado.email_prospeccao && (
                     <div className="bg-pipe-card border border-pipe-border p-5 rounded-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <h2 className="font-bold text-lg text-sky-400">
+                        <h2 className="font-semibold text-lg text-blue-700">
                           E-mail de Prospecção
                         </h2>
 
@@ -3349,8 +3353,8 @@ porteEmpresa,
                           }
                           className={`text-sm px-4 py-1.5 rounded-lg border transition ${
                             copiado === "email"
-                              ? "bg-sky-400 text-black border-sky-400"
-                              : "text-sky-400 border-sky-400/40 hover:bg-sky-400/10"
+                              ? "bg-sky-400 text-white border-sky-400"
+                              : "text-blue-700 border-sky-400/40 hover:bg-sky-400/10"
                           }`}
                         >
                           {copiado === "email"
@@ -3363,7 +3367,7 @@ porteEmpresa,
                         Assunto:
                       </p>
 
-                      <p className="font-medium mb-4 text-white">
+                      <p className="font-medium mb-4 text-pipe-ink">
                         {icpGerado.email_prospeccao.assunto}
                       </p>
 
@@ -3371,7 +3375,7 @@ porteEmpresa,
                         Mensagem:
                       </p>
 
-                      <p className="whitespace-pre-wrap text-gray-300">
+                      <p className="whitespace-pre-wrap text-pipe-ink-soft">
                         {icpGerado.email_prospeccao.mensagem}
                       </p>
                     </div>
@@ -3380,7 +3384,7 @@ porteEmpresa,
                   <div className="bg-pipe-card/60 border border-pipe-border p-4 rounded-lg">
                     <p className="text-sm text-pipe-muted">
                       Cada empresa da sua lista vai receber um{" "}
-                      <span className="text-gray-200 font-semibold">
+                      <span className="text-pipe-ink-soft font-semibold">
                         e-mail personalizado pronto para copiar e colar
                       </span>{" "}
                       — com o nome da empresa, o gancho do segmento e o nome
@@ -3395,7 +3399,7 @@ porteEmpresa,
                   <button
                     onClick={buscarEmpresas}
                     disabled={!icpGerado || buscandoEmpresas}
-                    className="mt-8 w-full bg-pipe-lime text-black font-bold py-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-lg"
+                    className="mt-8 w-full bg-pipe-lime text-white font-semibold py-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition text-lg"
                   >
                     {buscandoEmpresas
                       ? pontuandoEmpresas
@@ -3412,13 +3416,13 @@ porteEmpresa,
                   </button>
 
                   {erroEmpresas && (
-                    <p className="mt-3 text-sm text-red-400 text-center">
+                    <p className="mt-3 text-sm text-red-700 text-center">
                       {erroEmpresas}
                     </p>
                   )}
 
                   {avisoEmpresas && (
-                    <p className="mt-3 text-sm text-amber-400 text-center">
+                    <p className="mt-3 text-sm text-amber-700 text-center">
                       {avisoEmpresas}
                     </p>
                   )}
@@ -3434,7 +3438,7 @@ porteEmpresa,
                       Sua lista de leads
                     </p>
 
-                    <h1 className="font-display text-4xl mt-1 text-white">
+                    <h1 className="font-display text-4xl mt-1 text-pipe-ink">
                       {empresasEncontradas.length} empresas encontradas
                     </h1>
 
@@ -3448,10 +3452,10 @@ porteEmpresa,
                     <button
                       onClick={() => void salvarListaAtual()}
                       disabled={salvandoLista || listaJaSalva}
-                      className={`text-sm font-bold px-4 py-2.5 rounded-lg border transition ${
+                      className={`text-sm font-semibold px-4 py-2.5 rounded-lg border transition ${
                         listaJaSalva
                           ? "bg-pipe-lime/15 border-pipe-lime/40 text-pipe-lime"
-                          : "bg-pipe-lime text-black border-pipe-lime hover:opacity-90 disabled:opacity-50"
+                          : "bg-pipe-lime text-white border-pipe-lime hover:opacity-90 disabled:opacity-50"
                       }`}
                     >
                       {listaJaSalva
@@ -3464,7 +3468,7 @@ porteEmpresa,
                     <button
                       onClick={abrirModalCrm}
                       disabled={empresasSelecionadas.size === 0}
-                      className="text-sm font-bold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-blue bg-pipe-blue/10 text-pipe-blue hover:bg-pipe-blue/20 transition disabled:opacity-40"
                     >
                       Adicionar ao CRM
                       {empresasSelecionadas.size > 0
@@ -3474,7 +3478,7 @@ porteEmpresa,
 
                     <button
                       onClick={exportarCsv}
-                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-gray-300 hover:bg-pipe-card hover:text-white transition"
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-pipe-ink-soft hover:bg-pipe-card hover:text-pipe-ink transition"
                     >
                       Exportar CSV
                     </button>
@@ -3487,7 +3491,7 @@ porteEmpresa,
                         setEmpresasSelecionadas(new Set());
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
-                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-pipe-muted hover:bg-pipe-card hover:text-white transition"
+                      className="text-sm font-semibold px-4 py-2.5 rounded-lg border border-pipe-border text-pipe-muted hover:bg-pipe-card hover:text-pipe-ink transition"
                     >
                       Nova busca
                     </button>
@@ -3498,7 +3502,7 @@ porteEmpresa,
               {empresasEncontradas.length > 0 && (
                 <div className="mt-6 border border-pipe-border rounded-xl overflow-hidden">
                   <div className="bg-pipe-card px-4 py-3 border-b border-pipe-border flex items-center justify-between">
-                    <span className="font-bold text-white">
+                    <span className="font-semibold text-pipe-ink">
                       {empresasEncontradas.length} empresas encontradas
                     </span>
                     <div className="flex items-center gap-3">
@@ -3523,13 +3527,13 @@ porteEmpresa,
                           empresasSelecionadas.size > 0
                         }
                         onChange={alternarTodas}
-                        className="w-4 h-4 accent-lime-400"
+                        className="w-4 h-4 accent-pipe-blue"
                       />
                       {planoAtual === "teste" ? (
                         <span className="text-xs text-pipe-muted">
                           {empresasSelecionadas.size} de {LIMITE_LEADS_TESTE} selecionadas
                           {empresasSelecionadas.size >= LIMITE_LEADS_TESTE && (
-                            <span className="ml-2 text-amber-400">(limite do teste grátis)</span>
+                            <span className="ml-2 text-amber-700">(limite do teste grátis)</span>
                           )}
                         </span>
                       ) : (
@@ -3542,7 +3546,7 @@ porteEmpresa,
                       {empresasSelecionadas.size > 0 && (
                         <button
                           onClick={desbloquearSelecionadas}
-                          className="text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-1 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
+                          className="text-[11px] font-semibold bg-amber-500/15 text-amber-700 border border-amber-500/30 px-2 py-1 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
                         >
                           Desbloquear selecionadas (
                           {empresasSelecionadas.size} crédito
@@ -3562,10 +3566,10 @@ porteEmpresa,
                         score === null || score === undefined
                           ? ""
                           : score >= 70
-                            ? "bg-lime-500/15 text-lime-400"
+                            ? "bg-lime-500/15 text-emerald-700"
                             : score >= 40
-                              ? "bg-amber-500/15 text-amber-400"
-                              : "bg-red-500/15 text-red-400";
+                              ? "bg-amber-500/15 text-amber-700"
+                              : "bg-red-500/15 text-red-700";
 
                       return (
                         <div
@@ -3584,12 +3588,12 @@ porteEmpresa,
                               alternarEmpresa(empresa.cnpj)
                             }
                             onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 w-4 h-4 mt-1.5 accent-lime-400"
+                            className="shrink-0 w-4 h-4 mt-1.5 accent-pipe-blue"
                           />
                           {typeof score === "number" &&
                             score !== null && (
                               <span
-                                className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center font-bold text-sm ${corScore}`}
+                                className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center font-semibold text-sm ${corScore}`}
                               >
                                 {score}
                               </span>
@@ -3597,12 +3601,12 @@ porteEmpresa,
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               {empresa.origem === "manual" && (
-                                <span className="shrink-0 text-[10px] font-bold bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
+                                <span className="shrink-0 text-[10px] font-semibold bg-pipe-blue/15 text-pipe-blue px-1.5 py-0.5 rounded">
                                   LEAD MANUAL
                                 </span>
                               )}
                               <p
-                                className={`font-semibold text-white text-sm ${
+                                className={`font-semibold text-pipe-ink text-sm ${
                                   liberado
                                     ? ""
                                     : "select-none blur-[4px] cursor-not-allowed"
@@ -3635,14 +3639,14 @@ porteEmpresa,
                                 : ""}
                             </p>
                             {empresa.motivo && (
-                              <p className="text-xs text-gray-300 mt-1.5 italic">
+                              <p className="text-xs text-pipe-ink-soft mt-1.5 italic">
                                 {empresa.motivo}
                               </p>
                             )}
                             {(empresa.decisorNome || empresa.campeaoNome) && (
                               <p className="text-xs text-pipe-muted mt-1.5">
                                 <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" />{" "}
-                                <span className="text-gray-200">
+                                <span className="text-pipe-ink-soft">
                                   {empresa.decisorNome || empresa.campeaoNome}
                                 </span>
                                 {(empresa.decisorCargo || empresa.campeaoCargo) && (
@@ -3669,7 +3673,7 @@ porteEmpresa,
                                         .filter(Boolean)
                                         .join("  ·  ")}
                                     </p>
-                                    <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                    <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-700 px-1.5 py-0.5 rounded whitespace-nowrap">
                                       desbloqueia com créditos
                                     </span>
                                   </>
@@ -3701,7 +3705,7 @@ porteEmpresa,
                                     disabled={
                                       buscandoEmailSite === empresa.cnpj
                                     }
-                                    className="text-xs border border-pipe-border text-gray-300 px-2 py-1 rounded hover:border-pipe-blue hover:text-white transition disabled:opacity-50"
+                                    className="text-xs border border-pipe-border text-pipe-ink-soft px-2 py-1 rounded hover:border-pipe-blue hover:text-pipe-ink transition disabled:opacity-50"
                                   >
                                     {buscandoEmailSite === empresa.cnpj
                                       ? "Analisando o site..."
@@ -3718,12 +3722,12 @@ porteEmpresa,
                                       <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.decisorNome} ·{" "}
                                       {empresa.decisorCargo}
                                     </p>
-                                    <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                    <span className="shrink-0 text-[10px] font-semibold bg-amber-500/15 text-amber-700 px-1.5 py-0.5 rounded whitespace-nowrap">
                                       créditos
                                     </span>
                                   </>
                                 ) : (
-                                  <p className="text-xs text-gray-300 font-medium">
+                                  <p className="text-xs text-pipe-ink-soft font-medium">
                                     <IconeEquipe tamanho={13} className="inline mr-1 -mt-0.5" /> {empresa.decisorNome}
                                     {empresa.decisorCargo
                                       ? ` · ${empresa.decisorCargo}`
@@ -3797,7 +3801,7 @@ porteEmpresa,
                                   </p>
                                 ) : (
                                   <>
-                                    <p className="text-xs text-lime-400 font-medium">
+                                    <p className="text-xs text-emerald-700 font-medium">
                                       <IconeAlvo tamanho={13} className="inline mr-1 -mt-0.5" /> Fale com:{" "}
                                       {empresa.campeaoNome
                                         ? `${empresa.campeaoNome} · `
@@ -3877,7 +3881,7 @@ porteEmpresa,
                             {liberado && empresa.emailProspeccao?.mensagem && (
                               <div className="mt-2 bg-pipe-blue/5 border border-pipe-border rounded-lg p-3">
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                                  <p className="text-[11px] font-bold text-pipe-blue uppercase tracking-wide">
+                                  <p className="text-[11px] font-semibold text-pipe-blue uppercase tracking-wide">
                                     E-mail pronto para este lead
                                   </p>
                                   <button
@@ -3890,7 +3894,7 @@ porteEmpresa,
                                     }}
                                     className={`text-[11px] font-semibold px-2 py-1 rounded-lg border transition whitespace-nowrap ${
                                       copiado === `email-${empresa.cnpj}`
-                                        ? "bg-pipe-blue text-black border-pipe-blue"
+                                        ? "bg-pipe-blue text-white border-pipe-blue"
                                         : "text-pipe-blue border-pipe-blue/40 hover:bg-pipe-blue/10"
                                     }`}
                                   >
@@ -3900,12 +3904,12 @@ porteEmpresa,
                                   </button>
                                 </div>
                                 {empresa.emailProspeccao.assunto && (
-                                  <p className="text-xs font-semibold text-gray-200 mb-1">
+                                  <p className="text-xs font-semibold text-pipe-ink-soft mb-1">
                                     Assunto:{" "}
                                     {empresa.emailProspeccao.assunto}
                                   </p>
                                 )}
-                                <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                                <p className="text-xs text-pipe-ink-soft whitespace-pre-wrap">
                                   {empresa.emailProspeccao.mensagem}
                                 </p>
                               </div>
@@ -3958,7 +3962,7 @@ porteEmpresa,
                                 e.stopPropagation();
                                 desbloquearEmpresa(empresa.cnpj);
                               }}
-                              className="shrink-0 self-center text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1.5 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
+                              className="shrink-0 self-center text-xs font-semibold bg-amber-500/15 text-amber-700 border border-amber-500/30 px-2.5 py-1.5 rounded-lg hover:bg-amber-500/25 transition whitespace-nowrap"
                             >
                               1 crédito
                             </button>
@@ -3980,7 +3984,7 @@ porteEmpresa,
               {!mostrandoResultados && (
                 <button
                   onClick={() => setEtapa(1)}
-                  className="mt-3 w-full border border-pipe-border text-pipe-muted py-3 rounded-lg hover:bg-pipe-card hover:text-white transition"
+                  className="mt-3 w-full border border-pipe-border text-pipe-muted py-3 rounded-lg hover:bg-pipe-card hover:text-pipe-ink transition"
                 >
                   ← Voltar e editar informações
                 </button>

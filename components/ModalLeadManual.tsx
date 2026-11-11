@@ -52,7 +52,7 @@ export default function ModalLeadManual({
   }
 
   const classesInput =
-    "w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white text-sm";
+    "w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink text-sm";
 
   return (
     <div
@@ -65,13 +65,13 @@ export default function ModalLeadManual({
       >
         <button
           onClick={onFechar}
-          className="absolute top-4 right-4 text-pipe-muted hover:text-white text-xl transition"
+          className="absolute top-4 right-4 text-pipe-muted hover:text-pipe-ink text-xl transition"
           aria-label="Fechar"
         >
           ×
         </button>
 
-        <h2 className="font-display text-3xl text-white">
+        <h2 className="font-display text-3xl text-pipe-ink">
           Inserir <span className="text-pipe-lime">empresa manualmente</span>
         </h2>
 
@@ -147,7 +147,7 @@ export default function ModalLeadManual({
 
           <button
             type="submit"
-            className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 transition mt-2"
+            className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 transition mt-2"
           >
             Adicionar à lista →
           </button>

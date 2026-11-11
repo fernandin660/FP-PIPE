@@ -109,13 +109,13 @@ export default function AuthModal({ aberto, onFechar }: Props) {
       <div className="w-full max-w-md bg-pipe-card border border-pipe-border rounded-xl p-8 relative">
         <button
           onClick={onFechar}
-          className="absolute top-4 right-5 text-pipe-muted hover:text-white text-xl transition"
+          className="absolute top-4 right-5 text-pipe-muted hover:text-pipe-ink text-xl transition"
           aria-label="Fechar"
         >
           ×
         </button>
 
-        <h2 className="font-display text-3xl text-white">
+        <h2 className="font-display text-3xl text-pipe-ink">
           Crie sua conta{" "}
           <span className="text-pipe-lime">grátis</span>
         </h2>
@@ -129,8 +129,8 @@ export default function AuthModal({ aberto, onFechar }: Props) {
             onClick={() => setModo("entrar")}
             className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${
               modo === "entrar"
-                ? "bg-pipe-blue text-black"
-                : "text-pipe-muted hover:text-white"
+                ? "bg-pipe-blue text-white"
+                : "text-pipe-muted hover:text-pipe-ink"
             }`}
           >
             Entrar
@@ -139,8 +139,8 @@ export default function AuthModal({ aberto, onFechar }: Props) {
             onClick={() => setModo("criar")}
             className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${
               modo === "criar"
-                ? "bg-pipe-blue text-black"
-                : "text-pipe-muted hover:text-white"
+                ? "bg-pipe-blue text-white"
+                : "text-pipe-muted hover:text-pipe-ink"
             }`}
           >
             Criar conta
@@ -154,7 +154,7 @@ export default function AuthModal({ aberto, onFechar }: Props) {
             placeholder="Seu e-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
           />
 
           <input
@@ -164,17 +164,17 @@ export default function AuthModal({ aberto, onFechar }: Props) {
             placeholder={modo === "criar" ? "Senha (8+ caracteres, maiúscula, número e símbolo)" : "Sua senha"}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/60 text-white"
+            className="w-full bg-pipe-dark border border-pipe-border rounded-lg p-3 focus:border-pipe-blue focus:outline-none placeholder:text-pipe-muted/70 text-pipe-ink"
           />
 
-          {erro && <p className="text-red-400 text-sm">{erro}</p>}
+          {erro && <p className="text-red-700 text-sm">{erro}</p>}
 
           {mensagem && <p className="text-pipe-lime text-sm">{mensagem}</p>}
 
           <button
             type="submit"
             disabled={carregando}
-            className="w-full bg-pipe-lime text-black font-bold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
           >
             {carregando
               ? "Aguarde..."

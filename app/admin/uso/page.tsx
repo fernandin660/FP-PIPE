@@ -140,31 +140,31 @@ export default function PaginaAdminUso() {
 
   if (restrito) {
     return (
-      <main className="min-h-screen bg-pipe-bg text-gray-200 flex items-center justify-center px-6">
+      <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft flex items-center justify-center px-6">
         <p className="text-pipe-muted text-sm">Redirecionando...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-pipe-bg text-gray-200">
+    <main className="min-h-screen bg-pipe-bg text-pipe-ink-soft">
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <Link
             href="/prospeccao"
-            className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-sm bg-pipe-card border border-pipe-border rounded-lg px-4 py-2 hover:border-pipe-blue/60 hover:text-pipe-ink transition"
           >
             ← Voltar ao painel
           </Link>
           <Link
             href="/admin"
-            className="text-xs text-pipe-muted hover:text-white transition"
+            className="text-xs text-pipe-muted hover:text-pipe-ink transition"
           >
             Console de usuários →
           </Link>
         </div>
 
-        <h1 className="font-display text-3xl text-white mt-6">
+        <h1 className="font-display text-3xl text-pipe-ink mt-6">
           Painel de uso
         </h1>
         <p className="text-pipe-muted text-sm mt-1">
@@ -179,7 +179,7 @@ export default function PaginaAdminUso() {
         {/* APIS PAGAS */}
         {!carregando && apis.length > 0 && (
           <section className="mt-10">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-1">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-pipe-muted mb-1">
               APIs pagas este mês
             </h2>
             <p className="text-xs text-pipe-muted mb-4">
@@ -201,11 +201,11 @@ export default function PaginaAdminUso() {
                     className="bg-pipe-card border border-pipe-border rounded-xl p-4"
                   >
                     <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-pipe-ink">
                         {NOMES_APIS[a.api] ?? a.api}
                         {a.ajustado && (
                           <span
-                            className="ml-2 text-[10px] font-bold uppercase tracking-wide text-pipe-blue"
+                            className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-pipe-blue"
                             title="Limite ajustado manualmente no console"
                           >
                             · ajustado
@@ -213,7 +213,7 @@ export default function PaginaAdminUso() {
                         )}
                         {a.viaLedger && (
                           <span
-                            className="ml-2 text-[10px] font-bold uppercase tracking-wide text-pipe-lime"
+                            className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-pipe-lime"
                             title="Chamadas reais contadas pelo ledger de enriquecimento"
                           >
                             · contagem real
@@ -238,26 +238,26 @@ export default function PaginaAdminUso() {
                                   setEditandoApi(null);
                               }}
                               autoFocus
-                              className="w-28 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-1.5 text-sm focus:border-pipe-blue focus:outline-none text-white"
+                              className="w-28 bg-pipe-dark border border-pipe-border rounded-lg px-3 py-1.5 text-sm focus:border-pipe-blue focus:outline-none text-pipe-ink"
                             />
                             <button
                               onClick={() => salvarLimite(a.api)}
                               disabled={salvandoLimite}
-                              className="text-xs font-bold bg-pipe-lime text-black rounded-md px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition"
+                              className="text-xs font-semibold bg-pipe-lime text-white rounded-md px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition"
                             >
                               Salvar
                             </button>
                             <button
                               onClick={() => setEditandoApi(null)}
-                              className="text-xs text-pipe-muted hover:text-white transition"
+                              className="text-xs text-pipe-muted hover:text-pipe-ink transition"
                             >
                               ×
                             </button>
                           </>
                         ) : (
                           <>
-                            <p className="text-sm text-gray-300">
-                              <span className="font-bold">
+                            <p className="text-sm text-pipe-ink-soft">
+                              <span className="font-semibold">
                                 {a.chamadas}
                               </span>
                               {a.limite
@@ -265,11 +265,11 @@ export default function PaginaAdminUso() {
                                 : " chamadas"}
                               {a.limite ? (
                                 <span
-                                  className={`ml-2 text-xs font-bold ${
+                                  className={`ml-2 text-xs font-semibold ${
                                     percentual >= 100
-                                      ? "text-red-400"
+                                      ? "text-red-700"
                                       : percentual >= 75
-                                        ? "text-yellow-400"
+                                        ? "text-amber-700"
                                         : "text-pipe-lime"
                                   }`}
                                 >
@@ -291,7 +291,7 @@ export default function PaginaAdminUso() {
                                 setValorEdicao(String(a.limite ?? ""));
                               }}
                               title="Ajustar limite (ex.: quando trocarmos o plano da conta)"
-                              className="text-xs text-pipe-muted hover:text-white border border-pipe-border rounded-md px-2 py-1 transition"
+                              className="text-xs text-pipe-muted hover:text-pipe-ink border border-pipe-border rounded-md px-2 py-1 transition"
                             >
                               <IconeEscrever tamanho={16} className="block" />
                             </button>
@@ -330,7 +330,7 @@ export default function PaginaAdminUso() {
         {/* MEDIDOR MILLIONPHONES */}
         {!carregando && millionphones && (
           <section className="mt-12">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-1">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-pipe-muted mb-1">
               MillionPhones — consumo da nossa conta
             </h2>
             <p className="text-xs text-pipe-muted mb-4">
@@ -344,8 +344,8 @@ export default function PaginaAdminUso() {
               <div
                 className={`mb-5 border rounded-xl px-4 py-3 text-sm font-semibold ${
                   millionphones.percentualConsumo >= 100
-                    ? "border-red-500/50 bg-red-500/10 text-red-300"
-                    : "border-yellow-500/50 bg-yellow-500/10 text-yellow-200"
+                    ? "border-red-500/50 bg-red-500/10 text-red-700"
+                    : "border-yellow-500/50 bg-yellow-500/10 text-amber-700"
                 }`}
               >
                 {millionphones.percentualConsumo >= 100
@@ -367,7 +367,7 @@ export default function PaginaAdminUso() {
                 <p className="text-[11px] font-semibold text-pipe-muted">
                   Chamadas à API
                 </p>
-                <p className="font-display text-3xl text-white mt-1">
+                <p className="font-display text-3xl text-pipe-ink mt-1">
                   {millionphones.totalChamadas}
                 </p>
               </div>
@@ -378,8 +378,8 @@ export default function PaginaAdminUso() {
                 <p
                   className={`font-display text-3xl mt-1 ${
                     millionphones.totalConsumoMp > 0
-                      ? "text-yellow-400"
-                      : "text-white"
+                      ? "text-amber-700"
+                      : "text-pipe-ink"
                   }`}
                 >
                   {millionphones.totalConsumoMp.toLocaleString("pt-BR")}
@@ -393,18 +393,18 @@ export default function PaginaAdminUso() {
                   Cota global da conta MP (consumo acumulado histórico)
                 </p>
                 <p className="text-xs text-pipe-muted">
-                  <span className="font-bold text-white">
+                  <span className="font-semibold text-pipe-ink">
                     {millionphones.totalConsumoHistoricoMp.toLocaleString(
                       "pt-BR"
                     )}
                   </span>{" "}
                   / {millionphones.cotaMp.toLocaleString("pt-BR")} créditos ·{" "}
                   <span
-                    className={`font-bold ${
+                    className={`font-semibold ${
                       millionphones.percentualConsumo >= 100
-                        ? "text-red-400"
+                        ? "text-red-700"
                         : millionphones.percentualConsumo >= 75
-                          ? "text-yellow-400"
+                          ? "text-amber-700"
                           : "text-pipe-lime"
                     }`}
                   >
@@ -430,7 +430,7 @@ export default function PaginaAdminUso() {
 
             {millionphones.orgaos.length > 0 && (
               <>
-                <h3 className="text-sm font-bold text-white mb-3">
+                <h3 className="text-sm font-semibold text-pipe-ink mb-3">
                   Consumo por organização
                 </h3>
                 <div className="bg-pipe-card border border-pipe-border rounded-xl divide-y divide-pipe-border/60">
@@ -439,13 +439,13 @@ export default function PaginaAdminUso() {
                       key={o.organizacaoId}
                       className="px-4 py-3 flex items-center justify-between gap-4 text-sm flex-wrap"
                     >
-                      <span className="text-gray-300 truncate font-mono text-xs">
+                      <span className="text-pipe-ink-soft truncate font-mono text-xs">
                         {o.organizacaoId}
                       </span>
                       <span className="flex items-center gap-3 text-xs text-pipe-muted">
                         <span>
                           queimados{" "}
-                          <b className="text-yellow-400">{o.consumoMp} MP</b>
+                          <b className="text-amber-700">{o.consumoMp} MP</b>
                         </span>
                         <span>
                           achados{" "}
@@ -453,19 +453,19 @@ export default function PaginaAdminUso() {
                         </span>
                         <span>
                           chamadas{" "}
-                          <b className="text-white">{o.chamadas}</b>
+                          <b className="text-pipe-ink">{o.chamadas}</b>
                         </span>
                         <span>
                           sem número{" "}
-                          <b className="text-white">{o.semNumero}</b>
+                          <b className="text-pipe-ink">{o.semNumero}</b>
                         </span>
                         <span>
                           sem crédito{" "}
-                          <b className="text-white">{o.semCreditos}</b>
+                          <b className="text-pipe-ink">{o.semCreditos}</b>
                         </span>
                         <span>
                           cache{" "}
-                          <b className="text-white">{o.cache}</b>
+                          <b className="text-pipe-ink">{o.cache}</b>
                         </span>
                       </span>
                     </div>
@@ -476,7 +476,7 @@ export default function PaginaAdminUso() {
 
             {millionphones.usuarios.length > 0 && (
               <>
-                <h3 className="text-sm font-bold text-white mb-3 mt-6">
+                <h3 className="text-sm font-semibold text-pipe-ink mb-3 mt-6">
                   Consumo por usuário
                 </h3>
                 <div className="bg-pipe-card border border-pipe-border rounded-xl divide-y divide-pipe-border/60">
@@ -485,10 +485,10 @@ export default function PaginaAdminUso() {
                       key={u.email}
                       className="px-4 py-2.5 flex items-center justify-between gap-4 text-sm"
                     >
-                      <span className="text-gray-300 truncate">{u.email}</span>
+                      <span className="text-pipe-ink-soft truncate">{u.email}</span>
                       <span className="flex items-center gap-3 text-xs text-pipe-muted">
                         <span>achados <b className="text-pipe-lime">{u.achados}</b></span>
-                        <span className="text-yellow-400 font-bold">
+                        <span className="text-amber-700 font-semibold">
                           {u.consumoMp} MP
                         </span>
                       </span>
@@ -503,7 +503,7 @@ export default function PaginaAdminUso() {
         {/* MOEDAS INTERNAS */}
         {!carregando && moedas.length > 0 && (
           <section className="mt-12">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-pipe-muted mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-pipe-muted mb-4">
               Moedas em circulação
             </h2>
 
@@ -516,7 +516,7 @@ export default function PaginaAdminUso() {
                   <p className="text-xs font-semibold text-pipe-muted">
                     {moeda.nome}
                   </p>
-                  <p className="font-display text-3xl text-white mt-2">
+                  <p className="font-display text-3xl text-pipe-ink mt-2">
                     {moeda.total}
                   </p>
                   <p className="text-[11px] text-pipe-muted mt-1">
@@ -534,7 +534,7 @@ export default function PaginaAdminUso() {
             (moeda) =>
               moeda.usuarios.length > 0 && (
                 <section key={moeda.chave} className="mt-8">
-                  <h3 className="text-sm font-bold text-white mb-3">
+                  <h3 className="text-sm font-semibold text-pipe-ink mb-3">
                     {moeda.nome} · por usuário
                   </h3>
 
@@ -544,10 +544,10 @@ export default function PaginaAdminUso() {
                         key={`${moeda.chave}-${u.email}`}
                         className="px-4 py-2.5 flex items-center justify-between gap-4 text-sm"
                       >
-                        <span className="text-gray-300 truncate">
+                        <span className="text-pipe-ink-soft truncate">
                           {u.email}
                         </span>
-                        <span className="font-bold text-white shrink-0">
+                        <span className="font-semibold text-pipe-ink shrink-0">
                           {u.saldo}
                         </span>
                       </div>

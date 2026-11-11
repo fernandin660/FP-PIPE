@@ -130,10 +130,10 @@ export default function Sidebar({
     <Link
       key={href}
       href={href}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+      className={`flex items-center gap-3 px-3.5 py-2 rounded-lg text-left text-sm font-medium transition ${
         ativo
-          ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
-          : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+          ? "bg-[#111114] text-white border border-[#111114]"
+          : "text-pipe-ink-soft hover:bg-pipe-dark hover:text-pipe-ink border border-transparent"
       }`}
     >
       <span>{icone}</span>
@@ -142,12 +142,12 @@ export default function Sidebar({
   );
 
   function itemBuscador() {
-    const classes = `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+    const classes = `w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-left text-sm font-medium transition ${
       pathname === "/buscador" && temBuscador !== false
-        ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
+        ? "bg-[#111114] text-white border border-[#111114]"
         : temBuscador === false
-          ? "text-gray-400 hover:bg-pipe-dark hover:text-white border border-dashed border-pipe-border"
-          : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+          ? "text-pipe-muted hover:bg-pipe-dark hover:text-pipe-ink border border-dashed border-pipe-border"
+          : "text-pipe-ink-soft hover:bg-pipe-dark hover:text-pipe-ink border border-transparent"
     }`;
 
     if (temBuscador === false) {
@@ -157,9 +157,9 @@ export default function Sidebar({
           onClick={() => setPopupBuscadorAberto(true)}
           className={classes}
         >
-          <IconeBusca className="w-4 h-4 text-gray-400 shrink-0" />
+          <IconeBusca className="w-4 h-4 text-pipe-muted shrink-0" />
           Buscador de contatos
-          <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+          <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide border border-pipe-border text-pipe-muted px-1.5 py-0.5 rounded-full">
             Gold
           </span>
         </button>
@@ -176,17 +176,20 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-pipe-card border-r border-pipe-border z-40">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-[#fbfaf7] border-r border-pipe-border z-40">
         <div className="px-5 py-6">
-          <Link href="/prospeccao" className="font-display text-2xl text-white">
-            FP <span className="text-pipe-lime">Pipe</span>
+          <Link href="/prospeccao" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-pipe-ink">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M9 1.5 16.5 15H1.5Z" fill="#2442e5" />
+            </svg>
+            FP Pipe
           </Link>
         </div>
 
         <div className="px-4 pb-4 border-b border-pipe-border">
           <button
             onClick={aoAbrirPerfil}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-pipe-dark border border-pipe-border hover:border-pipe-blue/50 transition text-left"
+            className="w-full flex items-center gap-3 p-3 rounded-xl bg-white border border-pipe-border hover:border-pipe-ink/30 transition text-left"
             title="Editar perfil da empresa"
           >
             {perfil?.foto_url ? (
@@ -197,13 +200,13 @@ export default function Sidebar({
                 className="w-11 h-11 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-pipe-blue/15 text-pipe-blue flex items-center justify-center font-bold shrink-0">
+              <div className="w-11 h-11 rounded-full bg-pipe-blue/15 text-pipe-blue flex items-center justify-center font-semibold shrink-0">
                 {inicial}
               </div>
             )}
 
             <div className="min-w-0">
-              <p className="text-sm font-bold text-white truncate">
+              <p className="text-sm font-semibold text-pipe-ink truncate">
                 {perfil?.nome_empresa || "Complete seu perfil"}
               </p>
               {orgNome && orgNome !== perfil?.nome_empresa && (
@@ -219,7 +222,7 @@ export default function Sidebar({
                     Editar perfil
                   </p>
                 ) : (
-                  <p className="text-[11px] text-amber-400 truncate">
+                  <p className="text-[11px] text-amber-700 truncate">
                     Perfil incompleto
                   </p>
                 )}
@@ -227,8 +230,8 @@ export default function Sidebar({
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                       orgPapel === "admin"
-                        ? "bg-yellow-500/20 text-yellow-300"
-                        : "bg-blue-500/20 text-blue-300"
+                        ? "bg-yellow-500/20 text-amber-700"
+                        : "bg-blue-500/20 text-blue-700"
                     }`}
                   >
                     {orgPapel === "admin" ? "Admin" : "Membro"}
@@ -242,7 +245,7 @@ export default function Sidebar({
             <p className="mt-3 px-1 text-[11px] text-pipe-muted flex items-center gap-1">
               <IconeBusca className="w-3 h-3 text-pipe-lime shrink-0" />
               Buscas:{" "}
-              <span className="text-pipe-lime font-bold">{saldoCreditos}</span>
+              <span className="text-pipe-lime font-semibold">{saldoCreditos}</span>
             </p>
           )}
         </div>
@@ -276,16 +279,16 @@ export default function Sidebar({
             <div className="ml-4 py-1.5 px-4 bg-pipe-dark/60 border border-pipe-border/60 rounded-lg mb-1.5">
               <Link
                 href="/crm"
-                className="flex items-center justify-between text-[11px] font-bold text-pipe-blue hover:text-white transition"
+                className="flex items-center justify-between text-[11px] font-semibold text-pipe-blue hover:text-pipe-ink transition"
               >
                 <span>Pipeline</span>
-                <span className="text-white">{crmResumo.total} lead(s)</span>
+                <span className="text-pipe-ink">{crmResumo.total} lead(s)</span>
               </Link>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {crmResumo.porEstagio.slice(0, 4).map((s) => (
                   <span
                     key={s.id}
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-pipe-card border border-pipe-border text-gray-300"
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-pipe-card border border-pipe-border text-pipe-ink-soft"
                   >
                     {s.nome}: {s.total}
                   </span>
@@ -297,11 +300,11 @@ export default function Sidebar({
             <button
               key="/disparos"
               onClick={() => setPopupDisparosAberto(true)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:bg-pipe-dark hover:text-white border border-dashed border-pipe-border"
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-left text-sm font-medium transition text-pipe-muted hover:bg-pipe-dark hover:text-pipe-ink border border-dashed border-pipe-border"
             >
-              <IconeEnviar className="w-4 h-4 text-gray-400 shrink-0" />
+              <IconeEnviar className="w-4 h-4 text-pipe-muted shrink-0" />
               Disparos em massa
-              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide border border-pipe-border text-pipe-muted px-1.5 py-0.5 rounded-full">
                 Gold
               </span>
             </button>
@@ -309,15 +312,15 @@ export default function Sidebar({
             <Link
               key="/disparos"
               href="/disparos"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+              className={`flex items-center gap-3 px-3.5 py-2 rounded-lg text-left text-sm font-medium transition ${
                 pathname === "/disparos"
-                  ? "bg-pipe-blue/10 text-pipe-blue border border-pipe-blue/30"
-                  : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+                  ? "bg-[#111114] text-white border border-[#111114]"
+                  : "text-pipe-ink-soft hover:bg-pipe-dark hover:text-pipe-ink border border-transparent"
               }`}
             >
               <IconeEnviar className="w-4 h-4 shrink-0" />
               Disparos em massa
-              <span className="ml-auto text-[10px] font-bold uppercase tracking-wide bg-pipe-lime/15 text-pipe-lime px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide border border-pipe-border text-pipe-muted px-1.5 py-0.5 rounded-full">
                 Gold
               </span>
             </Link>
@@ -363,21 +366,21 @@ export default function Sidebar({
             href="/plataforma"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-pipe-muted hover:bg-slate-100 hover:text-slate-800 transition-colors"
           >
-            <IconeCasa className="w-4 h-4 text-slate-500 shrink-0" />
+            <IconeCasa className="w-4 h-4 text-pipe-muted shrink-0" />
             <span>Início</span>
-            <IconeSetaExterna className="ml-auto w-3 h-3 text-slate-400" />
+            <IconeSetaExterna className="ml-auto w-3 h-3 text-pipe-muted" />
           </a>
         </div>
 
         <div className="px-4 pb-5 space-y-1">
           <Link
             href="/creditos"
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-left text-sm font-medium transition ${
               pathname === "/creditos"
-                ? "bg-pipe-lime/10 text-pipe-lime border border-pipe-lime/30"
-                : "text-gray-300 hover:bg-pipe-dark hover:text-white border border-transparent"
+                ? "bg-[#111114] text-white border border-[#111114]"
+                : "text-pipe-ink-soft hover:bg-pipe-dark hover:text-pipe-ink border border-transparent"
             }`}
           >
             <IconeCartao className="w-4 h-4 shrink-0" />
@@ -386,7 +389,7 @@ export default function Sidebar({
 
           <button
             onClick={sair}
-            className="w-full text-left text-xs font-semibold text-pipe-muted hover:text-red-400 transition px-4 py-2"
+            className="w-full text-left text-xs font-semibold text-pipe-muted hover:text-red-700 transition px-4 py-2"
           >
             <IconeSair className="w-4 h-4 inline-block mr-2" />
             Sair da conta
@@ -407,19 +410,19 @@ export default function Sidebar({
               <div className="flex justify-center mb-3">
                 <IconeBusca tamanho={48} className="text-pipe-lime" />
               </div>
-              <h2 className="font-display text-2xl text-white">
+              <h2 className="font-display text-2xl text-pipe-ink">
                 Buscador de contatos
               </h2>
             </div>
 
-            <p className="text-gray-300 text-sm leading-relaxed text-center">
-              Encontre <strong className="text-white">e-mails</strong> e{" "}
-              <strong className="text-white">telefones corporativos</strong>{" "}
+            <p className="text-pipe-ink-soft text-sm leading-relaxed text-center">
+              Encontre <strong className="text-pipe-ink">e-mails</strong> e{" "}
+              <strong className="text-pipe-ink">telefones corporativos</strong>{" "}
               dos decisores direto do LinkedIn deles. Cole o perfil, e o FP Pipe
               descobre o contato comercial real — pronto pra abordagem.
             </p>
 
-            <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
+            <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-pipe-ink-soft space-y-2">
               <p className="flex items-center gap-2">
                 <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
                 E-mail corporativo verificado
@@ -447,13 +450,13 @@ export default function Sidebar({
             <div className="flex flex-col gap-3 pt-1">
               <Link
                 href="/planos"
-                className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
+                className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
               >
                 Fazer upgrade para e-mails e telefones do LinkedIn
               </Link>
               <button
                 onClick={() => setPopupBuscadorAberto(false)}
-                className="text-xs text-pipe-muted hover:text-white transition"
+                className="text-xs text-pipe-muted hover:text-pipe-ink transition"
               >
                 Talvez depois
               </button>
@@ -475,18 +478,18 @@ export default function Sidebar({
               <div className="flex justify-center mb-3">
                 <IconeEnviar tamanho={48} className="text-pipe-lime" />
               </div>
-              <h2 className="font-display text-2xl text-white">
+              <h2 className="font-display text-2xl text-pipe-ink">
                 Disparos em massa
               </h2>
             </div>
 
-            <p className="text-gray-300 text-sm leading-relaxed text-center">
+            <p className="text-pipe-ink-soft text-sm leading-relaxed text-center">
               Dispare e-mails em massa para as empresas da sua lista. A
               abordagem vem escrita para cada empresa, e você acompanha quem
               abriu e quem respondeu.
             </p>
 
-            <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-gray-200 space-y-2">
+            <div className="bg-pipe-blue/10 border border-pipe-blue/30 rounded-xl p-4 text-sm text-pipe-ink-soft space-y-2">
               <p className="flex items-center gap-2">
                 <IconeVerificado className="w-4 h-4 text-pipe-lime shrink-0" />
                 Envio em massa com mensagens escritas para cada empresa
@@ -510,13 +513,13 @@ export default function Sidebar({
             <div className="flex flex-col gap-3 pt-1">
               <Link
                 href="/planos"
-                className="w-full bg-pipe-lime text-pipe-bg font-bold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
+                className="w-full bg-pipe-lime text-white font-semibold py-3 rounded-xl text-center text-sm hover:brightness-110 transition"
               >
                 Fazer upgrade para ativar o disparo em massa
               </Link>
               <button
                 onClick={() => setPopupDisparosAberto(false)}
-                className="text-xs text-pipe-muted hover:text-white transition"
+                className="text-xs text-pipe-muted hover:text-pipe-ink transition"
               >
                 Talvez depois
               </button>
