@@ -93,7 +93,9 @@ export async function listarMembros(
   const { data: membros } = await supabase
     .from("organizacao_membros")
     .select("usuario_id, email_convite")
-    .eq("organizacao_id", orgId);
+    .eq("organizacao_id", orgId)
+    .eq("status", "ativo")
+    .not("usuario_id", "is", null);
 
   const lista = (membros ?? []) as Array<{
     usuario_id: string;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../lib/gate";
 import { calcularPrioridade } from "../../../lib/prioridade";
-import { limitesDeHojeBrasilia, resolverFunil } from "../../../lib/crm";
+import { limitesDeHojeBrasilia, listarMembros, resolverFunil } from "../../../lib/crm";
 
 type Estagio = {
   id: string;
@@ -177,43 +177,21 @@ export async function GET(request: Request) {
     }
   }
 
-  // Resolve nomes dos responsáveis (membros da org) via perfil + email_convite.
+  // Toda a equipe (para escolher responsável e mostrar quem fez cada ação),
+  // mais quem ainda aparece como responsável mas saiu da organização.
   const membros: Array<{ usuario_id: string; nome: string | null; email: string | null }> =
-    [];
-  const idsMembrosNaoResolvidos = new Set(
-    leadsArr.map((l) => l.responsavel_id).filter((id): id is string => Boolean(id))
-  );
-  if (idsMembrosNaoResolvidos.size > 0) {
-    const ids = Array.from(idsMembrosNaoResolvidos);
-
-    const [{ data: membrosData }, { data: perfisData }] = await Promise.all([
-      supabase
-        .from("organizacao_membros")
-        .select("usuario_id, email_convite")
-        .eq("organizacao_id", orgId)
-        .in("usuario_id", ids),
-      supabase
-        .from("perfil")
-        .select("usuario_id, nome_usuario")
-        .in("usuario_id", ids),
-    ]);
-
-    const mapaEmail = new Map<string, string | null>();
-    for (const m of (membrosData ?? []) as Array<{ usuario_id: string; email_convite: string | null }>) {
-      mapaEmail.set(m.usuario_id, m.email_convite);
-    }
-    const mapaNome = new Map<string, string | null>();
-    for (const p of (perfisData ?? []) as Array<{ usuario_id: string; nome_usuario: string | null }>) {
-      mapaNome.set(p.usuario_id, p.nome_usuario);
-    }
-
-    for (const id of ids) {
-      membros.push({
-        usuario_id: id,
-        nome: mapaNome.get(id) ?? null,
-        email: mapaEmail.get(id) ?? null,
-      });
-    }
+    await listarMembros(supabase, orgId);
+  const idsConhecidos = new Set(membros.map((m) => m.usuario_id));
+  const idsAntigos = [
+    ...new Set(leadsArr.map((l) => l.responsavel_id).filter((id): id is string => Boolean(id) && !idsConhecidos.has(id as string))),
+  ];
+  if (idsAntigos.length > 0) {
+    const { data: perfisAntigos } = await supabase
+      .from("perfil")
+      .select("usuario_id, nome_usuario")
+      .in("usuario_id", idsAntigos);
+    const nomes = new Map(((perfisAntigos ?? []) as Array<{ usuario_id: string; nome_usuario: string | null }>).map((p) => [p.usuario_id, p.nome_usuario]));
+    for (const id of idsAntigos) membros.push({ usuario_id: id, nome: nomes.get(id) ?? null, email: null });
   }
   const mapaMembro = new Map<string, { nome: string | null; email: string | null }>();
   for (const m of membros) mapaMembro.set(m.usuario_id, m);
