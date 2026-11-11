@@ -16,6 +16,14 @@ const cabecalhosSeguranca = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    // Fotos dos projetos do site do estúdio, servidas via /_next/image
+    // (o visitante não se conecta direto a esses domínios — melhor p/ RGPD).
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "saint-martin-estate-stories.lovable.app" },
+    ],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: cabecalhosSeguranca }];
   },

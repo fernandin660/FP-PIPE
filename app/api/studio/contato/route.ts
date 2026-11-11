@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+import { exigirRateLimit } from "../../../../lib/rate-limit";
+
+/**
+ * Formulário de contato do site do estúdio (/fr, /en, /es).
+ * Público (sem login): limitado por IP, com armadilha para robôs.
+ * Envia o pedido por e-mail para o dono, com "responder para" = cliente.
+ */
+
+const DESTINO = process.env.EMAIL_AVISOS ?? "fernandopugliesi@fppipe.com.br";
+const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
+const EMAIL_VALIDO = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
+
+function texto(v: unknown, max: number) {
+  return typeof v === "string" ? v.trim().slice(0, max) : "";
+}
+
+export async function POST(request: Request) {
+  const bloqueio = await exigirRateLimit(request, "studio-contato", 3, 300);
+  if (bloqueio) return bloqueio;
+
+  let corpo: Record<string, unknown>;
+  try {
+    corpo = await request.json();
+  } catch {
+    return NextResponse.json({ erro: "invalido" }, { status: 400 });
+  }
+
+  // Robô preencheu o campo escondido: finge sucesso e descarta.
+  if (texto(corpo.site, 200)) return NextResponse.json({ ok: true });
+
+  const nome = texto(corpo.nome, 200);
+  const empresa = texto(corpo.empresa, 200);
+  const email = texto(corpo.email, 200);
+  const telefone = texto(corpo.telefone, 60);
+  const mensagem = texto(corpo.mensagem, 3000);
+  const idioma = ["fr", "en", "es"].includes(String(corpo.idioma)) ? String(corpo.idioma) : "fr";
+
+  if (!nome || !mensagem || !EMAIL_VALIDO.test(email)) {
+    return NextResponse.json({ erro: "campos" }, { status: 400 });
+  }
+
+  if (!CHAVE_RESEND) {
+    console.error("Studio contato: RESEND_API_KEY ausente.");
+    return NextResponse.json({ erro: "indisponivel" }, { status: 503 });
+  }
+
+  const linhas = [
+    `Novo pedido pelo site do estúdio (${idioma.toUpperCase()})`,
+    "",
+    `Nome: ${nome}`,
+    `Empresa: ${empresa || "-"}`,
+    `E-mail: ${email}`,
+    `Telefone: ${telefone || "-"}`,
+    "",
+    "Projeto:",
+    mensagem,
+  ];
+
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CHAVE_RESEND}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "FP Pipe Studio <avisos@fppipe.com.br>",
+        to: [DESTINO],
+        reply_to: email,
+        subject: `Site ${idioma.toUpperCase()} — novo pedido de ${nome}${empresa ? ` (${empresa})` : ""}`,
+        text: linhas.join("\n"),
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) {
+      console.error("Studio contato: Resend respondeu", r.status);
+      return NextResponse.json({ erro: "envio" }, { status: 502 });
+    }
+  } catch {
+    return NextResponse.json({ erro: "envio" }, { status: 502 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
