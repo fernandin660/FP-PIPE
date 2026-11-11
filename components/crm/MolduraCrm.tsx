@@ -13,6 +13,7 @@ const ABAS: { href: string; rotulo: string; tambem?: string[] }[] = [
   { href: "/crm/organizacoes", rotulo: "Organizações" },
   { href: "/crm/pessoas", rotulo: "Contatos" },
   { href: "/hoje", rotulo: "Atividades", tambem: ["/crm/calendario"] },
+  { href: "/crm/relatorios", rotulo: "Relatórios" },
   { href: "/crm/configuracoes", rotulo: "Configurações" },
 ];
 

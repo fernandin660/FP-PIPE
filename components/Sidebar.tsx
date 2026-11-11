@@ -290,6 +290,7 @@ export default function Sidebar({
                 ["/crm", "Negócios", crmResumo?.total ?? null],
                 ["/crm/organizacoes", "Organizações", null],
                 ["/crm/pessoas", "Contatos", null],
+                ["/crm/relatorios", "Relatórios", null],
               ] as const
             ).map(([href, rotulo, total]) => {
               const ativo = href === "/crm" ? pathname === "/crm" || pathname === "/crm/lista" : pathname === href || pathname.startsWith(`${href}/`);

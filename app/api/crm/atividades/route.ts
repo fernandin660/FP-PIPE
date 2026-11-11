@@ -437,8 +437,11 @@ export async function PATCH(request: Request) {
       novosDados.concluida = concluida;
       if (concluida) {
         novosDados.concluida_em = new Date().toISOString();
+        // Quem concluiu (para os relatórios de atividades por pessoa).
+        novosDados.concluida_por = usuarioId;
       } else {
         delete novosDados.concluida_em;
+        delete novosDados.concluida_por;
       }
     }
 
