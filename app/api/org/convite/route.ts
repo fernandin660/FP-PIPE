@@ -5,6 +5,7 @@ import { contarMembros } from "../../../../lib/org";
 import { podeConvidar } from "../../../../lib/planos";
 import { registrarUso } from "../../../../lib/avisos";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
+import { destaque, escaparHtml, layoutEmail, paragrafo } from "../../../../lib/email-layout";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
 
 const CHAVE_RESEND = process.env.RESEND_API_KEY ?? "";
@@ -136,8 +137,16 @@ export async function POST(request: Request) {
           from: "FP Pipe <avisos@fppipe.com.br>",
           to: [email],
           subject: `Convite para ${nomeOrg} no FP Pipe`,
-          text: `Você foi convidado(a) para fazer parte da equipe de "${nomeOrg}" no FP Pipe.\n\nPara aceitar, faça login e acesse: ${linkAceitar}\n\nSe ainda não tem conta, crie uma gratuitamente em ${URL_APP}/cadastro e depois clique no link acima.\n\nEquipe FP Pipe`,
-          html: `<p>Olá!</p><p>Você foi convidado(a) para fazer parte da equipe de <strong>${nomeOrg}</strong> no FP Pipe.</p><p>Para aceitar, faça login e clique no botão abaixo:</p><p><a href="${linkAceitar}" style="display:inline-block;background:#22c55e;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Aceitar convite</a></p><p>Se ainda não tem conta, crie uma gratuitamente em <a href="${URL_APP}/cadastro">${URL_APP}/cadastro</a> e depois clique no botão acima.</p><p>Equipe FP Pipe</p>`,
+          text: `Você foi convidado(a) para fazer parte da equipe de "${nomeOrg}" no FP Pipe.\n\nPara aceitar, faça login e acesse: ${linkAceitar}\n\nSe ainda não tem conta, crie uma gratuitamente em ${URL_APP}/login e depois clique no link acima.\n\nEquipe FP Pipe`,
+          html: layoutEmail({
+            urlApp: URL_APP,
+            selo: "Convite",
+            titulo: `Você foi convidado para ${escaparHtml(nomeOrg)}`,
+            corpo:
+              paragrafo(`Você foi convidado(a) para fazer parte da equipe de ${destaque(escaparHtml(nomeOrg))} no FP Pipe.`) +
+              paragrafo("Entre na sua conta e clique no botão abaixo para aceitar. Se ainda não tem conta, crie uma grátis na mesma tela e depois volte a este e-mail."),
+            cta: { texto: "Aceitar convite", url: linkAceitar },
+          }),
         }),
         signal: AbortSignal.timeout(10000),
       });

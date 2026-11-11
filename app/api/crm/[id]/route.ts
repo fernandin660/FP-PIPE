@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
 import { cancelarProgramadasPendentes, ehMembroAtivo } from "../../../../lib/crm";
+import { ehEstagioPerdido } from "../../../../lib/crm-previsao";
 
 export async function PATCH(
   req: Request,
@@ -20,6 +21,7 @@ export async function PATCH(
     stage_origem_id?: string | null;
     valor_oportunidade?: number | null;
     produto?: string | null;
+    motivo_perda?: string | null;
   };
   try {
     body = await req.json();
@@ -49,6 +51,7 @@ export async function PATCH(
     ordenacao?: number;
     valor_oportunidade?: number | null;
     produto?: string | null;
+    motivo_perda?: string | null;
   } = {};
 
   const mudouStage =
@@ -88,7 +91,7 @@ export async function PATCH(
     }
     const { data: estagioDestino } = await supabase
       .from("pipeline_stages")
-      .select("id")
+      .select("id, nome")
       .eq("id", body.stage_id)
       .eq("organizacao_id", orgId)
       .maybeSingle();
@@ -99,6 +102,10 @@ export async function PATCH(
       );
     }
     atualizacao.stage_id = body.stage_id;
+    // Perdido guarda o motivo; sair de Perdido limpa o motivo antigo.
+    const motivo =
+      typeof body.motivo_perda === "string" ? body.motivo_perda.trim().slice(0, 300) : "";
+    atualizacao.motivo_perda = ehEstagioPerdido(estagioDestino.nome) ? motivo || null : null;
   }
 
   if (mudouResponsavel) {
@@ -132,7 +139,7 @@ export async function PATCH(
     .eq("id", id)
     .eq("organizacao_id", orgId)
     .select(
-      "id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, atualizado_em"
+      "id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, atualizado_em"
     )
     .single();
 
@@ -150,7 +157,7 @@ export async function PATCH(
       tipo_evento: "mudanca_estagio",
       stage_origem_id: stageOrigemId,
       stage_destino_id: atualizacao.stage_id,
-      dados: {},
+      dados: atualizacao.motivo_perda ? { motivo_perda: atualizacao.motivo_perda } : {},
     });
   }
   if (mudouResponsavel) {

@@ -138,3 +138,23 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Painel lateral (detalhe do lead no CRM). */
+@keyframes painel-lateral-entrar {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.painel-lateral-entrar {
+  animation: painel-lateral-entrar 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .painel-lateral-entrar {
+    animation: none;
+  }
+}

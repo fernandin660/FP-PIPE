@@ -10,6 +10,7 @@ type Estagio = {
   nome: string;
   ordem_estagio: number;
   cor: string;
+  probabilidade: number | null;
   criado_em: string;
 };
 
@@ -23,6 +24,7 @@ type EstaQuint = {
   atualizado_em: string;
   valor_oportunidade: number | null;
   produto: string | null;
+  motivo_perda: string | null;
 };
 
 type Empresa = {
@@ -108,12 +110,12 @@ export async function GET() {
   const [{ data: estagios }, { data: leads }] = await Promise.all([
     supabase
       .from("pipeline_stages")
-      .select("id, nome, cor, ordem_estagio, criado_em")
+      .select("id, nome, cor, ordem_estagio, probabilidade, criado_em")
       .eq("organizacao_id", orgId)
       .order("ordem_estagio", { ascending: true }),
     supabase
       .from("lead_pipeline")
-      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, criado_em, atualizado_em")
+      .select("id, company_id, stage_id, responsavel_id, ordenacao, valor_oportunidade, produto, motivo_perda, criado_em, atualizado_em")
       .eq("organizacao_id", orgId),
   ]);
 
@@ -357,6 +359,7 @@ export async function GET() {
       ordenacao: l.ordenacao,
       valor_oportunidade: l.valor_oportunidade,
       produto: l.produto,
+      motivo_perda: l.motivo_perda ?? null,
       criado_em: l.criado_em,
       atualizado_em: l.atualizado_em,
       company: c ?? null,

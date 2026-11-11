@@ -12,6 +12,7 @@ import {
   IconeBusca,
   IconeCaixa,
   IconeCartao,
+  IconeCalendario,
   IconeCasa,
   IconeEmpresa,
   IconeEnviar,
@@ -251,6 +252,12 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+          {item(
+            "/hoje",
+            "Hoje",
+            <IconeCalendario className="w-4 h-4 shrink-0" />,
+            pathname === "/hoje"
+          )}
           {item(
             "/prospeccao",
             "Nova prospecção",

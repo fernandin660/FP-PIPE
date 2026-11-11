@@ -18,13 +18,15 @@ import ModalPerfil, {
   type PerfilVendedor,
 } from "../../components/ModalPerfil";
 import { LeadCard } from "../../components/LeadCard";
-import { IconePasta, IconeTelefone, IconeEmail } from "../../components/Icones";
+import { MOTIVOS_PERDA, ehEstagioGanho, ehEstagioPerdido, probabilidadeDoEstagio } from "../../lib/crm-previsao";
+import { IconeTelefone, IconeEmail } from "../../components/Icones";
 
 export type Estagio = {
   id: string;
   nome: string;
   cor: string;
   ordem_estagio: number;
+  probabilidade?: number | null;
   criado_em: string;
 };
 
@@ -96,6 +98,7 @@ export type LeadCrm = {
   ordenacao: number;
   valor_oportunidade: number | null;
   produto: string | null;
+  motivo_perda?: string | null;
   criado_em: string;
   atualizado_em: string;
   company: EmpresaCrm | null;
@@ -181,10 +184,10 @@ const ROTULO_EVENTO: Record<string, string> = {
 };
 
 const COR_ATIVIDADE_STATUS: Record<string, string> = {
-  atrasada: "#ef4444",
-  hoje: "#eab308",
-  sem: "#4b5563",
-  futura: "#a2ff40",
+  atrasada: "#dc2626",
+  hoje: "#d97706",
+  sem: "#c9c6bd",
+  futura: "#2442e5",
 };
 
 const ROTULO_ATIVIDADE_STATUS: Record<string, string> = {
@@ -341,6 +344,16 @@ export default function PaginaCrm() {
 
   // Detalhe
   const [leadDetalhe, setLeadDetalhe] = useState<LeadCrm | null>(null);
+  const [ehAdmin, setEhAdmin] = useState(false);
+  const [editandoProbId, setEditandoProbId] = useState<string | null>(null);
+  const [probRascunho, setProbRascunho] = useState("");
+  const [perdaPendente, setPerdaPendente] = useState<{
+    leadId: string;
+    stageId: string;
+    antesLeadId: string | null;
+  } | null>(null);
+  const [motivoPerda, setMotivoPerda] = useState<string>("");
+  const [motivoPerdaOutro, setMotivoPerdaOutro] = useState("");
   const [historico, setHistorico] = useState<EventoHistorico[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [mudandoResponsavel, setMudandoResponsavel] = useState(false);
@@ -1068,15 +1081,20 @@ export default function PaginaCrm() {
   function aoDropEmStage(stageId: string) {
     setSobreLeadId(null);
     if (!arrastandoId) return;
-    moverLead(arrastandoId, stageId, null);
+    solicitarMover(arrastandoId, stageId, null);
   }
 
   function aoDropEmLead(leadAlvo: LeadCrm) {
     if (!arrastandoId || arrastandoId === leadAlvo.id) return;
-    moverLead(arrastandoId, leadAlvo.stage_id, leadAlvo.id);
+    solicitarMover(arrastandoId, leadAlvo.stage_id, leadAlvo.id);
   }
 
-  async function moverLead(leadId: string, stageDestinoId: string, antesLeadId: string | null) {
+  async function moverLead(
+    leadId: string,
+    stageDestinoId: string,
+    antesLeadId: string | null,
+    motivoPerdaEscolhido?: string
+  ) {
     const lead = leads.find((l) => l.id === leadId);
     if (!lead) return;
     if (lead.stage_id === stageDestinoId && !antesLeadId) return;
@@ -1134,8 +1152,11 @@ export default function PaginaCrm() {
     // Atualiza detalhe aberto, se for o caso
     setLeadDetalhe((atual) =>
       atual && atual.id === leadId
-        ? { ...atual, stage_id: stageDestinoId }
+        ? { ...atual, stage_id: stageDestinoId, motivo_perda: motivoPerdaEscolhido ?? null }
         : atual
+    );
+    setLeads((atual) =>
+      atual.map((l) => (l.id === leadId ? { ...l, motivo_perda: motivoPerdaEscolhido ?? null } : l))
     );
 
     try {
@@ -1146,6 +1167,7 @@ export default function PaginaCrm() {
           stage_id: stageDestinoId,
           stage_origem_id: lead.stage_id,
           ordenacao: ordenacaoNovo,
+          ...(motivoPerdaEscolhido ? { motivo_perda: motivoPerdaEscolhido } : {}),
         }),
       });
       if (!res.ok) {
@@ -1294,6 +1316,104 @@ export default function PaginaCrm() {
     }
   }
 
+  // Papel do usuário (só admin ajusta a probabilidade dos estágios).
+  useEffect(() => {
+    fetch("/api/org")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setEhAdmin(d?.papel === "admin"))
+      .catch(() => {});
+  }, []);
+
+  const moeda = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
+
+  // Previsão: valor em aberto, valor ponderado pela chance de cada estágio e valor ganho.
+  const previsao = useMemo(() => {
+    const porStage = new Map(etagias.map((e) => [e.id, e]));
+    let aberto = 0;
+    let ponderado = 0;
+    let ganho = 0;
+    for (const l of leads) {
+      const v = l.valor_oportunidade ?? 0;
+      if (!v) continue;
+      const st = porStage.get(l.stage_id);
+      if (!st) continue;
+      if (ehEstagioGanho(st.nome)) ganho += v;
+      else if (!ehEstagioPerdido(st.nome)) {
+        aberto += v;
+        ponderado += (v * probabilidadeDoEstagio(st)) / 100;
+      }
+    }
+    return { aberto, ponderado, ganho };
+  }, [leads, etagias]);
+
+  async function salvarProbabilidade(stage: Estagio) {
+    const n = Math.round(Number(probRascunho));
+    setEditandoProbId(null);
+    if (!Number.isFinite(n) || n < 0 || n > 100 || n === probabilidadeDoEstagio(stage)) return;
+    const anterior = etagias;
+    setEtagias((atual) => atual.map((e) => (e.id === stage.id ? { ...e, probabilidade: n } : e)));
+    const res = await fetch("/api/crm/estagios", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stage_id: stage.id, probabilidade: n }),
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      setEtagias(anterior);
+      setErro("Não foi possível salvar a probabilidade do estágio.");
+    }
+  }
+
+  /** Mover para "Perdido" pede o motivo antes; os demais estágios movem direto. */
+  function solicitarMover(leadId: string, stageDestinoId: string, antesLeadId: string | null) {
+    const destino = etagias.find((e) => e.id === stageDestinoId);
+    const lead = leads.find((l) => l.id === leadId);
+    if (destino && lead && ehEstagioPerdido(destino.nome) && lead.stage_id !== stageDestinoId) {
+      setSobreStageId(null);
+      setSobreLeadId(null);
+      setArrastandoId(null);
+      setMotivoPerda("");
+      setMotivoPerdaOutro("");
+      setPerdaPendente({ leadId, stageId: stageDestinoId, antesLeadId });
+      return;
+    }
+    void moverLead(leadId, stageDestinoId, antesLeadId);
+  }
+
+  function confirmarPerda() {
+    if (!perdaPendente) return;
+    const motivo = motivoPerda === "Outro" ? motivoPerdaOutro.trim() || "Outro" : motivoPerda;
+    if (!motivo) return;
+    const p = perdaPendente;
+    setPerdaPendente(null);
+    void moverLead(p.leadId, p.stageId, p.antesLeadId, motivo);
+  }
+
+  // Esc fecha o painel do lead.
+  useEffect(() => {
+    if (!leadDetalhe) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLeadDetalhe(null);
+    };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [leadDetalhe]);
+
+  // Link direto para um lead (ex.: vindo da tela Hoje): /crm?empresa=<company_id>
+  const abriuPorLinkRef = useRef(false);
+  useEffect(() => {
+    if (abriuPorLinkRef.current || leads.length === 0) return;
+    const alvo = new URLSearchParams(window.location.search).get("empresa");
+    if (!alvo) return;
+    const lead = leads.find((l) => l.company_id === alvo);
+    if (!lead) return;
+    abriuPorLinkRef.current = true;
+    const id = setTimeout(() => abrirDetalhe(lead), 0);
+    return () => clearTimeout(id);
+    // abrirDetalhe é estável o suficiente para este uso único.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads]);
+
   // ---- Detalhe ----
   function abrirDetalhe(lead: LeadCrm) {
     setLeadDetalhe(lead);
@@ -1360,9 +1480,8 @@ return (
           {/* Cabeçalho */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-2xl text-pipe-ink flex items-center gap-2">
-                <IconePasta className="text-pipe-lime shrink-0" />
-                CRM de Prospecção
+              <h1 className="text-3xl font-medium tracking-[-0.03em] text-pipe-ink">
+                Funil de vendas
               </h1>
               <p className="text-sm text-pipe-muted mt-0.5">
                 Pipeline comercial B2B · {totalFiltrado} lead
@@ -1389,6 +1508,28 @@ return (
               </button>
             </div>
           </div>
+
+          {/* Previsão de receita */}
+          <dl className="grid grid-cols-1 overflow-hidden rounded-2xl border border-pipe-border bg-pipe-card sm:grid-cols-3">
+            {[
+              { rotulo: "Em negociação", valor: previsao.aberto, dica: "Soma das oportunidades abertas" },
+              {
+                rotulo: "Previsão ponderada",
+                valor: previsao.ponderado,
+                dica: "Valor × chance de fechar de cada etapa",
+                destaque: true,
+              },
+              { rotulo: "Ganho", valor: previsao.ganho, dica: "Oportunidades na etapa Ganho" },
+            ].map((c, i) => (
+              <div key={c.rotulo} className={`px-5 py-4 ${i > 0 ? "border-t border-pipe-border sm:border-l sm:border-t-0" : ""}`}>
+                <dt className="text-xs text-pipe-muted">{c.rotulo}</dt>
+                <dd className={`mt-1 text-2xl font-medium tracking-[-0.02em] tabular-nums ${c.destaque ? "text-pipe-blue" : "text-pipe-ink"}`}>
+                  {moeda(c.valor)}
+                </dd>
+                <dd className="mt-0.5 text-xs text-pipe-muted">{c.dica}</dd>
+              </div>
+            ))}
+          </dl>
 
           {/* Filtros */}
           <div className="bg-pipe-card border border-pipe-border rounded-2xl p-3 flex flex-wrap items-center gap-3">
@@ -1606,6 +1747,41 @@ return (
                         {cards.length}
                       </span>
                     </div>
+                    <div className="px-4 -mt-1 pb-2.5 flex items-center justify-between text-[11px] text-pipe-muted">
+                      <span className="tabular-nums">
+                        {moeda(cards.reduce((t, l) => t + (l.valor_oportunidade ?? 0), 0))}
+                      </span>
+                      {editandoProbId === stage.id ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={probRascunho}
+                          onChange={(e) => setProbRascunho(e.target.value)}
+                          onBlur={() => void salvarProbabilidade(stage)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void salvarProbabilidade(stage);
+                            if (e.key === "Escape") setEditandoProbId(null);
+                          }}
+                          aria-label={`Chance de fechar em ${stage.nome} (%)`}
+                          className="w-14 rounded-md border border-pipe-blue bg-white px-1.5 py-0.5 text-right text-[11px] text-pipe-ink focus:outline-none"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={!ehAdmin}
+                          onClick={() => {
+                            setProbRascunho(String(probabilidadeDoEstagio(stage)));
+                            setEditandoProbId(stage.id);
+                          }}
+                          title={ehAdmin ? "Chance de fechar nesta etapa (clique para ajustar)" : "Chance de fechar nesta etapa"}
+                          className="tabular-nums rounded-md px-1 enabled:hover:bg-white enabled:hover:text-pipe-ink"
+                        >
+                          {probabilidadeDoEstagio(stage)}% de chance
+                        </button>
+                      )}
+                    </div>
 
                     <div className="px-2.5 pb-2.5 flex flex-col gap-2 min-h-[160px]">
                       {cards.length === 0 ? (
@@ -1744,19 +1920,90 @@ return (
         </div>
       )}
 
-      {/* Modal detalhe */}
-      {leadDetalhe && (
+      {/* Motivo de perda */}
+      {perdaPendente && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-          onClick={() => setLeadDetalhe(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111114]/30 p-4"
+          onClick={() => setPerdaPendente(null)}
         >
           <div
-            className="bg-pipe-card border border-pipe-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-perda"
+            className="w-full max-w-md rounded-2xl border border-pipe-border bg-pipe-card p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="titulo-perda" className="text-xl font-medium tracking-[-0.02em] text-pipe-ink">
+              Por que essa venda foi perdida?
+            </h2>
+            <p className="mt-1 text-sm text-pipe-muted">
+              {nomeEmpresa(leads.find((l) => l.id === perdaPendente.leadId)?.company ?? null)} · o motivo entra nos relatórios.
+            </p>
+            <div className="mt-5 grid gap-2">
+              {MOTIVOS_PERDA.map((m) => (
+                <label
+                  key={m}
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm transition ${
+                    motivoPerda === m ? "border-pipe-ink bg-pipe-bg text-pipe-ink" : "border-pipe-border text-pipe-ink-soft hover:border-pipe-ink/30"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="motivo-perda"
+                    value={m}
+                    checked={motivoPerda === m}
+                    onChange={() => setMotivoPerda(m)}
+                    className="accent-pipe-blue"
+                  />
+                  {m}
+                </label>
+              ))}
+              {motivoPerda === "Outro" && (
+                <input
+                  autoFocus
+                  value={motivoPerdaOutro}
+                  onChange={(e) => setMotivoPerdaOutro(e.target.value)}
+                  maxLength={300}
+                  placeholder="Conte em poucas palavras"
+                  className="w-full rounded-xl border border-pipe-border bg-white px-3.5 py-2.5 text-sm text-pipe-ink focus:border-pipe-blue focus:outline-none"
+                />
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setPerdaPendente(null)}
+                className="rounded-full px-4 py-2.5 text-sm text-pipe-ink-soft hover:text-pipe-ink"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarPerda}
+                disabled={!motivoPerda || (motivoPerda === "Outro" && !motivoPerdaOutro.trim())}
+                className="rounded-full bg-pipe-ink px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+              >
+                Marcar como perdido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Painel lateral do lead (o funil continua visível ao lado) */}
+      {leadDetalhe && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-[#111114]/20"
+          onClick={() => setLeadDetalhe(null)}
+        >
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detalhes do lead"
+            className="painel-lateral-entrar h-full w-full max-w-[680px] bg-pipe-card border-l border-pipe-border shadow-[-24px_0_60px_-30px_rgba(17,17,20,0.35)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-pipe-border flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-display text-xl text-pipe-ink break-words">
+                <h2 className="text-2xl font-medium tracking-[-0.02em] text-pipe-ink break-words">
                   {leadDetalhe.company_inconsistente
                     ? "Dados da empresa indisponíveis"
                     : nomeEmpresa(leadDetalhe.company)}
@@ -1770,7 +2017,8 @@ return (
               </div>
               <button
                 onClick={() => setLeadDetalhe(null)}
-                className="text-pipe-muted hover:text-pipe-ink text-xl leading-none shrink-0"
+                aria-label="Fechar"
+                className="w-9 h-9 rounded-full border border-pipe-border text-pipe-muted hover:text-pipe-ink hover:border-pipe-ink/30 text-lg leading-none shrink-0"
               >
                 ×
               </button>
@@ -1795,8 +2043,7 @@ return (
                     value={leadDetalhe.stage_id}
                     onChange={(e) => {
                       const novoStage = e.target.value;
-                      setLeadDetalhe({ ...leadDetalhe, stage_id: novoStage });
-                      void moverLead(leadDetalhe.id, novoStage, null);
+                      solicitarMover(leadDetalhe.id, novoStage, null);
                     }}
                     className="w-full bg-pipe-card border border-pipe-border rounded-lg px-3 py-2 text-sm text-pipe-ink focus:outline-none focus:border-pipe-blue"
                   >
@@ -1806,6 +2053,10 @@ return (
                       </option>
                     ))}
                   </select>
+                  {leadDetalhe.motivo_perda &&
+                    ehEstagioPerdido(etagias.find((e) => e.id === leadDetalhe.stage_id)?.nome) && (
+                      <p className="mt-2 text-xs text-red-700">Motivo da perda: {leadDetalhe.motivo_perda}</p>
+                    )}
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-pipe-muted mb-1.5">
@@ -2137,8 +2388,8 @@ return (
                           {gerandoInterpretacao
                             ? "Gerando…"
                             : inteligencia.interpretacao_ia
-                              ? "Regenerar"
-                              : "Gerar"}
+                              ? "Regenerar · 1 crédito"
+                              : "Gerar · 1 crédito"}
                         </button>
                       </div>
                       {inteligencia.interpretacao_ia ? (
@@ -2405,9 +2656,11 @@ return (
                         ?.nome ?? "Cadência ativa"}
                     </p>
                     <p className="text-[11px] text-pipe-muted">
-                      {cadenciaAtiva.proxima_em
-                        ? `Próxima etapa: ${formatarData(cadenciaAtiva.proxima_em)}`
-                        : "Sem próxima etapa."}
+                      {cadenciaAtiva.status === "concluida"
+                        ? "Cadência concluída: todas as etapas foram feitas."
+                        : cadenciaAtiva.proxima_em
+                          ? `Próxima etapa: ${formatarData(cadenciaAtiva.proxima_em)}`
+                          : "Sem próxima etapa."}
                     </p>
                     <button
                       onClick={() =>
@@ -2661,7 +2914,7 @@ return (
                 </button>
               </section>
             </div>
-          </div>
+          </aside>
         </div>
       )}
     </>

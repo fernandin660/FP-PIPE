@@ -4,9 +4,12 @@ import { exigirAcesso } from "../../../../lib/gate";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
 import { chamarIa } from "../../../../lib/ia";
 import { calcularPrioridade } from "../../../../lib/prioridade";
+import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 import type { criarClienteSupabaseServidor } from "../../../../lib/supabase/server";
 
 export const maxDuration = 60;
+
+const CUSTO_INTERPRETACAO = 1;
 
 type Cliente = NonNullable<Awaited<ReturnType<typeof criarClienteSupabaseServidor>>>;
 
@@ -465,6 +468,24 @@ export async function POST(request: Request) {
 
     // --- Gerar interpretação comercial (IA, usando só dados reais) ---
     if (acao === "gerar_interpretacao") {
+      // A interpretação usa IA: custa 1 Crédito de IA da organização,
+      // descontado só quando a geração dá certo.
+      const admin = criarClienteSupabaseAdmin();
+      if (!admin) {
+        return NextResponse.json({ erro: "Serviço de créditos indisponível." }, { status: 503 });
+      }
+      const { data: creditos } = await admin
+        .from("creditos_ia")
+        .select("saldo")
+        .eq("organizacao_id", orgId)
+        .maybeSingle();
+      if ((creditos?.saldo ?? 0) < CUSTO_INTERPRETACAO) {
+        return NextResponse.json(
+          { erro: "Você está sem Créditos de IA para gerar a interpretação.", motivo: "sem_creditos" },
+          { status: 402 }
+        );
+      }
+
       const { data: perfil } = await supabase
         .from("perfil")
         .select("nome_empresa, area_atuacao, departamento_uso, produtos_servicos, nichos")
@@ -545,13 +566,37 @@ Retorne somente JSON válido no formato {"interpretacao":"..."}`;
         );
       }
 
-      await supabase
+      // Débito atômico; se o saldo acabou no meio do caminho, não salva.
+      const { data: novoSaldo } = await admin.rpc("debitar_saldo_org", {
+        p_tabela: "creditos_ia",
+        p_org: orgId,
+        p_qtd: CUSTO_INTERPRETACAO,
+      });
+      if (novoSaldo == null) {
+        return NextResponse.json(
+          { erro: "Você está sem Créditos de IA para gerar a interpretação.", motivo: "sem_creditos" },
+          { status: 402 }
+        );
+      }
+
+      const { error: erroSalvar } = await supabase
         .from("companies")
         .update({ interpretacao_ia: interpretacao })
         .eq("id", companyId)
         .eq("organizacao_id", orgId);
+      if (erroSalvar) {
+        await admin.rpc("creditar_saldo_org", {
+          p_tabela: "creditos_ia",
+          p_org: orgId,
+          p_qtd: CUSTO_INTERPRETACAO,
+        });
+        return NextResponse.json(
+          { erro: "Não foi possível salvar a interpretação. O crédito foi devolvido." },
+          { status: 500 }
+        );
+      }
 
-      return NextResponse.json({ ok: true, interpretacao_ia: interpretacao });
+      return NextResponse.json({ ok: true, interpretacao_ia: interpretacao, saldoIa: novoSaldo });
     }
 
     return NextResponse.json({ erro: "Ação desconhecida." }, { status: 400 });

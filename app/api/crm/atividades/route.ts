@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { exigirAcesso } from "../../../../lib/gate";
 import { dataIsoValida } from "../../../../lib/crm";
+import { sincronizarProgressoCadencia } from "../../../../lib/crm-cadencia";
 
 const TIPOS_ATIVIDADE = new Set([
   "email",
@@ -442,6 +443,16 @@ export async function PATCH(request: Request) {
         { erro: "Não foi possível editar a atividade.", detalhe: erroUpdate?.message },
         { status: 500 }
       );
+    }
+
+    // Etapa de cadência concluída/reaberta/reagendada: avança o andamento.
+    if (
+      atual.tipo_evento === "atividade_programada" &&
+      dadosAtuais.etapa_id &&
+      atual.lead_pipeline_id &&
+      (body.concluida !== undefined || body.data_hora_atividade !== undefined)
+    ) {
+      await sincronizarProgressoCadencia(supabase, orgId, atual.lead_pipeline_id as string);
     }
 
     return NextResponse.json({ atividade: atualizado });

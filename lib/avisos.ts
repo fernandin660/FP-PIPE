@@ -1,4 +1,5 @@
 import { criarClienteSupabaseAdmin } from "./supabase/admin";
+import { destaque, layoutEmail, listaItens, paragrafo, tabelaDados } from "./email-layout";
 import { DEFINICAO_PLANOS } from "./planos";
 
 const EMAIL_DESTINO =
@@ -284,115 +285,21 @@ export async function enviarUpsellCreditosEsgotados(
       creditos_ia: "Créditos de IA",
     }[moeda] ?? moeda;
 
-    const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-          <!-- Logo -->
-          <tr>
-            <td style="padding:0 0 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:800;color:#ffffff;font-family:monospace;">FP <span style="color:#7fff00;">Pipe</span></span>
-            </td>
-          </tr>
-
-          <!-- Card principal -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:16px;padding:40px 36px;border:1px solid #2a2a4a;">
-
-              <tr>
-                <td>
-                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
-                    Seus créditos acabaram
-                  </h1>
-                  <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;text-align:center;">
-                    ${nomeMoeda} da organização <strong style="color:#7fff00;">${nomeOrg}</strong> esgotou.
-                  </p>
-                </td>
-              </tr>
-
-              <!-- Divider -->
-              <tr>
-                <td style="padding:0 0 24px;">
-                  <div style="height:1px;background:linear-gradient(90deg,transparent,#334155,transparent);"></div>
-                </td>
-              </tr>
-
-              <!-- Benefícios -->
-              <tr>
-                <td>
-                  <p style="margin:0 0 16px;font-size:14px;color:#cbd5e1;font-weight:600;">O que você pode fazer agora:</p>
-
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                    <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
-                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
-                        <strong>Continuar prospectando</strong> — escolha um plano e volte a gerar listas
-                      </td>
-                    </tr>
-                    <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
-                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
-                        <strong>Desbloquear contatos</strong> — e-mails e telefones verificados de decisores
-                      </td>
-                    </tr>
-                    <tr>
-                      <td width="36" valign="top" style="padding:0 0 12px;">•</td>
-                      <td style="padding:0 0 12px;font-size:14px;color:#e2e8f0;">
-                        <strong>Abordagens por empresa</strong> — primeira mensagem escrita para cada alvo, com score de aderência
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- CTA Button -->
-              <tr>
-                <td style="padding:0 0 24px;text-align:center;">
-                  <a href="${URL_APP}/planos" style="display:inline-block;background:#7fff00;color:#0a0a0a;font-size:16px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:12px;letter-spacing:0.5px;">
-                    Ver planos e assinar →
-                  </a>
-                </td>
-              </tr>
-
-              <!-- Preço -->
-              <tr>
-                <td style="text-align:center;">
-                  <p style="margin:0;font-size:13px;color:#64748b;">
-                    Planos a partir de <strong style="color:#94a3b8;">R$ 147/mês</strong> · Cancele quando quiser
-                  </p>
-                </td>
-              </tr>
-
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:32px 0 0;text-align:center;">
-              <p style="margin:0 0 4px;font-size:12px;color:#475569;">
-                Este e-mail foi enviado automaticamente pelo FP Pipe.
-              </p>
-              <p style="margin:0;font-size:12px;color:#475569;">
-                <a href="${URL_APP}" style="color:#64748b;text-decoration:underline;">fp-pipe.com.br</a>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+    const html = layoutEmail({
+      urlApp: URL_APP,
+      selo: "Créditos",
+      titulo: "Seus créditos acabaram",
+      corpo:
+        paragrafo(`${nomeMoeda} da organização ${destaque(nomeOrg)} chegaram a zero.`) +
+        paragrafo("O que você pode fazer agora:") +
+        listaItens([
+          `${destaque("Continuar prospectando:")} escolha um plano e volte a gerar listas.`,
+          `${destaque("Desbloquear contatos:")} e-mails e telefones verificados de quem decide.`,
+          `${destaque("Abordagens por empresa:")} a primeira mensagem escrita para cada alvo.`,
+        ]) +
+        paragrafo(`Planos a partir de ${destaque("R$ 147/mês")}. Cancele quando quiser.`),
+      cta: { texto: "Ver planos", url: `${URL_APP}/planos` },
+    });
 
     const textoFallback = `Seus ${nomeMoeda} da organização "${nomeOrg}" esgotaram.
 
@@ -457,104 +364,19 @@ export async function enviarAvisoRenovacao(
       year: "numeric",
     });
 
-    const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-          <!-- Logo -->
-          <tr>
-            <td style="padding:0 0 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:800;color:#ffffff;font-family:monospace;">FP <span style="color:#7fff00;">Pipe</span></span>
-            </td>
-          </tr>
-
-          <!-- Card principal -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:16px;padding:40px 36px;border:1px solid #2a2a4a;">
-
-              <!-- Ícone -->
-              <tr>
-                <td style="padding:0 0 24px;text-align:center;font-size:48px;">
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;text-align:center;">
-                    Assinatura renovada.
-                  </h1>
-                  <p style="margin:0 0 24px;font-size:15px;color:#94a3b8;text-align:center;">
-                    A assinatura <strong style="color:#7fff00;">${nomePlano}</strong> da <strong style="color:#7fff00;">${nomeOrg}</strong> foi renovada com sucesso.
-                  </p>
-                </td>
-              </tr>
-
-              <!-- Divider -->
-              <tr>
-                <td style="padding:0 0 24px;">
-                  <div style="height:1px;background:linear-gradient(90deg,transparent,#334155,transparent);"></div>
-                </td>
-              </tr>
-
-              <!-- Detalhes -->
-              <tr>
-                <td>
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                    <tr>
-                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Plano</td>
-                      <td style="padding:0 0 8px;font-size:14px;color:#e2e8f0;font-weight:600;">${nomePlano} (${ciclo})</td>
-                    </tr>
-                    <tr>
-                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Próxima cobrança</td>
-                      <td style="padding:0 0 8px;font-size:14px;color:#e2e8f0;font-weight:600;">${dataRenovacao}</td>
-                    </tr>
-                    <tr>
-                      <td width="140" style="padding:0 0 8px;font-size:13px;color:#64748b;">Créditos</td>
-                      <td style="padding:0 0 8px;font-size:14px;color:#7fff00;font-weight:600;">Recarregados automaticamente</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- CTA -->
-              <tr>
-                <td style="text-align:center;">
-                  <a href="${URL_APP}/prospeccao" style="display:inline-block;background:#7fff00;color:#0a0a0a;font-size:16px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:12px;letter-spacing:0.5px;">
-                    Continuar prospectando →
-                  </a>
-                </td>
-              </tr>
-
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:32px 0 0;text-align:center;">
-              <p style="margin:0 0 4px;font-size:12px;color:#475569;">
-                Este e-mail foi enviado automaticamente pelo FP Pipe.
-              </p>
-              <p style="margin:0;font-size:12px;color:#475569;">
-                <a href="${URL_APP}" style="color:#64748b;text-decoration:underline;">fp-pipe.com.br</a>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+    const html = layoutEmail({
+      urlApp: URL_APP,
+      selo: "Assinatura",
+      titulo: "Assinatura renovada",
+      corpo:
+        paragrafo(`A assinatura ${destaque(nomePlano)} da ${destaque(nomeOrg)} foi renovada com sucesso.`) +
+        tabelaDados([
+          ["Plano", `${nomePlano} (${ciclo})`],
+          ["Próxima cobrança", dataRenovacao],
+          ["Créditos", "Recarregados automaticamente"],
+        ]),
+      cta: { texto: "Continuar prospectando", url: `${URL_APP}/prospeccao` },
+    });
 
     const textoFallback = `Assinatura renovada.
 

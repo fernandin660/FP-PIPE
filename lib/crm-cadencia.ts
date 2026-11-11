@@ -134,3 +134,57 @@ export async function iniciarCadenciaLead(
 
   return { ok: true, nome: cadencia.nome as string, totalEtapas: passos.length };
 }
+
+/**
+ * Atualiza o andamento da cadência do lead depois que uma atividade
+ * programada é concluída, reaberta ou editada: aponta para a próxima etapa
+ * pendente ou marca a cadência como "concluida" quando não sobra nenhuma.
+ */
+export async function sincronizarProgressoCadencia(
+  supabase: SupabaseClient,
+  orgId: string,
+  leadPipelineId: string
+): Promise<void> {
+  const { data: vinculo } = await supabase
+    .from("lead_cadencia")
+    .select("id, company_id, status")
+    .eq("organizacao_id", orgId)
+    .eq("lead_pipeline_id", leadPipelineId)
+    .maybeSingle();
+  if (!vinculo) return;
+
+  const { data: programadas } = await supabase
+    .from("pipeline_historico")
+    .select("dados")
+    .eq("organizacao_id", orgId)
+    .eq("company_id", vinculo.company_id)
+    .eq("tipo_evento", "atividade_programada");
+
+  const pendentes = (programadas ?? [])
+    .map((p) => (p.dados as Record<string, unknown>) ?? {})
+    .filter((d) => d.etapa_id && d.cancelada !== true && d.concluida !== true)
+    .sort((a, b) =>
+      String(a.data_hora_atividade ?? "").localeCompare(String(b.data_hora_atividade ?? ""))
+    );
+
+  const proxima = pendentes[0];
+  await supabase
+    .from("lead_cadencia")
+    .update(
+      proxima
+        ? {
+            status: "ativa",
+            etapa_atual_id: proxima.etapa_id as string,
+            proxima_em: (proxima.data_hora_atividade as string) ?? null,
+            atualizado_em: new Date().toISOString(),
+          }
+        : {
+            status: "concluida",
+            etapa_atual_id: null,
+            proxima_em: null,
+            atualizado_em: new Date().toISOString(),
+          }
+    )
+    .eq("id", vinculo.id)
+    .eq("organizacao_id", orgId);
+}
