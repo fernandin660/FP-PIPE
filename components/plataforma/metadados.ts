@@ -27,6 +27,8 @@ export function metadadosPlataforma(lang: Idioma): Metadata {
       siteName: "FP Pipe",
       locale: t.local.replace("-", "_"),
       type: "website",
+      images: [{ url: "/og-fppipe.png", width: 1200, height: 630, alt: "FP Pipe" }],
     },
+    twitter: { card: "summary_large_image", title: t.meta.titulo, description: t.meta.descricao, images: ["/og-fppipe.png"] },
   };
 }
