@@ -16,6 +16,10 @@ import type { Idioma } from "../components/studio/dicionario";
  * Sem painel na internet: publicar é aprovar o arquivo (revisão + deploy).
  * Rascunhos (status: rascunho) só aparecem nas prévias da Vercel, nunca no
  * site oficial, e mesmo lá ficam com "noindex".
+ *
+ * status: aguardando → post escrito pela rotina automática, esperando o
+ * "Aprovar" do e-mail. Vira público quando a aprovação está no banco: o
+ * build lê a lista (scripts/blog-aprovados.mjs → conteudo/blog/.aprovados.json).
  */
 
 export const BLOGS = ["sites", "prospeccao"] as const;
@@ -41,6 +45,8 @@ export type Post = {
   /** Chave comum às traduções do mesmo post (liga as versões no hreflang). */
   traducao: string;
   rascunho: boolean;
+  /** Escrito pela rotina automática e ainda sem a aprovação por e-mail. */
+  aguardando: boolean;
   minutosLeitura: number;
   html: string;
   sumario: { id: string; texto: string }[];
@@ -162,10 +168,26 @@ function converter(markdown: string) {
   return { html, sumario };
 }
 
+/** Posts "aguardando" já aprovados por e-mail (gerado no build). */
+function aprovados(): Set<string> {
+  try {
+    const lista = JSON.parse(fs.readFileSync(path.join(RAIZ, ".aprovados.json"), "utf8"));
+    if (!Array.isArray(lista)) return new Set();
+    return new Set(lista.filter((x) => typeof x === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+export function chaveAprovacao(blog: string, idioma: string, slug: string): string {
+  return `${blog}/${idioma}/${slug}`;
+}
+
 let cache: Post[] | null = null;
 
 function carregarTudo(): Post[] {
   if (cache) return cache;
+  const ok = aprovados();
   const posts: Post[] = [];
   for (const blog of BLOGS) {
     for (const idioma of ["pt", "fr", "en", "es"] as Idioma[]) {
@@ -179,6 +201,8 @@ function carregarTudo(): Post[] {
         const obrigatorios = ["titulo", "descricao", "data"];
         for (const c of obrigatorios) if (!campos[c]) throw new Error(`Blog: falta "${c}" em ${blog}/${idioma}/${arquivo}`);
         if (!DATA_VALIDA.test(campos.data)) throw new Error(`Blog: data inválida em ${blog}/${idioma}/${arquivo}`);
+        const status = campos.status ?? "rascunho";
+        const aguardando = status === "aguardando" && !ok.has(chaveAprovacao(blog, idioma, slug));
         const { html, sumario } = converter(corpo);
         const palavras = corpo.split(/\s+/).filter(Boolean).length;
         posts.push({
@@ -192,7 +216,8 @@ function carregarTudo(): Post[] {
           autor: AUTORES[campos.autor ?? ""] ?? AUTORES.equipe,
           categoria: campos.categoria || null,
           traducao: campos.traducao || slug,
-          rascunho: (campos.status ?? "rascunho") !== "publicado",
+          rascunho: !(status === "publicado" || (status === "aguardando" && !aguardando)),
+          aguardando,
           minutosLeitura: Math.max(1, Math.round(palavras / 220)),
           html,
           sumario,
@@ -226,4 +251,14 @@ export function traducoes(post: Post): Partial<Record<Idioma, Post>> {
     if (p.blog === post.blog && p.traducao === post.traducao && (ver || !p.rascunho)) out[p.idioma] = p;
   }
   return out;
+}
+
+/** Qualquer post, visível ou não (para a tela de revisão por link secreto). */
+export function buscarQualquer(blog: Blog, idioma: Idioma, slug: string): Post | null {
+  return carregarTudo().find((p) => p.blog === blog && p.idioma === idioma && p.slug === slug) ?? null;
+}
+
+/** Posts da rotina automática esperando aprovação. */
+export function listarAguardando(): Post[] {
+  return carregarTudo().filter((p) => p.aguardando);
 }

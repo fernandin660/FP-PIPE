@@ -17,7 +17,7 @@ const cabecalhosSeguranca = [
 // Áreas que só existem para quem está logado.
 const ROTAS_INTERNAS = [
   "admin", "auth", "buscador", "creditos", "crm", "disparos", "equipe", "hoje",
-  "listas", "login", "metricas", "modelos", "produtos", "prospeccao",
+  "listas", "login", "metricas", "modelos", "produtos", "prospeccao", "revisao-blog",
 ];
 
 const nextConfig: NextConfig = {
@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       { source: "/(.*)", headers: cabecalhosSeguranca },
       // Respostas da API nunca devem ir para o índice de buscadores.
       { source: "/api/(.*)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // Revisão do blog: o link tem um código secreto; não repassar a outros sites.
+      { source: "/revisao-blog", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "private, no-store" }] },
       // Telas do sistema (precisam de login): fora do Google. Usamos o
       // cabeçalho em vez de listar no robots.txt para não expor o mapa do app.
       ...ROTAS_INTERNAS.map((rota) => ({

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # cópia aninhada acidental do projeto / builds
 /inteligencia-comercial/
+
+# lista gerada no build (aprovações do blog)
+/conteudo/blog/.aprovados.json
