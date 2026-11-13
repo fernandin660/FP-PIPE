@@ -23,7 +23,7 @@ function organizacao() {
     logo: { "@type": "ImageObject", url: `${ORIGEM_SITE}/og-fppipe.png`, width: 1200, height: 630 },
     email: DPO.email,
     telephone: CONTATO.telefone,
-    sameAs: [CONTATO.instagram],
+    sameAs: [CONTATO.instagram, CONTATO.linkedin],
     founder: { "@type": "Person", name: DPO.nome },
     areaServed: ["Europe", "Americas"],
   };

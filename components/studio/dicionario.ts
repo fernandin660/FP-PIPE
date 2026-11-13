@@ -28,6 +28,7 @@ export const CONTATO = {
   whatsappBrasil: "5516997700593",
   // Preencher com o @ da página (ex.: "https://www.instagram.com/fppipe").
   instagram: "https://www.instagram.com/fppipe/",
+  linkedin: "https://www.linkedin.com/company/fp-pipe/",
 };
 
 type Item = { titulo: string; texto: string };

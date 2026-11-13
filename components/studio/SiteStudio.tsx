@@ -268,6 +268,11 @@ export function Rodape({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
               {dic.contato.instagram} <span aria-hidden="true">↗</span>
             </a>
           )}
+          {CONTATO.linkedin && (
+            <a href={CONTATO.linkedin} target="_blank" rel="noopener noreferrer" className="studio-link-nav">
+              LinkedIn <span aria-hidden="true">↗</span>
+            </a>
+          )}
           <Link href={caminhoIdioma(idioma, "/mentions-legales")} className="studio-link-nav">
             {dic.rodape.mentions}
           </Link>
