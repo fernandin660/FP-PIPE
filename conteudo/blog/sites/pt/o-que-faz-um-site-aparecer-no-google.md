@@ -8,7 +8,7 @@ traducao: site-aparecer-no-google
 status: rascunho
 ---
 
-Muita empresa coloca o site no ar e espera os clientes chegarem. Semanas depois, procura o próprio nome no Google e não encontra nada. Não é azar: o Google precisa de alguns sinais para descobrir, entender e confiar em um site. A boa notícia é que a maioria deles está ao alcance de qualquer pequena empresa.
+Muitas empresas colocam o site no ar e esperam os clientes chegarem. Semanas depois, procuram o próprio nome no Google e não encontram nada. Não é azar: o Google precisa de alguns sinais para descobrir, entender e confiar em um site. A boa notícia é que a maioria deles está ao alcance de qualquer pequena empresa.
 
 ## 1. O Google precisa saber que o site existe
 
