@@ -18,3 +18,12 @@ create table if not exists public.blog_aprovacoes (
 
 alter table public.blog_aprovacoes enable row level security;
 revoke all on public.blog_aprovacoes from anon, authenticated;
+
+-- Pedidos de ajuste: observações do Fernando e novas versões do mesmo post.
+-- "ajuste"   → ele pediu correção; a rotina corrige e marca "ajustado".
+-- "ajustado" → versão antiga (histórico); a nova versão ganha outro link.
+alter table public.blog_aprovacoes add column if not exists observacao text check (char_length(observacao) <= 2000);
+alter table public.blog_aprovacoes drop constraint if exists blog_aprovacoes_status_check;
+alter table public.blog_aprovacoes add constraint blog_aprovacoes_status_check check (status in ('pendente', 'publicado', 'recusado', 'ajuste', 'ajustado'));
+alter table public.blog_aprovacoes drop constraint if exists blog_aprovacoes_blog_idioma_slug_key;
+create unique index if not exists blog_aprovacoes_ativo_unico on public.blog_aprovacoes (blog, idioma, slug) where status <> 'ajustado';

@@ -4,7 +4,8 @@ import { ORIGEM_SITE } from "../../../../lib/seo";
 import { criarClienteSupabaseAdmin } from "../../../../lib/supabase/admin";
 
 /*
- * Botões "Aprovar" / "Recusar" da página /revisao-blog (formulário POST).
+ * Botões "Aprovar" / "Pedir ajustes" / "Recusar" da página /revisao-blog
+ * (formulário POST, com o campo opcional de observações).
  * A autorização é o próprio link secreto: só quem recebeu o e-mail o tem.
  * Cada link decide uma única vez e expira em 14 dias.
  */
@@ -14,16 +15,26 @@ export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const token = form?.get("t");
   const acao = form?.get("acao");
-  if (!tokenValido(token) || (acao !== "aprovar" && acao !== "recusar")) {
+  const bruta = form?.get("obs");
+  const obs = typeof bruta === "string" ? bruta.replace(/\r\n/g, "\n").trim().slice(0, 2000) : "";
+  if (!tokenValido(token) || (acao !== "aprovar" && acao !== "recusar" && acao !== "ajustar")) {
     return NextResponse.json({ erro: "Pedido inválido." }, { status: 400 });
   }
+
+  const volta = new URL("/revisao-blog", ORIGEM_SITE);
+  volta.searchParams.set("t", token);
+  if (acao === "ajustar" && !obs) {
+    volta.searchParams.set("r", "sem-obs");
+    return NextResponse.redirect(volta, 303);
+  }
+  const novoStatus = acao === "aprovar" ? "publicado" : acao === "recusar" ? "recusado" : "ajuste";
 
   const admin = criarClienteSupabaseAdmin();
   if (!admin) return NextResponse.json({ erro: "Banco não configurado." }, { status: 500 });
 
   const { data, error } = await admin
     .from("blog_aprovacoes")
-    .update({ status: acao === "aprovar" ? "publicado" : "recusado", decidido_em: new Date().toISOString() })
+    .update({ status: novoStatus, decidido_em: new Date().toISOString(), observacao: obs || null })
     .eq("token_hash", hashToken(token))
     .eq("status", "pendente")
     .gt("expira_em", new Date().toISOString())
@@ -36,8 +47,6 @@ export async function POST(req: Request) {
     if (!ok) resultado = "aprovar-sem-deploy";
   }
 
-  const volta = new URL("/revisao-blog", ORIGEM_SITE);
-  volta.searchParams.set("t", token);
   volta.searchParams.set("r", resultado);
   return NextResponse.redirect(volta, 303);
 }

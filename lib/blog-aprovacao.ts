@@ -1,8 +1,9 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import type { Post } from "./blog";
+import { listarAguardando, type Post } from "./blog";
 import { escaparHtml, layoutEmail, paragrafo } from "./email-layout";
 import { ORIGEM_SITE } from "./seo";
+import { criarClienteSupabaseAdmin } from "./supabase/admin";
 
 /*
  * Aprovação dos posts automáticos por e-mail.
@@ -15,6 +16,9 @@ import { ORIGEM_SITE } from "./seo";
  * - O link vale 14 dias e só pode decidir uma vez.
  * - Aprovar chama o Deploy Hook da Vercel: o site é gerado de novo e o
  *   post aparece em ~2 minutos.
+ * - "Pedir ajustes" guarda a observação (status "ajuste"). A rotina do blog
+ *   corrige o texto, marca a linha como "ajustado" e pede um novo envio:
+ *   a versão corrigida ganha outro link e chega num novo e-mail.
  */
 
 export const VALIDADE_DIAS = 14;
@@ -57,19 +61,25 @@ export async function publicarSite(): Promise<boolean> {
   }
 }
 
-export async function enviarEmailAprovacao(itens: { post: Post; token: string }[]): Promise<boolean> {
+type Item = { post: Post; token: string; pedidoAnterior: string | null };
+
+export async function enviarEmailAprovacao(itens: Item[]): Promise<boolean> {
   const chave = process.env.RESEND_API_KEY;
   if (!chave || itens.length === 0) return false;
 
   const blocos = itens
-    .map(({ post, token }) => {
+    .map(({ post, token, pedidoAnterior }) => {
       const url = linkRevisao(token);
+      const corrigida = pedidoAnterior
+        ? `<p style="margin:0 0 10px;padding:10px 12px;border-radius:8px;background:#f4f3ef;font-size:13px;line-height:1.5;color:#4b4b53;"><strong style="color:#111114;">Versão corrigida.</strong> Você pediu: ${escaparHtml(pedidoAnterior)}</p>`
+        : "";
       return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border:1px solid #e3e1db;border-radius:12px;">
         <tr><td style="padding:18px 20px;">
           <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#2442e5;">${escaparHtml(PUBLICO_IDIOMA[post.idioma] ?? post.idioma)}</p>
           <p style="margin:0 0 8px;font-size:17px;line-height:1.35;font-weight:600;color:#111114;">${escaparHtml(post.titulo)}</p>
           <p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#4b4b53;">${escaparHtml(post.descricao)}</p>
+          ${corrigida}
           <a href="${url}" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#2442e5;color:#ffffff;font-size:14px;font-weight:500;text-decoration:none;">Ler e aprovar &rarr;</a>
         </td></tr>
       </table>`;
@@ -80,7 +90,7 @@ export async function enviarEmailAprovacao(itens: { post: Post; token: string }[
     titulo: itens.length === 1 ? "1 post esperando sua aprovação" : `${itens.length} posts esperando sua aprovação`,
     selo: "Blog de prospecção",
     corpo:
-      paragrafo("Abra cada post, leia e clique em <strong>Aprovar</strong> ou <strong>Recusar</strong>. Aprovado, ele entra no site em cerca de 2 minutos.") +
+      paragrafo("Abra cada post e leia. Na página você pode <strong>Aprovar</strong>, <strong>Pedir ajustes</strong> (escreva o que mudar: eu corrijo e te mando de novo) ou <strong>Recusar</strong>. Aprovado, ele entra no site em cerca de 2 minutos.") +
       blocos +
       paragrafo(`Os links valem ${VALIDADE_DIAS} dias e são pessoais: não encaminhe este e-mail.`),
     rodape: "Enviado pela rotina automática do blog da FP Pipe.",
@@ -89,7 +99,11 @@ export async function enviarEmailAprovacao(itens: { post: Post; token: string }[
   const texto = [
     "Posts esperando sua aprovação:",
     "",
-    ...itens.flatMap(({ post, token }) => [`[${PUBLICO_IDIOMA[post.idioma] ?? post.idioma}] ${post.titulo}`, linkRevisao(token), ""]),
+    ...itens.flatMap(({ post, token, pedidoAnterior }) => [
+      `[${PUBLICO_IDIOMA[post.idioma] ?? post.idioma}] ${post.titulo}${pedidoAnterior ? " (versão corrigida)" : ""}`,
+      linkRevisao(token),
+      "",
+    ]),
     `Os links valem ${VALIDADE_DIAS} dias. Não encaminhe este e-mail.`,
   ].join("\n");
 
@@ -100,7 +114,9 @@ export async function enviarEmailAprovacao(itens: { post: Post; token: string }[
       body: JSON.stringify({
         from: "FP Pipe Blog <avisos@fppipe.com.br>",
         to: [EMAIL_APROVACAO],
-        subject: `📝 Blog: ${itens.length} ${itens.length === 1 ? "post novo" : "posts novos"} para aprovar`,
+        subject: itens.every((i) => i.pedidoAnterior)
+          ? `📝 Blog: ${itens.length === 1 ? "versão corrigida" : `${itens.length} versões corrigidas`} para aprovar`
+          : `📝 Blog: ${itens.length} ${itens.length === 1 ? "post" : "posts"} para aprovar`,
         text: texto,
         html,
       }),
@@ -111,4 +127,59 @@ export async function enviarEmailAprovacao(itens: { post: Post; token: string }[
   } catch {
     return false;
   }
+}
+
+type Resultado = { status: number; corpo: Record<string, unknown> };
+
+/**
+ * Cria um link para cada post "aguardando" sem pedido ativo e manda UM
+ * e-mail com todos. Usado pelo cron diário e pela rotina do blog.
+ */
+export async function enviarPedidosPendentes(): Promise<Resultado> {
+  const admin = criarClienteSupabaseAdmin();
+  if (!admin) return { status: 500, corpo: { erro: "Banco não configurado." } };
+
+  const limite = new Date(Date.now() - VALIDADE_DIAS * 86400000).toISOString().slice(0, 10);
+  const candidatos = listarAguardando().filter((p) => p.data >= limite);
+  if (candidatos.length === 0) return { status: 200, corpo: { ok: true, enviados: 0 } };
+
+  const { data: linhas, error } = await admin
+    .from("blog_aprovacoes")
+    .select("blog, idioma, slug, status, observacao, decidido_em")
+    .in("slug", candidatos.map((p) => p.slug));
+  if (error) return { status: 500, corpo: { erro: "Falha ao ler aprovações." } };
+
+  const chave = (l: { blog: string; idioma: string; slug: string }) => `${l.blog}/${l.idioma}/${l.slug}`;
+  const ativos = new Set((linhas ?? []).filter((l) => l.status !== "ajustado").map(chave));
+  // Última observação de ajuste já atendida (para mostrar "Você pediu: …").
+  const pedidos = new Map<string, { obs: string; quando: string }>();
+  for (const l of linhas ?? []) {
+    if (l.status !== "ajustado" || !l.observacao) continue;
+    const atual = pedidos.get(chave(l));
+    if (!atual || (l.decidido_em ?? "") > atual.quando) pedidos.set(chave(l), { obs: l.observacao, quando: l.decidido_em ?? "" });
+  }
+
+  const itens: Item[] = [];
+  for (const post of candidatos.filter((p) => !ativos.has(chave(p)))) {
+    const { token, hash } = novoToken();
+    const { error: erroInsert } = await admin.from("blog_aprovacoes").insert({
+      blog: post.blog,
+      idioma: post.idioma,
+      slug: post.slug,
+      titulo: post.titulo.slice(0, 200),
+      token_hash: hash,
+      expira_em: new Date(Date.now() + VALIDADE_DIAS * 86400000).toISOString(),
+    });
+    if (!erroInsert) itens.push({ post, token, pedidoAnterior: pedidos.get(chave(post))?.obs.slice(0, 400) ?? null });
+  }
+  if (itens.length === 0) return { status: 200, corpo: { ok: true, enviados: 0 } };
+
+  if (!(await enviarEmailAprovacao(itens))) {
+    // Sem e-mail, desfaz os pedidos para tentar de novo depois.
+    for (const { post } of itens) {
+      await admin.from("blog_aprovacoes").delete().match({ blog: post.blog, idioma: post.idioma, slug: post.slug, status: "pendente" });
+    }
+    return { status: 502, corpo: { erro: "E-mail não enviado." } };
+  }
+  return { status: 200, corpo: { ok: true, enviados: itens.length } };
 }

@@ -19,7 +19,15 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-type Linha = { blog: string; idioma: string; slug: string; status: string; expira_em: string; decidido_em: string | null };
+type Linha = {
+  blog: string;
+  idioma: string;
+  slug: string;
+  status: string;
+  expira_em: string;
+  decidido_em: string | null;
+  observacao: string | null;
+};
 
 const MENSAGENS: Record<string, { texto: string; cor: string }> = {
   aprovar: { texto: "Aprovado! O post entra no site em cerca de 2 minutos.", cor: "bg-emerald-50 text-emerald-900 border-emerald-200" },
@@ -28,6 +36,11 @@ const MENSAGENS: Record<string, { texto: string; cor: string }> = {
     cor: "bg-emerald-50 text-emerald-900 border-emerald-200",
   },
   recusar: { texto: "Recusado. Este post não será publicado.", cor: "bg-[#f4f3ef] text-[#111114] border-[#d6d4cd]" },
+  ajustar: {
+    texto: "Pedido de ajuste recebido. Vou corrigir e te mando a nova versão por e-mail em algumas horas.",
+    cor: "bg-[#eef1fe] text-[#1b2c8f] border-[#c9d1fb]",
+  },
+  "sem-obs": { texto: "Para pedir ajustes, escreva no campo o que você quer mudar.", cor: "bg-amber-50 text-amber-900 border-amber-200" },
   invalido: { texto: "Este link já foi usado ou expirou. Nada foi alterado.", cor: "bg-amber-50 text-amber-900 border-amber-200" },
 };
 
@@ -55,7 +68,7 @@ export default async function Pagina({ searchParams }: PageProps<"/revisao-blog"
   if (!admin) return <Aviso>Banco não configurado.</Aviso>;
   const { data } = await admin
     .from("blog_aprovacoes")
-    .select("blog, idioma, slug, status, expira_em, decidido_em")
+    .select("blog, idioma, slug, status, expira_em, decidido_em, observacao")
     .eq("token_hash", hashToken(t))
     .maybeSingle<Linha>();
   if (!data || !BLOGS.includes(data.blog as Blog) || !ehIdioma(data.idioma)) return <Aviso>Link inválido.</Aviso>;
@@ -83,6 +96,16 @@ export default async function Pagina({ searchParams }: PageProps<"/revisao-blog"
         {!resultado && data.status === "recusado" && (
           <p className="mb-8 max-w-[46rem] rounded-xl border border-[#d6d4cd] bg-[#f4f3ef] px-5 py-4 text-sm">Este post foi recusado.</p>
         )}
+        {!resultado && data.status === "ajuste" && (
+          <p className="mb-8 max-w-[46rem] rounded-xl border border-[#c9d1fb] bg-[#eef1fe] px-5 py-4 text-sm text-[#1b2c8f]">
+            Ajuste pedido. A versão corrigida vai chegar num novo e-mail.
+          </p>
+        )}
+        {data.observacao && data.status !== "pendente" && (
+          <p className="mb-8 max-w-[46rem] whitespace-pre-line rounded-xl border border-[#d6d4cd] px-5 py-4 text-sm text-[#4b4b53]">
+            <span className="font-medium text-[#111114]">Suas observações:</span> {data.observacao}
+          </p>
+        )}
         {!resultado && data.status === "pendente" && expirado && (
           <p className="mb-8 max-w-[46rem] rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
             O prazo para aprovar este post acabou.
@@ -99,24 +122,54 @@ export default async function Pagina({ searchParams }: PageProps<"/revisao-blog"
           <div lang={post.idioma} className="studio-artigo mt-10" dangerouslySetInnerHTML={{ __html: post.html }} />
         </article>
 
-        {pendente && !resultado && (
-          <div className="sticky bottom-4 mt-12 flex max-w-[46rem] flex-wrap gap-3 rounded-2xl border border-[#d6d4cd] bg-white/95 p-4 shadow-lg backdrop-blur">
-            <form action="/api/blog/revisao" method="post">
-              <input type="hidden" name="t" value={t} />
-              <input type="hidden" name="acao" value="aprovar" />
-              <button type="submit" className="rounded-full bg-[#2442e5] px-6 py-3 text-sm font-medium text-white hover:bg-[#1b34c0]">
+        {pendente && (!resultado || r === "sem-obs") && (
+          <form
+            action="/api/blog/revisao"
+            method="post"
+            className="sticky bottom-4 mt-12 max-w-[46rem] rounded-2xl border border-[#d6d4cd] bg-white/95 p-4 shadow-lg backdrop-blur"
+          >
+            <input type="hidden" name="t" value={t} />
+            <label htmlFor="obs" className="mb-2 block text-sm font-medium text-[#111114]">
+              Observações <span className="font-normal text-[#5e5e66]">(obrigatório para pedir ajustes)</span>
+            </label>
+            <textarea
+              id="obs"
+              name="obs"
+              rows={3}
+              maxLength={2000}
+              placeholder="Ex.: troque o título, deixe a abertura mais curta, use um exemplo de indústria…"
+              className="mb-3 w-full resize-y rounded-xl border border-[#d6d4cd] px-3 py-2 text-sm text-[#111114] outline-none focus:border-[#2442e5]"
+            />
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                name="acao"
+                value="aprovar"
+                className="rounded-full bg-[#2442e5] px-6 py-3 text-sm font-medium text-white hover:bg-[#1b34c0]"
+              >
                 Aprovar e publicar
               </button>
-            </form>
-            <form action="/api/blog/revisao" method="post">
-              <input type="hidden" name="t" value={t} />
-              <input type="hidden" name="acao" value="recusar" />
-              <button type="submit" className="rounded-full border border-[#d6d4cd] px-6 py-3 text-sm font-medium text-[#111114] hover:bg-[#f4f3ef]">
+              <button
+                type="submit"
+                name="acao"
+                value="ajustar"
+                className="rounded-full border border-[#2442e5] px-6 py-3 text-sm font-medium text-[#2442e5] hover:bg-[#eef1fe]"
+              >
+                Pedir ajustes
+              </button>
+              <button
+                type="submit"
+                name="acao"
+                value="recusar"
+                className="rounded-full border border-[#d6d4cd] px-6 py-3 text-sm font-medium text-[#111114] hover:bg-[#f4f3ef]"
+              >
                 Recusar
               </button>
-            </form>
-            <p className="basis-full text-xs text-[#5e5e66]">Quer um ajuste no texto? Recuse e me peça a mudança no chat.</p>
-          </div>
+            </div>
+            <p className="mt-3 text-xs text-[#5e5e66]">
+              Pedir ajustes: eu corrijo e te mando a nova versão por e-mail. As observações também me ajudam a acertar o tom nos próximos posts.
+            </p>
+          </form>
         )}
       </main>
     </Envelope>
