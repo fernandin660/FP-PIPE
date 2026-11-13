@@ -2,6 +2,7 @@
 titulo: Na era digital, a prospecção porta a porta ainda funciona?
 descricao: Funciona, e muito, para quem vende a pequenas e médias empresas locais. Mas só quando é preparada. Veja como escolher quem visitar, o que levar, o que falar e como não perder o contato depois.
 data: 2026-11-13
+atualizado: 2026-11-13
 autor: fernando
 categoria: Prospecção B2B
 traducao: porta-a-porta-ainda-funciona
@@ -18,7 +19,7 @@ O porta a porta rende mais quando:
 
 - o cliente tem **endereço aberto ao público** (comércio, clínica, oficina, restaurante);
 - quem decide **costuma estar no local**;
-- o que você vende fica mais fácil de entender **mostrando** (um site, um equipamento, um serviço com resultado visível);
+- o que você vende fica mais fácil de entender **mostrando** (uma máquina de café, um equipamento de limpeza, um serviço com resultado visível);
 - o valor do negócio justifica o tempo de deslocamento.
 
 Para empresas sem atendimento ao público, a lógica muda: a "porta" vira uma ligação para agendar, e a visita acontece com hora marcada.
@@ -27,7 +28,7 @@ Para empresas sem atendimento ao público, a lógica muda: a "porta" vira uma li
 
 Sair andando pela rua e entrar em tudo é o caminho mais rápido para desistir do método. Antes, monte uma lista:
 
-- **Perfil certo**: empresas que têm o problema que você resolve. Quem vende site procura negócios sem site ou com site fraco; quem vende sistema de gestão procura quem ainda faz tudo no papel.
+- **Perfil certo**: empresas que têm o problema que você resolve. Quem vende máquinas de café profissionais procura cafeterias e padarias com movimento e equipamento antigo; quem vende sistema de gestão procura quem ainda faz tudo no papel.
 - **Sinais de que o negócio vai bem**: boas avaliações, movimento, tempo de mercado. Empresa que vai bem tem dinheiro e tem algo a proteger.
 - **Rota inteligente**: agrupe as visitas por bairro ou rua para fazer mais conversas em menos tempo.
 
@@ -46,8 +47,8 @@ Dois cuidados:
 
 Ninguém quer ouvir uma apresentação genérica. Antes de cada visita, anote **uma coisa concreta** sobre aquele negócio:
 
-- "Vi que vocês têm ótimas avaliações, mas quem procura no Google não acha horário nem cardápio."
-- "Reparei que os pedidos chegam só por um aplicativo que cobra comissão."
+- "Vi que a fila do café da manhã chega até a calçada. Uma segunda máquina poderia atender bem mais rápido."
+- "Reparei que as comandas ainda são anotadas no papel e passadas à mão para a cozinha."
 
 Uma frase assim mostra que você estudou o cliente e abre a conversa pelo problema dele, não pelo seu produto.
 
