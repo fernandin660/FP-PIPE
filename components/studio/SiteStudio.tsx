@@ -5,6 +5,7 @@ import FormularioContato from "./FormularioContato";
 import Projetos from "./Projetos";
 import BannerCookies, { BotaoGerenciarCookies } from "./BannerCookies";
 import { BarraTopo, CursorStudio, Revelar } from "./Interacoes";
+import { caminhoBlog, listarPosts } from "../../lib/blog";
 import { caminhoPlataforma, CONTATO, DPO, IDIOMAS, caminhoIdioma, type Dicionario, type Idioma } from "./dicionario";
 
 export function SeletorIdioma({
@@ -56,6 +57,8 @@ function Selo({ children }: { children: React.ReactNode }) {
 
 export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
   const sms = `sms:${CONTATO.telefone}?&body=${encodeURIComponent(dic.contato.smsTexto)}`;
+  // O link do blog só aparece quando há artigo visível neste ambiente.
+  const temBlog = listarPosts("sites", idioma).length > 0;
   const links = [
     { href: "#services", texto: dic.nav.servicos },
     { href: "#methode", texto: dic.nav.metodo },
@@ -78,6 +81,11 @@ export default function SiteStudio({ dic, idioma }: { dic: Dicionario; idioma: I
                 {l.texto}
               </a>
             ))}
+            {temBlog && (
+              <Link href={caminhoBlog("sites", idioma)} className="studio-link-nav">
+                Blog
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-3">
             <SeletorIdioma idioma={idioma} rotulo={dic.nav.idioma} />
@@ -267,6 +275,11 @@ export function Rodape({ dic, idioma }: { dic: Dicionario; idioma: Idioma }) {
             <a href={CONTATO.instagram} target="_blank" rel="noopener noreferrer" className="studio-link-nav">
               {dic.contato.instagram} <span aria-hidden="true">↗</span>
             </a>
+          )}
+          {listarPosts("sites", idioma).length > 0 && (
+            <Link href={caminhoBlog("sites", idioma)} className="studio-link-nav">
+              Blog
+            </Link>
           )}
           {CONTATO.linkedin && (
             <a href={CONTATO.linkedin} target="_blank" rel="noopener noreferrer" className="studio-link-nav">

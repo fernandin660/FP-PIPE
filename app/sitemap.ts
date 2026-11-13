@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { ORIGEM_SITE } from "../lib/seo";
+import { BLOGS, caminhoBlog, todosPublicados, type Post } from "../lib/blog";
+import { IDIOMAS } from "../components/studio/dicionario";
 
 /*
  * Mapa do site para o Google e o Bing: só páginas públicas. Telas do sistema
@@ -49,5 +51,39 @@ export default function sitemap(): MetadataRoute.Sitemap {
       "yearly"
     ),
     { url: url("/termos"), changeFrequency: "yearly", priority: 0.2 },
+    ...entradasBlog(),
   ];
+}
+
+const LANG: Record<string, string> = { pt: "pt-BR", fr: "fr", en: "en", es: "es" };
+
+/** Índices dos blogs (só idiomas com artigo publicado) e cada artigo publicado — rascunhos nunca entram. */
+function entradasBlog(): Entrada[] {
+  const publicados = todosPublicados();
+  const out: Entrada[] = [];
+  for (const blog of BLOGS) {
+    const idiomas = IDIOMAS.filter((l) => publicados.some((p) => p.blog === blog && p.idioma === l));
+    const languages = Object.fromEntries(idiomas.map((l) => [LANG[l], url(caminhoBlog(blog, l))]));
+    for (const l of idiomas) {
+      out.push({ url: url(caminhoBlog(blog, l)), changeFrequency: "weekly", priority: 0.6, alternates: { languages } });
+    }
+  }
+  const grupos = new Map<string, Post[]>();
+  for (const p of publicados) {
+    const k = `${p.blog}:${p.traducao}`;
+    grupos.set(k, [...(grupos.get(k) ?? []), p]);
+  }
+  for (const grupo of grupos.values()) {
+    const languages = Object.fromEntries(grupo.map((p) => [LANG[p.idioma], url(caminhoBlog(p.blog, p.idioma, p.slug))]));
+    for (const p of grupo) {
+      out.push({
+        url: url(caminhoBlog(p.blog, p.idioma, p.slug)),
+        lastModified: p.atualizado ?? p.data,
+        changeFrequency: "monthly",
+        priority: 0.6,
+        alternates: { languages },
+      });
+    }
+  }
+  return out;
 }

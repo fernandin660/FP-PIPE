@@ -7,6 +7,7 @@ import AvatarConsultor from "../AvatarConsultor";
 import { DEFINICAO_PLANOS } from "../../lib/planos";
 import { formatarPreco, precoInternacional, type PlanoInternacional } from "../../lib/precos-internacionais";
 import { TEXTOS_PLATAFORMA, type TextosPlataforma } from "./textos";
+import { caminhoBlog, listarPosts } from "../../lib/blog";
 
 export type ChaveNacional = "silver" | "gold" | "platinum";
 export const ORDEM: ChaveNacional[] = ["silver", "gold", "platinum"];
@@ -66,6 +67,9 @@ export default function LandingPlataforma({ idioma }: { idioma: Idioma }) {
             <a href="#planos" className="studio-link-nav">{t.nav.planos}</a>
             <a href="#perguntas" className="studio-link-nav">{t.nav.perguntas}</a>
             <Link href={caminhoIdioma(idioma)} className="studio-link-nav">{t.nav.sites}</Link>
+            {listarPosts("prospeccao", idioma).length > 0 && (
+              <Link href={caminhoBlog("prospeccao", idioma)} className="studio-link-nav">Blog</Link>
+            )}
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden lg:block">
@@ -293,6 +297,9 @@ export default function LandingPlataforma({ idioma }: { idioma: Idioma }) {
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <Link href={caminhoIdioma(idioma)} className="studio-link-nav">{t.nav.sites}</Link>
             <a href="#planos" className="studio-link-nav">{t.nav.planos}</a>
+            {listarPosts("prospeccao", idioma).length > 0 && (
+              <Link href={caminhoBlog("prospeccao", idioma)} className="studio-link-nav">Blog</Link>
+            )}
             <Link href="/login" className="studio-link-nav">{t.nav.entrar}</Link>
             <Link href="/termos" className="studio-link-nav">{t.rodape.termos}</Link>
             <Link href="/privacidade" className="studio-link-nav">{t.rodape.privacidade}</Link>
