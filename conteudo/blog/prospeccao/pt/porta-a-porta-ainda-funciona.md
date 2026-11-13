@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Prospecção B2B
 traducao: porta-a-porta-ainda-funciona
-status: rascunho
+status: publicado
 ---
 
 Com e-mail, LinkedIn, WhatsApp e anúncios, bater na porta de um cliente parece coisa do passado. Na prática, para quem vende a comércios e pequenas empresas, a visita presencial continua sendo uma das formas mais eficientes de abrir uma conversa. O motivo é simples: o dono de uma loja recebe dezenas de mensagens por dia e ignora quase todas, mas raramente ignora alguém educado que entrou, foi direto ao ponto e respeitou o tempo dele.

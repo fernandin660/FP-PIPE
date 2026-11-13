@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Sites e Google
 traducao: site-aparecer-no-google
-status: rascunho
+status: publicado
 ---
 
 Muitas empresas colocam o site no ar e esperam os clientes chegarem. Semanas depois, procuram o próprio nome no Google e não encontram nada. Não é azar: o Google precisa de alguns sinais para descobrir, entender e confiar em um site. A boa notícia é que a maioria deles está ao alcance de qualquer pequena empresa.
