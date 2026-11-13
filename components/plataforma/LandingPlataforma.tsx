@@ -8,11 +8,11 @@ import { DEFINICAO_PLANOS } from "../../lib/planos";
 import { formatarPreco, precoInternacional, type PlanoInternacional } from "../../lib/precos-internacionais";
 import { TEXTOS_PLATAFORMA, type TextosPlataforma } from "./textos";
 
-type ChaveNacional = "silver" | "gold" | "platinum";
-const ORDEM: ChaveNacional[] = ["silver", "gold", "platinum"];
+export type ChaveNacional = "silver" | "gold" | "platinum";
+export const ORDEM: ChaveNacional[] = ["silver", "gold", "platinum"];
 
 /** Preço exibido de cada plano: reais (nacional) ou euro/dólar (internacional, +10%). */
-function precos(chave: ChaveNacional, t: TextosPlataforma) {
+export function precos(chave: ChaveNacional, t: TextosPlataforma) {
   if (t.moeda === "BRL") {
     const def = DEFINICAO_PLANOS[chave];
     return { mensal: def.precoMensal, anualPorMes: def.precoAnualPorMes };

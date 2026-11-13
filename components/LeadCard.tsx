@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { formatarCnpj } from "../lib/conhecimento-cnae";
 
-import type { LeadCrm, EmpresaCrm } from "../app/crm/page";
+import type { LeadCrm, EmpresaCrm } from "../app/(pt)/crm/page";
 
 const ROTULO_EVENTO: Record<string, string> = {
   lead_adicionado: "Adicionado ao pipeline",

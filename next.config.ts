@@ -14,8 +14,18 @@ const cabecalhosSeguranca = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
 ];
 
+// Áreas que só existem para quem está logado.
+const ROTAS_INTERNAS = [
+  "admin", "auth", "buscador", "creditos", "crm", "disparos", "equipe", "hoje",
+  "listas", "login", "metricas", "modelos", "produtos", "prospeccao",
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // O app tem dois layouts raiz ((pt) e [lang]); o 404 global cobre os dois.
+    globalNotFound: true,
+  },
   images: {
     // Fotos dos projetos do site do estúdio, servidas via /_next/image
     // (o visitante não se conecta direto a esses domínios — melhor p/ RGPD).
@@ -25,7 +35,21 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/(.*)", headers: cabecalhosSeguranca }];
+    return [
+      { source: "/(.*)", headers: cabecalhosSeguranca },
+      // Respostas da API nunca devem ir para o índice de buscadores.
+      { source: "/api/(.*)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // Telas do sistema (precisam de login): fora do Google. Usamos o
+      // cabeçalho em vez de listar no robots.txt para não expor o mapa do app.
+      ...ROTAS_INTERNAS.map((rota) => ({
+        source: `/${rota}/:caminho*`,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      })),
+      ...ROTAS_INTERNAS.map((rota) => ({
+        source: `/${rota}`,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      })),
+    ];
   },
 };
 
