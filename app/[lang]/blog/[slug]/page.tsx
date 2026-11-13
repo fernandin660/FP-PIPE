@@ -6,9 +6,10 @@ import { caminhoBlog, listarPosts } from "../../../../lib/blog";
 
 export const dynamicParams = false;
 
-export function generateStaticParams({ params }: { params: { lang: string } }) {
-  if (!ehIdioma(params.lang) || params.lang === "pt") return [];
-  return listarPosts("sites", params.lang).map((p) => ({ slug: p.slug }));
+export function generateStaticParams() {
+  return (["fr", "en", "es"] as const).flatMap((lang) =>
+    listarPosts("sites", lang).map((p) => ({ lang, slug: p.slug })),
+  );
 }
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/blog/[slug]">): Promise<Metadata> {
