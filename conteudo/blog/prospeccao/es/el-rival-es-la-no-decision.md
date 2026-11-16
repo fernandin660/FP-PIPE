@@ -5,7 +5,7 @@ data: 2026-11-16
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261116-es-no-decision
-status: aguardando
+status: publicado
 ---
 
 Muchos vendedores pierden negocios sin que nadie gane. El cliente no elige a la competencia: simplemente no compra. Un estudio publicado esta semana pone número a ese problema y explica bastante bien por qué ocurre.

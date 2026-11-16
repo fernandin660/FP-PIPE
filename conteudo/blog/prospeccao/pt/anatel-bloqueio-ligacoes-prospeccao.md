@@ -5,7 +5,7 @@ data: 2026-11-16
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261116-pt-chamadas-abusivas
-status: aguardando
+status: publicado
 ---
 
 Desde a última quinta-feira, ligar em massa e desligar rápido pode deixar uma empresa inteira sem telefone por duas semanas. A regra nova da Anatel mira robôs e discadores, mas serve de alerta para qualquer time comercial que ainda mede prospecção pelo número de discagens.
