@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261113-pt-lista-curta
-status: aguardando
+status: publicado
 ---
 
 Muito vendedor acredita que a venda começa na primeira reunião. Uma pesquisa divulgada no Brasil nesta semana sugere o contrário: na maioria das vezes, a decisão já está bem encaminhada quando o comprador chama alguém.

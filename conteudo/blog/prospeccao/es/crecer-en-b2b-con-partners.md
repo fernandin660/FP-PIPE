@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261113-es-canal
-status: aguardando
+status: publicado
 ---
 
 Vender un dispositivo es una transacción. Vender lo que pasa después, la gestión, la seguridad, el soporte, es una relación. Samsung España acaba de explicar cómo quiere usar esa diferencia para crecer con las pequeñas y medianas empresas.

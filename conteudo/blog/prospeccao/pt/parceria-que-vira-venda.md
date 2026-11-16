@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261113-pt-parcerias
-status: aguardando
+status: publicado
 ---
 
 Muita empresa assina parceria, coloca o logo do parceiro no site e espera os clientes aparecerem. Quase nunca acontece. Uma notícia desta semana mostra uma empresa de tecnologia brasileira tentando resolver exatamente esse problema.

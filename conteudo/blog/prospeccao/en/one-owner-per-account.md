@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261113-en-account-owner
-status: aguardando
+status: publicado
 ---
 
 A customer-success software company is rethinking how it charges and who looks after each client. The details say a lot about where B2B selling is heading.

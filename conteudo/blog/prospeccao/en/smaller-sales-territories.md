@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261113-en-territories
-status: aguardando
+status: publicado
 ---
 
 Most sales teams try to grow by adding more accounts per rep. One kitchen supplier in the UK just went the other way: fewer square miles per person, more time per customer.

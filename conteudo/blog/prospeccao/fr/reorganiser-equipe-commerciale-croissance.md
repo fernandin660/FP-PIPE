@@ -5,7 +5,7 @@ data: 2026-11-13
 autor: fernando
 categoria: Prospection B2B
 traducao: noticia-20261113-fr-organisation
-status: aguardando
+status: publicado
 ---
 
 Une bonne année commerciale peut créer ses propres problèmes : des clients moins suivis, des devis qui traînent, des commerciaux débordés. Un distributeur francilien vient de revoir son organisation pour éviter ce piège.
