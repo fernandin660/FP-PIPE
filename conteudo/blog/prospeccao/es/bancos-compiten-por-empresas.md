@@ -5,7 +5,7 @@ data: 2026-11-18
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261118-es-segmentacion
-status: aguardando
+status: publicado
 ---
 
 Cuando un mercado se vuelve competido, gana quien sabe exactamente a quién le vende. La banca española lo está demostrando con sus clientes empresa.

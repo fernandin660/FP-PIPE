@@ -5,7 +5,7 @@ data: 2026-11-18
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261118-pt-exportacao
-status: aguardando
+status: publicado
 ---
 
 Quando o mercado interno esfria, os clientes não param de comprar: eles mudam de prioridade. Uma pesquisa divulgada em Portugal na semana passada mostra isso com clareza.

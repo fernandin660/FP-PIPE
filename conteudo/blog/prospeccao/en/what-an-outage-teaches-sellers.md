@@ -5,7 +5,7 @@ data: 2026-11-18
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261118-en-outage
-status: aguardando
+status: publicado
 ---
 
 Every supplier eventually has a bad day. What customers remember is how you handled it, and last week gave a very public example.

@@ -5,7 +5,7 @@ data: 2026-11-18
 autor: fernando
 categoria: Prospection B2B
 traducao: noticia-20261118-fr-consentement
-status: aguardando
+status: publicado
 ---
 
 Un fichier de prospects mal acquis peut coûter plus cher qu'il ne rapporte. La dernière vague de sanctions de la CNIL le rappelle de façon très concrète.
