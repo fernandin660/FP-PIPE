@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AvatarConsultor from "../../../components/AvatarConsultor";
+import { PAGAMENTO_ONLINE_ATIVO, WHATSAPP_VENDAS } from "../../../lib/pagamentos";
 import {
   IconeEstrela,
   IconeGrafico,
@@ -199,6 +200,9 @@ function CartaoPlano({
   ehAdmin: boolean;
 }) {
   const preco = ciclo === "mensal" ? plano.precoMensal : plano.precoAnual;
+  const linkWhatsapp = `https://wa.me/${WHATSAPP_VENDAS}?text=${encodeURIComponent(
+    `Olá! Quero assinar o plano ${plano.nome} (${ciclo === "mensal" ? "mensal" : "anual"}) do FP Pipe.`
+  )}`;
 
   return (
     <div
@@ -245,7 +249,20 @@ function CartaoPlano({
         ))}
       </ul>
 
-      {ehAdmin ? (
+      {!PAGAMENTO_ONLINE_ATIVO ? (
+        <a
+          href={linkWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-7 block w-full text-center font-semibold rounded-lg py-3 transition ${
+            plano.destaques
+              ? "bg-pipe-lime text-white hover:opacity-90"
+              : "border border-pipe-border text-pipe-ink hover:border-pipe-blue"
+          }`}
+        >
+          Assinar pelo WhatsApp
+        </a>
+      ) : ehAdmin ? (
         <button
           onClick={() => aoAssinar(plano.chave)}
           disabled={carregando !== null}
@@ -264,9 +281,11 @@ function CartaoPlano({
       )}
 
       <p className="text-pipe-muted text-[11px] text-center mt-2">
-        {ciclo === "mensal"
-          ? "Somente cartão de crédito"
-          : "Cartão de crédito ou Pix"}
+        {!PAGAMENTO_ONLINE_ATIVO
+          ? "Atendimento direto com a nossa equipe"
+          : ciclo === "mensal"
+            ? "Somente cartão de crédito"
+            : "Cartão de crédito ou Pix"}
       </p>
     </div>
   );
@@ -439,7 +458,11 @@ export default function Planos() {
           </button>
         </div>
 
-        {ciclo === "anual" ? (
+        {!PAGAMENTO_ONLINE_ATIVO ? (
+          <p className="text-pipe-muted text-xs mt-3">
+            Para assinar, fale com a nossa equipe pelo WhatsApp · sem fidelidade
+          </p>
+        ) : ciclo === "anual" ? (
           <p className="text-pipe-muted text-xs mt-3">
             Cartão de crédito ou Pix · cobrança única por ano · sem renovação
             automática

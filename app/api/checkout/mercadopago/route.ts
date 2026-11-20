@@ -9,8 +9,16 @@ import {
 } from "../../../../lib/planos";
 import { exigirAcesso } from "../../../../lib/gate";
 import { exigirRateLimit } from "../../../../lib/rate-limit";
+import { PAGAMENTO_ONLINE_ATIVO } from "../../../../lib/pagamentos";
 
 export async function POST(req: Request) {
+  if (!PAGAMENTO_ONLINE_ATIVO) {
+    return NextResponse.json(
+      { erro: "O pagamento online está temporariamente indisponível. Fale com a gente pelo WhatsApp para assinar." },
+      { status: 503 }
+    );
+  }
+
   const bloqueado = await exigirRateLimit(req, "checkout", 5, 60);
   if (bloqueado) return bloqueado;
 
