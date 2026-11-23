@@ -5,7 +5,7 @@ data: 2026-11-23
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261123-es-datos
-status: aguardando
+status: publicado
 ---
 
 Cuando una regla se aplaza, la tentación es olvidarla hasta el último mes. En prospección B2B eso suele salir caro: las bases de contactos se construyen durante años y no se limpian en una semana.

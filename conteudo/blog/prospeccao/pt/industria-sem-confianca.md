@@ -5,7 +5,7 @@ data: 2026-11-20
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261120-pt-confianca
-status: aguardando
+status: publicado
 ---
 
 Quem vende para a indústria sentiu nas últimas semanas: reuniões adiadas, propostas paradas, "vamos ver isso no ano que vem". Agora há um número que explica esse clima, e ele ajuda a decidir o que fazer com o seu funil.

@@ -5,7 +5,7 @@ data: 2026-11-20
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261120-es-precio
-status: aguardando
+status: publicado
 ---
 
 Cobrar el precio más alto del mercado parece una victoria hasta que el cliente deja de comprar. La minera estatal chilena Codelco acaba de recordarlo con una decisión que cualquier equipo comercial B2B puede analizar.

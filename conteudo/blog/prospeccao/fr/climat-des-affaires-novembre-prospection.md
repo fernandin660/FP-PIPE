@@ -5,7 +5,7 @@ data: 2026-11-23
 autor: fernando
 categoria: Prospection B2B
 traducao: noticia-20261123-fr-conjoncture
-status: aguardando
+status: publicado
 ---
 
 Quand le moral des chefs d'entreprise baisse, les agendas se remplissent de « on en reparle en janvier ». Les derniers chiffres de l'Insee confirment ce ressenti, et ils donnent aussi des indices utiles sur où et comment prospecter dans les semaines qui viennent.

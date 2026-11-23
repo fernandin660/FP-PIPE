@@ -5,7 +5,7 @@ data: 2026-11-23
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261123-pt-intermediarios
-status: aguardando
+status: publicado
 ---
 
 Cada vez que um lead troca de mãos, alguma coisa se perde: contexto, tempo ou vontade de comprar. Uma decisão recente da Omie, empresa brasileira de software de gestão para pequenas e médias empresas, mostra até onde uma empresa pode ir para encurtar esse caminho.

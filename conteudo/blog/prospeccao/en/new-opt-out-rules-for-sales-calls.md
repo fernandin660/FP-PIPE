@@ -5,7 +5,7 @@ data: 2026-11-23
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261123-en-optout
-status: aguardando
+status: publicado
 ---
 
 A prospect who replies "stop" is giving you information, not just a complaint. From this week, US rules on how that information must be handled are changing, and sales teams that call or text should check their process before the deadline.
