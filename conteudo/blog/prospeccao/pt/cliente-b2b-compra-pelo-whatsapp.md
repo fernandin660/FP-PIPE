@@ -5,7 +5,7 @@ data: 2026-11-25
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261125-pt-whatsapp
-status: aguardando
+status: publicado
 ---
 
 Muita equipe comercial ainda trata o WhatsApp como um canal "informal", bom para tirar dúvida rápida, mas não para fechar negócio com empresa. Um teste recente de uma grande varejista de tecnologia mostra que o comprador empresarial já pensa diferente, e que ele não espera o horário comercial para decidir.

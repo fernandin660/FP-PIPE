@@ -5,7 +5,7 @@ data: 2026-11-25
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261125-es-adquisicion
-status: aguardando
+status: publicado
 ---
 
 En B2B solemos pensar en la prospección como una búsqueda hacia fuera: nuevas listas, nuevos sectores, nuevas puertas. Una operación industrial anunciada esta semana en España recuerda que, a veces, la relación más valiosa ya está dentro de la empresa, y que cuidarla durante años puede abrir mercados enteros.

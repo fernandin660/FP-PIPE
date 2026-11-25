@@ -5,7 +5,7 @@ data: 2026-11-25
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261125-en-pricing
-status: aguardando
+status: publicado
 ---
 
 A signed contract usually feels like the end of the price conversation. This week's reports from the AI server market show that, when costs move fast enough, it can become the start of a much harder one, and how a seller handles that moment decides whether the account survives it.

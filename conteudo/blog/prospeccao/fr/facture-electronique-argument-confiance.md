@@ -5,7 +5,7 @@ data: 2026-11-25
 autor: fernando
 categoria: Prospection B2B
 traducao: noticia-20261125-fr-facturation
-status: aguardando
+status: publicado
 ---
 
 Depuis le 1er septembre, la réforme de la facturation électronique change le quotidien des services comptables en France. Pour un commercial, cela peut sembler un sujet de back-office. Une étude publiée cette semaine montre pourtant qu'il touche directement à ce que l'acheteur attend de ses fournisseurs : de la fiabilité et de la confiance.
