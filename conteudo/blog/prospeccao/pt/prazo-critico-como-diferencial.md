@@ -5,7 +5,7 @@ data: 2026-11-27
 autor: fernando
 categoria: Prospecção B2B
 traducao: noticia-20261127-pt-urgencia
-status: aguardando
+status: publicado
 ---
 
 Todo vendedor B2B já ouviu a frase "seu concorrente faz mais barato". Num mercado em que todo mundo entrega mais ou menos a mesma coisa, a conversa vira leilão e a margem some. Uma empresa portuguesa de logística mostrou esta semana outro caminho: em vez de brigar só no preço, ela criou uma oferta para o momento em que o cliente não pode esperar.

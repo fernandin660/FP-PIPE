@@ -5,7 +5,7 @@ data: 2026-11-27
 autor: fernando
 categoria: Prospection B2B
 traducao: noticia-20261127-fr-cybersecurite
-status: aguardando
+status: publicado
 ---
 
 Un commercial peut avoir le bon produit, le bon prix et un excellent contact chez le client, et pourtant perdre l'affaire sans jamais savoir pourquoi. De plus en plus souvent, la réponse se trouve dans un questionnaire de sécurité rempli trop tard ou mal. Une étude publiée cette semaine donne des chiffres à ce phénomène.

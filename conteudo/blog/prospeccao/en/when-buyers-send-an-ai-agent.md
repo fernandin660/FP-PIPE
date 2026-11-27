@@ -5,7 +5,7 @@ data: 2026-11-27
 autor: fernando
 categoria: B2B prospecting
 traducao: noticia-20261127-en-ai-agents
-status: aguardando
+status: publicado
 ---
 
 Most sales teams still picture the buyer as a person reading a website, downloading a brochure or replying to an email. A negotiation reported this week between two of the largest companies in the world suggests that, more and more often, the first visitor may be software acting on the buyer's behalf, and that sellers are already arguing over who controls that moment.

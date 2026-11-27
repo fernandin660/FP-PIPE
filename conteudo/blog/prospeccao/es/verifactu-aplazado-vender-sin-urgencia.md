@@ -5,7 +5,7 @@ data: 2026-11-27
 autor: fernando
 categoria: Prospección B2B
 traducao: noticia-20261127-es-verifactu
-status: aguardando
+status: publicado
 ---
 
 Muchas ventas B2B se apoyan en una fecha: "tienes que estar listo antes de enero". Funciona mientras la fecha existe. Esta semana, en España, miles de equipos comerciales que vendían software, asesoría o servicios ligados a una obligación fiscal vieron cómo esa fecha se movía casi dos años. Lo que hagan ahora dice mucho de cómo se vende con plazos.
